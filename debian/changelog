@@ -1,3 +1,10 @@
+mdadm (2.5.2-5) experimental; urgency=low
+
+  * Remove the check for the lvm prereq in the initramfs hook, as #369617 is
+    now fixed. Thus conflicts against initramfs-tools (<< 0.65).
+
+ -- martin f. krafft <madduck@debian.org>  Sun,  9 Jul 2006 00:44:48 +0200
+
 mdadm (2.5.2-4) experimental; urgency=low
 
   * The "it takes two to swing" release.
