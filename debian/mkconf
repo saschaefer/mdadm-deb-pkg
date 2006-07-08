@@ -1,0 +1,30 @@
+#!/bin/sh -eu
+#
+# mkconf -- outputs valid mdadm.conf contents for the local system
+#
+# Copyright © 2006 martin f. krafft <madduck@madduck.net>
+# distributed under the terms of the Artistic Licence.
+#
+
+MDADM=/sbin/mdadm
+DEBIANCONFIG=/etc/default/mdadm
+
+test -f $DEBIANCONFIG && . $DEBIANCONFIG
+
+if [ -r /proc/partitions ]; then
+  echo DEVICE partitions
+else
+  echo E: cannot read /proc/partitions and thus cannot do my magic. >&2
+  exit 1
+fi
+
+echo CREATE owner=root group=disk mode=0660 auto=yes metadata=1
+
+if [ ! -r /proc/mdstat ]; then
+  echo W: RAID subsystem is not loaded, thus I cannot scan for arrays. >&2
+else
+  # || : is workaround for #367901
+  $MDADM --examine --scan --config=partitions || :
+fi
+
+exit 0

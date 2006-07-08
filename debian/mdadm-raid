@@ -1,0 +1,214 @@
+#!/bin/sh -eu
+#
+# Start all arrays specified in the configuration file.
+#
+# Copyright © 2001-2005 Mario Jou/3en <joussen@debian.org>
+# Copyright © 2005-2006 Martin F. Krafft <madduck@debian.org>
+# Distributable under the terms of the GNU GPL version 2.
+
+MDADM=/sbin/mdadm
+CONFIG=/etc/mdadm/mdadm.conf
+ALTCONFIG=/etc/mdadm.conf
+DEBIANCONFIG=/etc/default/mdadm
+RUNDIR=/var/run/mdadm
+AUTOSTARTED_DEVICES=$RUNDIR/autostarted-devices
+
+test -x $MDADM || exit 0
+
+AUTOSTART=true
+test -f $DEBIANCONFIG && . $DEBIANCONFIG
+
+. /lib/lsb/init-functions
+
+short_dev()
+{
+  local dev=${1##*/}
+  case "$dev" in
+    md*|md_*|mdp*|mdp_*) echo "$dev";;
+    *) echo "md${dev}";;
+  esac
+}
+
+log()
+{
+  case "$1" in
+    [[:digit:]]*) success=$1; shift;;
+    *) :;;
+  esac
+  log_action_begin_msg "$1"; shift
+  log_action_end_msg ${success:-0} "$*"
+}
+
+log_dev()
+{
+  success=${1:-}; shift
+  dev=${1:-}; shift
+  log $success "${PREFIX:-} $(short_dev ${dev:-})" "$*"
+}
+
+log_notice()
+{
+  log 0 "${PREFIX:-}s" "$*"
+}
+
+log_problem()
+{
+  log 1 "${PREFIX:-}s" "$*"
+}
+
+is_true()
+{
+  case "${1:-}" in
+    [Yy]es|[Yy]|1|[Tt]rue|[Tt]) return 0;;
+    *) return 1;
+  esac
+}
+
+case "${1:-}" in
+  start)
+    PREFIX="Assembling RAID array"
+
+    if is_true $AUTOSTART; then
+      if [ ! -f /proc/mdstat ] && [ -x $(command -v modprobe) ] ; then
+        modprobe -k md >/dev/null 2>&1  
+      fi
+      if [ ! -f /proc/mdstat ]; then
+        log_problem "failed to load RAID subsystem"
+        exit 0
+      fi
+
+      if [ -f $CONFIG ] || [ -f $ALTCONFIG ]; then
+        mkdir -p $RUNDIR
+
+        # ugly hack because shell sucks
+        IFSOLD=${IFS:-}
+        IFS='
+'
+        for line in $($MDADM --assemble --scan --auto=yes 2>&1); do
+          IFS=$IFSOLD
+          set -- $line
+          shift
+
+          case "$@" in
+
+            'No arrays found in config file')
+              # no point in carrying on.
+              shift
+              log_problem "no $*"
+              exit 0
+              ;;
+
+            'Unknown keyword'*)
+              # warn only
+              if [ -x $(command -v logger >/dev/null) ]; then
+                logger -t mdadm -p syslog.warning -- "$*"
+              elif [ -w /dev/console ]; then
+                echo "mdadm: $*" > /dev/console
+              else
+                echo "mdadm: $*" >&2
+              fi
+              ;;
+
+            *' is already active.')
+              log_dev 0 $1 "already running"
+              ;;
+
+            *'has been started with '[[:digit:]]*' drives.')
+              log_dev 0 $1 "started [$6/$6]"
+              echo $1 >> $AUTOSTARTED_DEVICES
+              ;;
+
+            *'has been started with '[[:digit:]]*' drives (out of '[[:digit:]]*').')
+              log_dev 0 $1 "degraded [$6/${10%).}]"
+              echo $1 >> $AUTOSTARTED_DEVICES
+              ;;
+
+            *'assembled from '[[:digit:]]*' drive's#' - not enough to start the array.')
+              log_dev 1 $1 "not enough devices"
+              ;;
+
+            'no devices found for '*)
+              log_dev 1 $5 "no devices found"
+              ;;
+
+            'failed to RUN_ARRAY '*': Input/output error')
+              log_dev 1 ${4%:} "RUN_ARRAY input/output error"
+              ;;
+
+            *) :;;
+          esac
+        done || exit $?
+      else
+        log_problem "no $CONFIG file"
+      fi
+    else
+      log_notice "disabled in $DEBIANCONFIG"
+    fi
+    ;;
+
+  stop)
+    PREFIX="Stopping RAID array"
+
+    if is_true $AUTOSTART; then
+      if [ ! -f /proc/mdstat ]; then
+        log_problem "no RAID subsystem loaded"
+        exit 0
+      fi
+
+      # ugly hack because shell sucks
+      IFSOLD=${IFS:-}
+      IFS='
+'
+      set +e
+      for line in $($MDADM --stop --scan 2>&1); do
+        set -e
+        IFS=$IFSOLD
+        set -- $line
+        shift
+
+        case "$@" in
+
+          'Unknown keyword'*)
+            # warn only
+            if [ -x $(command -v logger >/dev/null) ]; then
+              logger -t mdadm -p syslog.warning -- "$*"
+            elif [ -w /dev/console ]; then
+              echo "mdadm: $*" > /dev/console
+            else
+              echo "mdadm: $*" >&2
+            fi
+            ;;
+
+          'stopped '*)
+            log_dev 0 $2 stopped
+            ;;
+
+          'fail to stop array '*': Device or resource busy')
+            log_dev 1 ${5%:} busy
+            ;;
+
+          *) :;;
+        esac
+      done || exit $?
+    else
+      log_notice "disabled in $DEBIANCONFIG"
+    fi
+    ;;
+
+  restart)
+    ${0:-} stop
+    ${0:-} start
+    ;;
+
+  reload|force-reload)
+    PREFIX="Reloading RAID array"
+    log_notice "never anything to do"
+    ;;
+
+  *)
+    echo "Usage: ${0:-} {start|stop|restart}" >&2
+    exit 1;;
+
+esac
+
+exit 0

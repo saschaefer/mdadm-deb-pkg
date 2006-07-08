@@ -1,0 +1,61 @@
+#!/bin/bash -eu
+#
+# mdadm bug submission control script
+#
+# allows Debian's bug tools to include relevant information in bug reports.
+#
+# Copyright © 2006 martin f. krafft <madduck@debian.org>
+# distributed under the terms of the Artistic Licence.
+#
+# we need /bin/bash for readline capabalities in the prompt(s)
+#
+
+if [ ! -r /proc/mdstat ]; then
+  echo "The local system does not have RAID support (no drivers loaded)."
+  echo "Without RAID support, I cannot collect as much information as I'd like."
+  yesno "Are you sure you want to report a bug at this time? " yep
+
+  [ "$REPLY" = yep ] || exit 0
+fi
+
+echo "--- mount output" >&3
+mount >&3
+echo >&3
+
+echo "--- mdadm.conf" >&3
+if [ -r /etc/mdadm/mdadm.conf ]; then
+  cat /etc/mdadm/mdadm.conf >&3
+else
+  echo no mdadm.conf file. >&3
+fi
+echo >&3
+
+echo "--- /proc/mdstat:" >&3
+cat /proc/mdstat >&3
+echo >&3
+  
+echo "--- /proc/partitions:" >&3
+cat /proc/partitions >&3 2>&3 || true
+echo >&3
+
+echo "--- initrd.img-$(uname -r):" >&3
+if [ -r /boot/initrd.img-$(uname -r) ]; then
+  zcat /boot/initrd.img-$(uname -r) 2>&3 | cpio -t 2>&3 | egrep '/md[a/]' >&3
+fi
+echo >&3
+
+if [ -r /proc/modules ]; then
+  echo "--- /proc/modules:" >&3
+  egrep '(dm_|raid|linear|multipath|faulty)' < /proc/modules >&3
+  echo >&3
+fi
+
+if [ -r /var/log/syslog ]; then
+  echo "--- /var/log/syslog:" >&3
+  egrep "^\w{3} [ :[:digit:]]{11} ($(hostname)|localhost) (kernel: md|mdadm): " /var/log/syslog >&3
+  echo >&3
+fi
+
+echo "--- volume detail:" >&3
+for dev in /dev/[hs]d[a-z]*; do mdadm -E $dev 2>/dev/null && echo --; done >&3
+echo >&3

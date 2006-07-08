@@ -1,0 +1,93 @@
+#!/bin/sh -eu
+#
+# Copyright © 2006 Martin F. Krafft <madduck@debian.org>
+# based on the scripts in the initramfs-tools package.
+# released under the terms of the Artistic Licence.
+#
+
+PREREQ="udev_helper"
+
+prereqs()
+{
+	echo "$PREREQ"
+}
+
+case ${1:-} in
+  prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+. /scripts/functions
+
+if [ -e /scripts/local-top/md ]; then
+  log_failure_msg "old RAID initialisation script found, getting out of its way..."
+  exit 1
+fi
+
+MDADM=$(command -v mdadm)
+[ -x $MDADM ] || exit 0
+
+verbose()
+{
+  case "$quiet" in y*|Y*|1|t*|T*)
+    return 1;;
+  *)
+    return 0;;
+  esac
+}
+
+[ -s /conf/mdadm.conf ] && . /conf/mdadm.conf
+
+mkdir /etc/mdadm
+$MDADM --examine --scan --config=partitions > /etc/mdadm.conf
+
+verbose && log_begin_msg Loading RAID modules
+for module in ${RAID_MODULES:-}; do
+  if modprobe --syslog "$module"; then
+    verbose && log_success_msg "loaded module ${module}."
+  else
+    verbose && log_failure_msg "failed to load module ${module}."
+  fi
+done
+log_end_msg
+
+if [ ! -f /proc/mdstat ]; then
+  verbose && panic "cannot initialise RAID subsystem (/proc/mdstat missing)"
+  exit 1
+fi
+
+if [ ${RAID_DEVS:-all} = all ]; then
+  
+  verbose && log_begin_msg "Assemblinging all RAID arrays"
+  
+  mkdir /dev/md # busybox has devfs compat flag set, so expect /dev/md/X nodes
+  if $MDADM --assemble --config=/etc/mdadm.conf --scan --run --auto=yes; then
+    verbose && log_success_msg "success"
+  else
+    verbose && log_failure_msg "failed"
+  fi
+
+  verbose && log_end_msg
+
+else
+  for dev in ${RAID_DEVS:-}; do
+
+    DEV=${dev%%:*}
+    UUID=${dev#*:}
+
+    verbose && log_begin_msg "Assembling RAID array $DEV ($UUID)"
+
+    if $MDADM --assemble --config=partitions --run --auto=yes --uuid $UUID $DEV; then
+      verbose && log_success_msg "started $DEV ($UUID)"
+    else
+      verbose && log_failure_msg "failed to start $DEV ($UUID)"
+    fi
+
+    verbose && log_end_msg
+
+  done
+fi
+
+exit 0

@@ -1,0 +1,589 @@
+mdadm (2.5.2-4) experimental; urgency=low
+
+  * The "it takes two to swing" release.
+  * Now does not stop arrays on upgrade or remove. Thanks (and sorry) to
+    Christian Pernegger (and hopefully no others).
+  * Fixed small problem in debconf configuration script related to unbound
+    MAIL_TO variable. Thanks to Christian Pernegger.
+
+ -- martin f. krafft <madduck@debian.org>  Fri,  7 Jul 2006 16:59:01 +0200
+
+mdadm (2.5.2-3) experimental; urgency=low
+
+  * The initramfs now gets all RAID modules installed. It's a lot safer to
+    have them all around, the size difference is negligible, and we still only
+    load the needed ones at boot time.
+  * Added /usr/share/mdadm/checkarray, which can be used to check arrays for
+    parity. Also added a debconf question to let the user choose whether
+    cron should run these checks (closes: #377071).
+  * Only shut down arrays automatically when they've been automatically
+    started (closes: #376009).
+  * Make sure the user has a chance to choose the autostart feature by
+    elevating the debconf priority to high (see #376009). The warning about
+    reuse of RAID components has also been elevated to debconf priority high.
+  * The MAIL_TO setting from /etc/default/mdadm has been removed. Instead, use
+    MAILADDR in /etc/mdadm/mdadm.conf. See mdadm.conf(5). Your setting should
+    be automatically migrated.
+  * Now rewrites /etc/default/mdadm (but preserves settings) instead of trying
+    to patch it with changes.
+  * Added note to README.Debian to ensure users know that only the devices
+    listed in mdadm.conf will be autostarted (see #376009).
+  * Now includes latest md.txt from kernel documentation in
+    /usr/share/doc/mdadm/md.txt.gz.
+  * Added some more recipes to /usr/share/doc/mdadm/README.recipes.gz.
+  * Updated debconf translations:
+    - Swedish, thanks to Daniel Nylander!
+    - Brazilian Portuguese, thanks to Felipe Augusto van de Wiel!
+    - Czech, thanks to Miroslav Kure!
+    - Russian, thanks to Yuri Kozlov (closes: #376181).
+  * Further updates to the debconf templates; I hope the translators aren't
+    going to kill me.
+
+ -- martin f. krafft <madduck@debian.org>  Fri,  7 Jul 2006 15:09:40 +0200
+
+mdadm (2.5.2-2) experimental; urgency=low
+
+  * The "if it weren't for Munich's wheat beer, there'd be no" release.
+  * Removed -fno-strict-aliasing from compiler options, after upstream fixed
+    the bug that led to its use (see #369779, #356153). Thanks to Elimar
+    Riesebieter for pointing this out (closes: #375876).
+  * Moved detection of RAID devices from initramfs hook to debconf control
+    file, and added a (low-priority) debconf question as to which devices
+    should be started early in the boot sequence. For the cases where we
+    failed to auto-detect previously (e.g. root on LVM on RAID), it's paranoid
+    and suggests to start them all (closes: #375879). Thanks to Alec Berryman
+    for spotting this.
+  * Fixed a typo in README.experimental, which could lead to an unbootable
+    system with initramfs-tools 0.64 or before. Again, thanks to Alec for
+    spotting this.
+  * Extended bug script to include --examine output for all components (at
+    least if called by root, which hopefully should never happen. Err,
+    wait...)
+  * Disabled deprecation warning in mdrun until the transition is complete.
+  * Reworded the debconf templates due to a new question, and also for
+    readability.
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 29 Jun 2006 22:54:47 +0200
+
+mdadm (2.5.2-1) experimental; urgency=low
+
+  * New upstream release.
+  * Implemented checks in the initramfs hooks and scripts for compatibility
+    with initramfs-tools. Now we do not need a conflict anymore because
+    mdadm's hooks and scripts will simply do nothing while the ones provided
+    by initramfs-tools are still present.
+  * Not using /bin/bash for mdrun, which I thought we'd need for read timeout
+    support (for the deprecation warning). Since the -n and -t flags to the
+    read shell builtin are non-POSIX, I dropped them, they were merely
+    cosmetic anyway.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 27 Jun 2006 15:06:55 +0200
+
+mdadm (2.5.1-2) experimental; urgency=low
+
+  * Updating dependency on initramfs-tools, which has not yet adopted to mdadm
+    taking over the hooks.
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 26 Jun 2006 22:35:08 +0200
+
+mdadm (2.5.1-1) experimental; urgency=low
+
+  * New upstream release:
+    - Really fixes return status of examine (closes: #367901).
+    - Fixes a memory leak in monitor mode (closes: #372618).
+    - Fixes compiler warnings and errors (closes: #373802, #356153, #369779).
+    - Fix byte swapping issues (closes: #369765).
+    - Now lists devices it stops (closes: #369850). This also leads to
+      beautification of the init.d script's stop action.
+  * Fixed RAID init script to not complain about missing logger command.
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 26 Jun 2006 00:58:36 +0200
+
+mdadm (2.5-4) experimental; urgency=low
+
+  * The "would you like fries with your parasite?" release.
+  * Now does not require RAID support from the kernel just for package
+    installation; that was silly of me, sorry (closes: Bug#370115).
+  * Added version to Replaces: initramfs-tools dependency.
+  * Further init.d script improvements.
+  * Recommends mail-transport-agent, or the monitor daemon won't be able to
+    send anything.
+  * Ignores failures from modprobe in postinst when RAID modules are not
+    available (closes: #370582).
+
+ -- martin f. krafft <madduck@debian.org>  Tue,  6 Jun 2006 12:45:53 +0200
+
+mdadm (2.5-3) experimental; urgency=low
+
+  * Added /usr/share/doc/mdadm/README.recipes with some common usage examples.
+  * Vastly improved the mdadm-raid init.d script output, and removed bashisms.
+
+ -- martin f. krafft <madduck@debian.org>  Fri,  2 Jun 2006 00:45:06 +0200
+
+mdadm (2.5-2) experimental; urgency=low
+
+  * The "on her majesty's secret service" release.
+  * Enabled -DDEBIAN during build, which will take care of default permissions
+    on devices created by mdadm. Together with the CREATE configuration
+    directive in 2.5, this now certainly closes: Bug#310241.
+  * Added a patch (incorporating lib/mm/xlate.h from lvm2) to prevent direct
+    access to kernel headers from userspace (closes: Bug#369765).
+  * Disabled strict aliasing compiler checks until we find a better
+    implementation for linked lists in C (closes: Bug#369779, Bug#356153).
+  * Actually decreased the size of the udeb mdadm binary with -Os
+    -fomit-frame-pointer (as suggested by Joey Hess) (closes: Bug#314370)
+  * Added Replaces: initramfs-tools to communicate that we're not conflicting
+    but replacing instead (see Bug#367567)
+  * Updated conflict with initramfs-tools to (<< 0.63) per suggestion by the
+    maintainers.
+
+ -- martin f. krafft <madduck@debian.org>  Thu,  1 Jun 2006 20:15:17 +0200
+
+mdadm (2.5-1) experimental; urgency=low
+
+  * The "show me the way to the next whiskey bar" release.
+  * See /usr/share/doc/mdadm/README.experimental or
+    http://madduck.net/~madduck/scratch/README.experimental
+  * New upstream release:
+    - mails include /proc/mdstat output (closes: Bug#355882)
+    - allows specification of device permissions in config (closes: Bug#310241)
+  * /sbin/mdrun has been deprecated and replaced by calls to /sbin/mdadm;
+    a proper deprecation warning is in place (see NEWS).
+  * Moved initramfs hook and script into the package, and switched it to mdadm
+    (from mdadm. Thanks to Stephen Frost for his help (closes: Bug#354144).
+    This should make sure that the right minor numbers are chosen during boot
+    (mainly because mdadm takes care of it all) (closes: Bug#361408).
+  * Removing mdrun from the udeb (d-i patch submitted to debian-boot mailing
+    list)
+  * Upstream links against openssl for SHA1 support (homehost feature), which
+    is a problem. An internal SHA1 implementation is provided, however, so
+    I just link against that.
+  * Switched init.d scripts to use LSB-compliant output.
+  * Enhanced init.d script output.
+
+ -- martin f. krafft <madduck@debian.org>  Thu,  1 Jun 2006 02:20:22 +0200
+
+mdadm (2.4.1-2) unstable; urgency=low
+
+  * The "this took way longer than I thought" release.
+  * Migrating to unstable.
+  * If the init.d script creates the mdadm.conf file, it should remove it on
+    purge. To accomplish this, I create a semaphore in /var/lib/mdadm if it
+    was generated, and only remove the conffile on purge if the semaphore
+    exists.
+  * Added a little helper /usr/share/mdadm/mkconf to aid generation of
+    configuration file.
+  * Added a bug script to collect some important information when the user
+    uses Debian bug reporting tools (such as reportbug).
+  * Added a debian/watch file.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 31 May 2006 23:07:48 +0200
+
+mdadm (2.4.1-1) experimental; urgency=low
+
+  * The "I'll kill that maintainer... uh, wait, it's me" release. Sorry for
+    the delay, here's the long awaited new upstream release (closes:
+    Bug#337903, Bug#363592), which gets rid of a bunch of functionality bugs:
+    - reiserfs size does not overflow anymore (closes: Bug#318230)
+    - fixed typos in manpages (closes: Bug#352798)
+    Oh, and we're moving away from that arch nightmare too. Sorry for the
+    confusion.
+  * Experimental release, because I really don't want to be responsible for
+    data loss. Though I am quite sure that the upgrade is painless, I also
+    don't have access to 18 drive RAID 10 with multipath on s390 or similar
+    arrangements.
+  * We now make the /dev/md* devices in postinst unless /dev/md15 exists (no
+    longer checking for /dev/md0), or unless devfs is in use. If udev is used,
+    /dev/md15 will only exist in complex setups, so the devices will be made
+    in /dev/.static by MAKEDEV, which is not really a concern. I opted against
+    unconditionally calling MAKEDEV until #367407 is fixed so as to preserve
+    custom permissions or owner settings. This also acknowledges the NMU
+    (#299623).
+    closes: Bug#310247, Bug#299623
+  * Patched some of the code to make mdadm honour /etc/mdadm/mdadm.conf over
+    /etc/mdadm.conf (see NEWS).
+  * Fixed a couple of typos in the mdadm(8) manpage; thanks to Reuben Thomas.
+    closes: Bug#345669, Bug#345667
+  * Pushed Standards-Version to 3.7.2; no changes required.
+  * Updated Debconf translations:
+    - Vietnamese by Clytie Siddall (closes: Bug#323950)
+    - Czech by Miroslav Kure (closes: Bug#360290)
+    - Russian by Yuri Kozlov (closes: Bug#361116)
+    - French by Eric Madesclair (closes: Bug#323988)
+  * Added new Debconf translations:
+    - Swedish by Daniel Nylander (closes: Bug#333486)
+    - Dutch by Frans Pop (closes: Bug#344714)
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 16 May 2006 18:21:36 -0500
+
+mdadm (1.12.0-1) unstable; urgency=low
+
+  * New upstream release.
+    (obsoletes branches: symlinks)
+    (reduces branches: gcc4signedness, debian, autoscan)
+  * Fixed typo in mdadm.conf(5) manpage (closes: Bug#321152).
+
+ -- martin f. krafft <madduck@debian.org>  Sun, 24 Jul 2005 19:20:01 +0200
+
+mdadm (1.9.0-5) unstable; urgency=low
+
+  * martin f. krafft: (the, "look ma', we're maintained in arch now!" release)
+    (no functional differences except for added/updated translations)
+    - Acknowledge NMU by Steve Langasek; thanks! (closes: Bug#299623)
+    - split diff.gz into different arch branches (see debian/arch-branches).
+    - debian/control:
+      - Changed maintainer to pkg-mdadm-devel.
+      - Reworded some of the descriptions (closes: Bug#304170).
+      - Pushed Standards-Version to 3.6.2.1; no changes needed.
+      - fixed po-debconf integration
+    - debian/rules:
+      - fixed po-debconf integration
+    - l10n changes:
+      - Removed amiguity from debconf template (closes: Bug#312754).
+      - Added Vietnamese debconf translation; thanks to Clytie Siddall!
+        (closes: Bug#312753)
+      - Added Czech debconf translation; thanks to Miroslav Kure! (closes: Bug#319626)
+      - Updated German debconf translation; thanks to Jens Seidel! (closes: Bug#313981)
+    - backported upstream's gcc4 signedness fixes from 1.12.0 (gcc4signedness
+      branch) (closes: Bug#319743).
+
+ -- martin f. krafft <madduck@debian.org>  Sun, 24 Jul 2005 17:58:46 +0200
+
+mdadm (1.9.0-4.1) unstable; urgency=high
+
+  * Non-maintainer upload.
+  * High-urgency upload for sarge-targetted RC bugfix
+  * Make sure error output from MAKEDEV is sent to stderr, to avoid
+    interfering with debconf; this avoids installation problems on
+    udev-using systems.  Thanks to Jonas Smedegaard for the patch.
+    Closes: #299623.
+
+ -- Steve Langasek <vorlon@debian.org>  Wed,  1 Jun 2005 03:36:42 -0700
+
+mdadm (1.9.0-4) unstable; urgency=high
+
+  * High-urgency upload for sarge targeted RC bugfix.
+  * mdrun: replaced invocation of /usr/bin/seq with hard-coded sequence
+    (closes: Bug#310671).
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 25 May 2005 09:51:41 +0200
+
+mdadm (1.9.0-3) unstable; urgency=high
+
+  * High-urgency upload for sarge targeted RC bugfix.
+  * Applied patch by Peter Samuelson <peter@p12n.org>, which causes mdadm to
+    follow symlinks of device nodes (closes: #274859, #310412, #310492).
+  * Added myself as co-maintainer as per agreement with Mario Joussen.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 24 May 2005 00:03:49 +0200
+
+mdadm (1.9.0-2.3) unstable; urgency=high
+
+  * Non-maintainer upload.
+  * Do not prevent postinst node creation when udev is being used; MAKEDEV
+    puts files into /dev/.static/dev with udev, which is needed so that device
+    nodes will be there even if udev is removed. Sorry for letting this slip
+    my mind and thanks to Steve Langasek for spotting this error.
+  * Leaving urgency at high to make sarge.
+
+ -- martin f. krafft <madduck@debian.org>  Sun, 22 May 2005 19:35:04 +0200
+
+mdadm (1.9.0-2.2) unstable; urgency=high
+
+  * Non-maintainer upload.
+  * High-urgency upload for sarge targeted RC bugfix.
+  * Move mdadm-raid back to S25 as it needs to run after modules have been
+    loaded at S20 (see followups to #294404, #301560).
+  * Verified that Steve Langasek's patch to config.c (see item 4 of the
+    1.9.0-2.1 changelog) is necessary for `mdadm -A -s` to work.
+    (closes: #301560)
+  * Integrated patch by Erik van Konijnenburg to fix mdadm's --auto
+    option in the presence of --scan.
+    (closes: #294404, #273182, #284028, #310126).
+  * Modified mdrun to call mdadm with --auto in assembly mode. Removed code
+    which would auto-create 24 device nodes during system startup when udev
+    was used.
+  * Fixed next_free_md function in mdrun to iterate all 24 nodes instead of
+    using some fragile shell globbing, which did not work anyway.
+  * Prevent postinst node creation when udev is being used.
+  * Added a README.udev file to /usr/share/doc/mdadm.
+
+ -- martin f. krafft <madduck@debian.org>  Sun, 22 May 2005 12:57:56 +0200
+
+mdadm (1.9.0-2.1) unstable; urgency=high
+
+  * Non-maintainer upload.
+  * High-urgency upload for sarge targetted RC bugfix.
+  * Start mdadm-raid before udev on boot-up, so that mdadm device node
+    creation is honored, and support changing the init script ordering
+    on upgrades (closes: #294404).
+  * Fix mdadm --scan to prefer the values contained in /proc/partitions,
+    instead of picking up device node names at random from /dev.
+  * Teach mdrun to look at /dev/.static/dev instead of /.dev for udev
+    mounts requiring autostart (closes: #301560).
+
+ -- Steve Langasek <vorlon@debian.org>  Sun, 27 Mar 2005 21:59:12 -0800
+
+mdadm (1.9.0-2) unstable; urgency=low
+
+  * Patched is_standard() to accept /dev/md/* names as standard.
+    Thanks to Colin Watson <cjwatson@debian.org>.
+    (closes: Bug#296794)
+  * Added another typecast to make it compilable on amd64 with gcc-4.0.
+    Thanks to Andreas Jochens <aj@andaco.de>.
+    (closes: Bug#294217)
+  * Removed unnecessary second assignment to $BASE in mdrun.
+    Thanks to Colin Watson <cjwatson@debian.org>.
+    (closes: Bug#295433)
+
+ -- Mario Joussen <joussen@debian.org>  Sun,  6 Mar 2005 14:22:24 +0100
+
+mdadm (1.9.0-1) unstable; urgency=high
+
+  * New upstream release.
+    Solves problems with same UUID for each array.
+    Again a stable upstream version.
+    (closes: Bug#292282, Bug#293406, Bug#292784, Bug#290363, Bug#292715)
+  * Added some typecasts to make it compilable on amd64 with gcc-4.0.
+    Thanks to Andreas Jochens <aj@andaco.de>.
+    (closes: Bug#287638)
+
+ -- Mario Joussen <joussen@debian.org>  Sun,  6 Feb 2005 12:25:03 +0100
+
+mdadm (1.8.1-1) unstable; urgency=low
+
+  * New upstream release.
+    Fixed segfault if no config file present and --scan is used.
+    (closes: Bug#283425, Bug#282604, Bug#284024)
+  * Fixed typo in detailed help of grow mode.
+    (closes: Bug#286980)
+  * Added japanese debconf translation. Thanks to Hideki Yamane
+    <henrich@samba.gr.jp>.
+    (closes: Bug#281073)
+  * Fixed missing variable initialization causing segfaults.
+
+ -- Mario Joussen <joussen@debian.org>  Sun, 26 Dec 2004 14:44:31 +0100
+
+mdadm (1.7.0-2) unstable; urgency=high
+
+  * Changed debconf script to save the settings from the config file.
+    Thanks to Fabio Massimo Di Nitto <fabbione@fabbione.net> and
+    Frank Lichtenheld <djpig@debian.org> for the patch.
+    (closes: Bug#274208)
+  * Moved try to load md module inside the AUTOSTART if branch in
+    /etc/init.d/mdadm.
+  * Removed try to load md module from /etc/init.d/mdadm-raid.
+
+ -- Mario Joussen <joussen@debian.org>  Sun, 24 Oct 2004 19:48:06 +0200
+
+mdadm (1.7.0-1) unstable; urgency=low
+
+  * New upstream release.
+    (closes: Bug#267814)
+
+ -- Mario Joussen <joussen@debian.org>  Sun, 12 Sep 2004 20:48:33 +0200
+
+mdadm (1.6.0-3) unstable; urgency=high
+
+  * Added 'Conflicts: raidtools2 (<< 1.00.3-12.1)' because these packages
+    contain a mdrun.8 man page also.
+    (closes: Bug#268634, Bug#266527)
+  * Updated the french translation.
+    Thanks to Eric <eric-m@wanadoo.fr>
+    (closes: Bug#266251)
+
+ -- Mario Joussen <joussen@debian.org>  Sat, 28 Aug 2004 18:23:17 +0200
+
+mdadm (1.6.0-2) unstable; urgency=low
+
+  * Included version 0.97 of "Debian Software Root Raid Documentation".
+  * Now mdrun is only used if no mdadm.conf is present.
+    Thanks to Thomas Prokosch <7nrmi1s02@sneakemail.com>.
+    (closes: Bug#264059)
+  * Added man page for mdrun.
+    Thanks to Robert Collins <robertc@robertcollins.net>.
+    (closes: Bug#265480)
+  * Moved /etc/mdadm/debian.conf to /etc/default/mdadm.
+    (closes: Bug#254922)
+  * Added a little workaround to mdrun to interact better with udev.
+    Thanks to Fabio Massimo Di Nitto <fabbione@fabbione.net>.
+    (closes: Bug#259491)
+  * Updated Brazilian Portuguese translation.
+    Thanks to Andre Luis Lopes <andrelop@debian.org>.
+    (closes: Bug#264220)
+
+ -- Mario Joussen <joussen@debian.org>  Mon, 16 Aug 2004 22:10:59 +0200
+
+mdadm (1.6.0-1) unstable; urgency=low
+
+  * New upstream release.
+    Detect degraded arrays in --monitor mode now.
+    (closes: Bug#257357)
+  * Changed default to autostart RAID array.
+    (closes: Bug#250792)
+  * Fixed mdrun problem with kernel 2.6.
+    Thanks to Andre Tomt <andre@tomt.net> and Fabio Massimo Di Nitto
+    <fabbione@fabbione.net>
+    (closes: Bug#231823)
+  * Changed reuse warning to be less misleading.
+    (closes: Bug#253339)
+
+ -- Mario Joussen <joussen@debian.org>  Tue, 20 Jul 2004 21:40:33 +0200
+
+mdadm (1.5.0-2) unstable; urgency=low
+
+  * Added french debconf template.
+    Thanks to Eric Madesclair <eric-m@wanadoo.fr>.
+    (closes: Bug#231968)
+
+ -- Mario Joussen <joussen@debian.org>  Tue,  4 May 2004 21:29:19 +0200
+
+mdadm (1.5.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Rewrote debconf templates to avoid referring to debconf interface
+    widgets.
+    (closes: Bug#231221)
+  * Removed manual scan for RAID devices from init script.
+    (closes: Bug#233122, Bug#236762)
+  * Added creation of an udeb package.
+    (closes: Bug#243609)
+  * Added "Debian Software Root Raid Documentation".
+    Thanks to Lucas Albers <albersl@cs.montana.edu>.
+
+ -- Mario Joussen <joussen@debian.org>  Sun, 25 Apr 2004 16:16:06 +0200
+
+mdadm (1.4.0-3) unstable; urgency=low
+
+  * Updated to standards version 3.6.1.0 and debhelper 4.
+  * Corrected definition of BLKGETSIZE64 macro to compile with the
+    2.6 kernel headers.
+    (closes: Bug#223191)
+  * Swichted to po-debconf to provide localized debconf templates.
+    (closes: Bug#225288)
+
+ -- Mario Joussen <joussen@debian.org>  Sun,  1 Feb 2004 19:30:53 +0100
+
+mdadm (1.4.0-2) unstable; urgency=low
+
+  * Corrected human readable size calculation.
+    (closes: Bug#225041)
+  * Added a warning about reusing hard disks and using the autostart
+    feature.
+    (closes: Bug#223790)
+
+ -- Mario Joussen <joussen@debian.org>  Thu, 25 Dec 2003 19:52:57 +0100
+
+mdadm (1.4.0-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Mario Joussen <joussen@debian.org>  Sun,  7 Dec 2003 19:39:27 +0100
+
+mdadm (1.3.0-2) unstable; urgency=low
+
+  * Added upstream changelog to package.
+
+ -- Mario Joussen <joussen@debian.org>  Tue, 12 Aug 2003 21:51:59 +0200
+
+mdadm (1.3.0-1) unstable; urgency=low
+
+  * New upstream release.
+    (closes: Bug#191561, Bug#200921)
+
+ -- Mario Joussen <joussen@debian.org>  Thu, 31 Jul 2003 20:59:20 +0200
+
+mdadm (1.2.0-1) unstable; urgency=low
+
+  * New upstream release. (closes: Bug#183191)
+  * New version of mdrun that works properly with devfs and temporary
+    device directory.
+    (closes: Bug#182035)
+  * Added 'Conflicts: raidtools' because of a name clash with mdrun.
+    (closes: Bug#182960)
+
+ -- Mario Joussen <joussen@debian.org>  Sun, 16 Mar 2003 13:32:45 +0100
+
+mdadm (1.0.1-4) unstable; urgency=low
+
+  * Changed mdrun so that it can deal with partition statistics in 
+    /proc/partitions.
+    (closes: Bug#174000, Bug#175130)
+  * Added russian (ru) debconf template translation. Thanks to Sergey
+    Spiridonov <sena@hurd.homeunix.org>.
+
+ -- Mario Joussen <joussen@debian.org>  Sun,  5 Jan 2003 13:14:45 +0100
+
+mdadm (1.0.1-3) unstable; urgency=low
+
+  * Fixed a bug in mdrun. (closes: Bug#167607)
+
+ -- Mario Joussen <joussen@debian.org>  Mon, 11 Nov 2002 07:53:23 +0100
+
+mdadm (1.0.1-2) unstable; urgency=low
+
+  * Fixed typo in help option. (closes: Bug#151533)
+  * Added a script that discovers and assembles all arrays automatically.
+    Thanks to Eduard Bloch <blade@debian.org>.
+    (closes: Bug#161699)
+
+ -- Mario Joussen <joussen@debian.org>  Fri,  1 Nov 2002 13:46:47 +0100
+
+mdadm (1.0.1-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Mario Joussen <joussen@debian.org>  Thu, 30 May 2002 14:01:22 +0200
+
+mdadm (0.8.2-1) unstable; urgency=low
+
+  * New upstream release.
+  * Splitted up mdadm.templates in one file for each language.
+  * Added brazilian portuguese (pt_BR) debconf template translation.
+    Thanks to Andre Luis Lopes <andrelop@ig.com.br>.
+    (closes: Bug#141540)
+
+ -- Mario Joussen <joussen@debian.org>  Thu, 18 Apr 2002 19:31:00 +0200
+
+mdadm (0.7.2-1) unstable; urgency=low
+
+  * New upstream release.
+  * 'mdctl' was renamed to 'mdadm' upstream.
+  * Removed question about updating mdctl init script links.
+
+ -- Mario Joussen <joussen@debian.org>  Sat, 23 Mar 2002 02:50:51 +0100
+
+mdctl (0.5-4) unstable; urgency=low
+
+  * Added debconf template to ask the user if the init script links
+    should be updated. 
+
+ -- Mario Joussen <joussen@debian.org>  Mon,  4 Mar 2002 22:53:37 +0100
+
+mdctl (0.5-3) unstable; urgency=low
+
+  * Splitted up init script in two parts. One starts the md array and the
+    other starts the raid monitor daemon.
+    (closes: Bug#136184) 
+
+ -- Mario Joussen <joussen@debian.org>  Thu, 28 Feb 2002 22:45:57 +0100
+
+mdctl (0.5-2) unstable; urgency=low
+
+  * Included optimization in Makefile
+    (closes: Bug#127687)
+  * Removed Conflicts/Replaces/Provides: mdutils
+    (closes: Bug#127684, Bug#127719)
+  * Added an init script, which can start md arrays and the raid monitor
+    daemon
+  * MD devices are now created under /dev if necessary
+  * Added a sample configuration file 
+
+ -- Mario Joussen <mario@joussen.org>  Sun, 13 Jan 2002 23:43:40 +0100
+
+mdctl (0.5-1) unstable; urgency=low
+
+  * Initial Release.
+    (closes: Bug#126610)
+
+ -- Mario Joussen <mario@joussen.org>  Wed, 26 Dec 2001 17:07:09 +0100

@@ -1,0 +1,103 @@
+#!/bin/sh -eu
+#
+# Copyright © 2006 Martin F. Krafft <madduck@debian.org>
+# based on the scripts in the initramfs-tools package.
+# released under the terms of the Artistic Licence.
+#
+
+PREREQ=""
+
+prereqs()
+{
+	echo "$PREREQ"
+}
+
+case ${1:-} in
+  prereqs)
+    prereqs
+    exit 0
+    ;;
+esac
+
+if [ -e /usr/share/initramfs-tools/hooks/md ]; then
+  echo "I: mdadm: initramfs md hook still present, I thus won't pop the trunk." >&2
+  echo "I: Please see /usr/share/doc/mdadm/README.experimental ." >&2
+  exit 0
+fi
+
+if [ -e /etc/initramfs-tools/hooks/md ]; then
+  echo "W: mdadm: I found /etc/initramfs-tools/hooks/md, which may conflict" >&2
+  echo "with this version of mdadm. Please see /usr/share/doc/mdadm/README.mdrun" >&2
+  echo "and /usr/share/initramfs-tools/hooks/mdadm for reference and update" >&2
+  echo "(or remove) the file." >&2
+  exit 0
+fi
+
+MDADM=$(command -v mdadm)
+[ -x $MDADM ] || exit 0
+
+[ -r /usr/share/initramfs-tools/hook-functions ] || exit 0
+. /usr/share/initramfs-tools/hook-functions
+
+INITRDSTART=all
+[ -s /etc/default/mdadm ] && . /etc/default/mdadm
+
+DEVS=''; LEVELS=''
+if [ "$INITRDSTART" != none ]; then
+  eval $(mdadm --examine --scan --config=partitions \
+    | while read a dev level num uuid; do
+
+      if [ "$INITRDSTART" = all ] || expr "$INITRDSTART" : ".*${dev}.*" >/dev/null; then
+          DEVS="$DEVS ${dev}:${uuid#UUID=}"
+          LEVELS="$LEVELS ${level#level=}"
+      fi
+
+      echo "DEVS='$DEVS'"
+      echo "LEVELS='$LEVELS'"
+    done)
+
+  [ "$INITRDSTART" = all ] && DEVS=all
+fi
+
+uniquify()
+{
+  for i in $@; do echo "$i"; done | sort -u
+}
+
+if [ -n "$DEVS" ]; then
+
+  touch $DESTDIR/conf/mdadm.conf
+  echo "RAID_DEVS='${DEVS## }'" >> $DESTDIR/conf/mdadm.conf
+
+  # 1:1 mapping between level names and modules
+  MODULES="$(uniquify $LEVELS | tr '\n' ' ')"
+  echo "RAID_MODULES='$MODULES'" >> $DESTDIR/conf/mdadm.conf
+
+  copy_exec $MDADM /sbin
+
+  # copy all modules into the initramfs, just for safety
+  MODULES="linear multipath raid0 raid1 raid5 raid6 raid10"
+  for mod in $MODULES; do manual_add_modules $mod; done
+
+  # prevent problems with old md script. Since this hook is only called if
+  # either this file does not exist or the user chose to try the new stuff,
+  # this is safe.
+  rm -f $DESTDIR/scripts/local-top/md
+
+  if [ "$DEVS" = all ]; then
+    DEVNAMES="all RAID arrays"
+  else
+    DEVNAMES="$(for i in $DEVS; do echo -n "${i%%:*},"; done)"
+    DEVNAMES="${DEVNAMES%,}"
+  fi
+
+  echo "I: mdadm: RAID support installed to mount $DEVNAMES during boot." >&2
+
+else
+  echo "I: mdadm: no RAID devices selected for initrd initialisation." >&2
+  echo "I: mdadm: not including RAID stuff." >&2
+fi
+
+echo 'I: mdadm: use `dpkg-reconfigure -plow mdadm` if this is not correct.' >&2
+
+exit 0

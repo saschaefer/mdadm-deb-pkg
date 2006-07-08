@@ -1,0 +1,120 @@
+#!/bin/sh -eu
+#
+# checkarray -- initiates a check run of a device's parity information.
+#
+# Copyright © 2006 martin f. krafft <madduck@debian.org>
+# distributed under the terms of the Artistic Licence.
+#
+REVISION=2006.07.07.1121
+
+PROGNAME=${0##*/}
+
+about()
+{
+  echo "$PROGNAME -- RAID parity checker tool (revision $REVISION)"
+  echo "Copyright © 2006 martin f. krafft <madduck@debian.org>"
+  echo "Released under the terms of the Artistic Licence."
+}
+
+usage()
+{
+  about
+  echo
+  echo "Usage: $PROGNAME [options] [devices]"
+  echo
+  echo "Valid options are:"
+  cat <<-_eof | column -s\& -t
+	-a|--all & check all assembled arrays (check /proc/mdstat).
+	-c|--cron & honour setting AUTOCHECK in /etc/default/mdadm.
+	-q|--quiet & suppress informational messages.
+	-Q|--real-quiet & suppress all output messages, including warnings and errors.
+	-h|--help & show this output.
+	-V|--version & show version information.
+	_eof
+  echo
+  echo "Examples:"
+  echo "  $PROGNAME --all"
+  echo "  $PROGNAME /dev/md[123]"
+  echo
+  echo "Devices can be specified in almost any format. The following are"
+  echo "all equivalent:"
+  echo "  /dev/md0, md0, /dev/md/0, /sys/block/md0"
+  echo
+  echo "The --all option overrides all devices passed to the script."
+  echo
+  echo "You can control the status of a check with /proc/mdstat ."
+}
+
+SHORTOPTS=achVqQ
+LONGOPTS=all,cron,help,version,quiet,real-quiet
+
+eval set -- $(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@")
+
+devices=''
+cron=0
+all=0
+quiet=0
+
+for opt in $@; do
+  case "$opt" in
+    -a|--all) all=1;;
+    -c|--cron) cron=1;;
+    -h|--help) usage; exit 0;;
+    -q|--quiet) quiet=1;;
+    -Q|--real-quiet) quiet=2;;
+    -V|--version) about; exit 0;;
+    /dev/md/*|md/*) devices="${devices:+$devices }md${opt#*md/}";;
+    /dev/md*|md*) devices="${devices:+$devices }${opt#/dev/}";;
+    /sys/block/md*) devices="${devices:+$devices }${opt#/sys/block/}";;
+    --) :;;
+    *) echo "$PROGNAME: E: invalid option: $opt" >&2; usage >&2; exit0;;
+  esac
+done
+
+is_true()
+{
+  case "${1:-}" in
+    [Yy]es|[Yy]|1|[Tt]rue|[Tt]) return 0;;
+    *) return 1;
+  esac
+}
+
+DEBIANCONFIG=/etc/default/mdadm
+[ -f $DEBIANCONFIG ] && . $DEBIANCONFIG
+if [ $cron = 1 ] && ! is_true ${AUTOCHECK:-false}; then
+  [ $quiet -lt 1 ] && echo "$PROGNAME: I: disabled in $DEBIANCONFIG ." >&2
+  exit 0
+fi
+
+if [ ! -f /proc/mdstat ]; then
+  [ $quiet -lt 2 ] && echo "$PROGNAME: E: RAID subsystem not loaded, or /proc unavailable." >&2
+  exit 2
+fi
+
+if [ -z "$(ls /sys/block/md*/md/sync_action 2>/dev/null)" ]; then
+  [ $quiet -lt 2 ] && echo "$PROGNAME: E: no kernel support for parity checks." >&2
+  exit 3
+fi
+
+[ $all = 1 ] && devices="$(ls -d1 /sys/block/md* | cut -d/ -f4)"
+
+for dev in $devices; do
+  SYNC_ACTION_CTL=/sys/block/$dev/md/sync_action
+  if [ ! -w $SYNC_ACTION_CTL ]; then
+    [ $quiet -lt 2 ] && echo "$PROGNAME: E: $SYNC_ACTION_CTL not writeable." >&2
+    exit 4
+  fi
+
+  if [ "$(cat $SYNC_ACTION_CTL)" != idle ]; then
+    [ $quiet -lt 2 ] && echo "$PROGNAME: W: device $dev not idle, skipping..." >&2
+    continue
+  fi
+
+  # run check for the device. The kernel will make sure that these requests
+  # are properly queued so as to not kill one of the devices.
+  echo check > $SYNC_ACTION_CTL
+  [ $quiet -lt 1 ] && echo "$PROGNAME: I: check queued for device $dev." >&2
+  
+done
+
+exit 0

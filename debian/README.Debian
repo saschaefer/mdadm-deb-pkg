@@ -1,0 +1,41 @@
+mdadm for Debian
+================
+
+Please make sure you read into /usr/share/doc/mdadm/NEWS.Debian.gz . Also, the
+documentation for the kernel md driver is included in
+/usr/share/doc/mdadm/md.txt.gz as well as the md(4) manpage. *Do* read those!
+
+The configuration file
+~~~~~~~~~~~~~~~~~~~~~~
+This version of mdadm now needs /etc/mdadm/mdadm.conf, which it will try to
+generate during installation, if nonexistent.
+
+You can use the output of /usr/share/mdadm/mkconf to generate your very own
+mdadm.conf file, and look into
+/usr/share/doc/mdadm/examples/mdadm.conf-example for inspiration.
+
+Autostarting devices
+~~~~~~~~~~~~~~~~~~~~
+The mdadm.conf file controls which devices are to be started automatically by
+mdadm during boot (assuming AUTOSTART is set to true in /etc/default/mdadm),
+and various other parameters about how they are to be started. The file can
+also contain some control parameters for the mdadm monitor daemon. See
+mdadm.conf(5) for more information.
+
+Note: this only applies to modular kernels. If you use a monolithic kernel,
+you can control which devices are started automatically by changing the
+partition type: 0xfd for autostart, 0x83 to prevent autostart. mdadm does not
+actually care about the partition type, only the kernel does.
+
+Common recipes
+~~~~~~~~~~~~~~
+Check /usr/share/doc/mdadm/README.recipes.gz for some simple examples of how
+to do the most common stuff with mdadm.
+
+Upstream
+~~~~~~~~
+For completeness: The upstream repository is available from
+  http://neil.brown.name/cgi-bin/gitweb.cgi?p=mdadm
+  git clone git://neil.brown.name/mdadm
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 07 Jul 2006 10:55:42 +0200

@@ -1,0 +1,55 @@
+mdadm for Debian - EXPERIMENTAL RELEASE
+---------------------------------------
+
+THIS IS AN EXPERIMENTAL RELEASE. DO NOT EVEN THINK ABOUT RUNNING IT ON
+PRODUCTION SERVERS. or at least don't blame me for it afterwards.
+
+None of the following needs to concern you if you are using monolithic kernels
+(no modules), yaird, or initrd-tools/mkinitrd.
+
+I will leave this version in experimental, until enough success reports have
+reached me at madduck@debian.org (and no failures). Thus, please report your
+experience to me.
+
+This version of mdadm basically addresses #367567 (but also provides a new
+upstream release, of course). The gist is that the hooks and scripts to take
+care of RAID during boot with an initramfs have been improved and moved into
+the mdadm package. mdrun has been deprecated on the way.
+
+As long as initramfs-tools still provides the old hooks and scripts (which use
+mdrun), the new ones will simply not do anything (which allows me to get rid
+of the conflict I needed previously). Once initramfs-tools removes the md
+hooks from the package, the new mdadm hooks will configure the initramfs to
+use mdadm for assembly (and not mdrun).
+
+Unless I've overlooked a detail, no interaction is required from the side of
+the user (apart from the new debconf question) to install and get mdadm
+running and integrated with initramfs-tools. It helps to ensure that
+update-initramfs produces output that squares with your own perception of what
+is needed to boot, and that the output of the script /usr/share/mdadm/mkconf
+is sane after installation and before you reboot.
+
+Also, you may want to provide yourself a safety net by making a copy of the
+initrd:
+
+  cp /boot/initrd.img-$(uname -r) /boot/initrd.img-$(uname -r).before-mdadm25
+
+and then to duplicate your main grub or lilo stanzas (rerun lilo!) and point
+them to the saved initrd. If things go haywire, you should be able to restore
+a working condition with the saved initrd.
+
+If you want to move to the new hooks and scripts immediately (without waiting
+for #367567 to be solved), do this:
+
+  rm /usr/share/initramfs-tools/hooks/md
+  sed -i -e 's,^PREREQ=\"md\"$,PREREQ=\"mdadm\",' \
+    /usr/share/initramfs-tools/scripts/local-top/lvm
+  update-initramfs -u -k$(uname -r)
+
+(that -k is due to #375671. If update-initramfs says something about
+initrd having been altered and refuses to do something, use -t unless you
+modified the initrd on purpose and don't want it overwritten.)
+
+Again, please report success or failure to me.
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 29 Jun 2006 01:07:09 +0200

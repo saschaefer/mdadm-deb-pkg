@@ -1,0 +1,218 @@
+# Translators, if you are not familiar with the PO format, gettext
+# documentation is worth reading, especially sections dedicated to
+# this format, e.g. by running:
+# info -n '(gettext)PO Files'
+# info -n '(gettext)Header Entry'
+# Some information specific to po-debconf are available at
+# /usr/share/doc/po-debconf/README-trans
+# or http://www.debian.org/intl/l10n/po-debconf/README-trans
+# Developers do not need to manually edit POT or PO files.
+# , fuzzy
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: mdadm 1.12.0-1\n"
+"Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
+"POT-Creation-Date: 2006-07-07 17:30+0200\n"
+"PO-Revision-Date: 2006-06-29 22:06+0100\n"
+"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
+"Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../mdadm.templates:1001
+msgid "Initialise the superblock if you reuse hard disks"
+msgstr "Initiera superblocket om du ?teranv?nder h?rddiskar"
+
+#. Type: note
+#. Description
+#: ../mdadm.templates:1002
+msgid ""
+"WARNING! If you are using hard disks which have RAID superblocks from "
+"earlier installations in different RAID arrays, you MUST zero each "
+"superblock *before* activating the autostart feature."
+msgstr ""
+"VARNING! Om du anv?nder h?rddiskar som har RAID-superblock fr?n tidigare "
+"installationer i andra RAID-kedjor M?STE du nollst?lla superblocket *innan* "
+"du aktiverar autostartfunktionen."
+
+#. Type: note
+#. Description
+#: ../mdadm.templates:1003
+msgid ""
+"To do this, do not start the RAID devices automatically. First, zero the "
+"superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-reconfigure "
+"mdadm` to reactivate the autostart feature."
+msgstr ""
+"F?r att g?ra detta, starta inte RAID-enheterna automatiskt. Nollst?ll f?rst "
+"superblocket (mdadm --zero-superblock /dev/mdX), anv?nd sedan \"dpkg-"
+"reconfigure mdadm\" f?r att ?teraktivera autostartfunktionen."
+
+#. Type: note
+#. Description
+#: ../mdadm.templates:1004
+msgid ""
+"If you manage your RAIDs otherwise (e.g. EVMS), either disable autostart, or "
+"ensure that /etc/mdadm/mdadm.conf only lists those arrays you want to start "
+"by mdadm."
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:2001
+msgid "RAID arrays needed for the root filesystem:"
+msgstr "RAID-kedjor som beh?vs f?r rotfilsystemet:"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:2002
+msgid ""
+"If your system has its root filesystem on a RAID volume, it needs to be "
+"started early during the boot sequence. If your root filesystem is on a "
+"logical volume (LVM), which is on RAID, all constituent arrays need to be "
+"started."
+msgstr ""
+"Om ditt system har sitt rotfilsystem p? en RAID-volym beh?ver den startas "
+"upp tidigt i uppstartssekvensen. Om ditt rotfilsystem finns p? en logisk "
+"volym (LVM), vilket ?r p? RAID beh?ver alla best?ende kedjor att startas."
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:2003
+msgid ""
+"If you know exactly which arrays are needed to bring up the root filesystem, "
+"enter them here. Alternatively, enter 'all' to simply start all available "
+"arrays. If you do not need or want to start any arrays for the root "
+"filesystem, leave the answer blank (or enter 'none')."
+msgstr ""
+"Om du vet exakt vilka kedjor som beh?vs f?r att ta upp rotfilsystemet, ange "
+"dem h?r. Alternativt, ange \"all\" f?r att helt enkelt starta alla tillg?"
+"ngliga kedjor. Om du inte beh?ver eller vill starta n?gra kedjor f?r "
+"rotfilsystemet, l?mna svaret blankt h?r (eller ange \"none\")."
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:2004
+msgid ""
+"You have the option to start all other arrays (those not needed for the root "
+"filesystem) later in the boot sequence. Doing so will give you greater "
+"control over the arrays with the mdadm configuration file. Starting all "
+"arrays at boot-time may be safer though."
+msgstr ""
+"Du har alternativet att starta alla andra kedjor (de som inte beh?vs f?r "
+"rotfilsystemet) senare i uppstartssekvensen. Att g?ra det ger dig st?rre "
+"kontroll ?ver kedjorna med mdadms konfigurationsfil. Starta alla kedjor vid "
+"uppstart kan dock vara s?krare."
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:2005
+msgid ""
+"Please enter a space-separated list of devices, or 'all'. You may omit the "
+"leading '/dev/' and just enter e.g. \"md0 md1\"."
+msgstr ""
+"Ange en blankstegsseparerad lista p? enheter, eller \"all\". Du kan utesluta "
+"den inledande \"/dev\" och bara ange t.ex. \"md0 md1\"."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:3001
+msgid "Do you want to start RAID devices automatically?"
+msgstr "Vill du starta RAID-enheter automatiskt?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:3002
+#, fuzzy
+msgid ""
+"Once the base system has come up, mdadm can start all RAID devices specified "
+"in /etc/mdadm/mdadm.conf, which have not yet been started. Unless you have "
+"compiled RAID support into the kernel (in which case all RAID arrays with "
+"partitions of type 0xfd (and only those) are started automatically anyway), "
+"this is probably what you want."
+msgstr ""
+"N?r grundsystemet har kommit upp kan mdadm starta alla RAID-enheter som den "
+"kan hitta och som inte har startats. S?vida du har byggt in RAID-st?d i k?"
+"rnan (vilket inneb?r att alla RAID-kedjor startas upp automatiskt), detta ?r "
+"antagligen n?got du vill g?ra."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:4001
+msgid "Should mdadm run monthly parity checks of the RAID arrays?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:4002
+msgid ""
+"If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
+"parity of your RAID devices. This may be a resource-intensive process, "
+"depending on your setup, but it could help prevent rare cases of data loss."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:4003
+msgid ""
+"The default, if turned on, is to run the checks on the first Sunday of every "
+"month at 01:06 o'clock."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:5001
+msgid "Do you want to start the RAID monitoring daemon?"
+msgstr "Vil du starta RAID-?vervakningsdemonen?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:5002
+msgid ""
+"The RAID monitor daemon sends email notifications in response to important "
+"RAID events (such as a disk failure). You probably want to enable it."
+msgstr ""
+"RAID-?vervakningsdemonen skickar e-postnotifieringar f?r viktiga RAID-h?"
+"ndelser (s?som ett diskfel). Du vill antagligen aktivera denna funktion."
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:6001
+msgid "Recipient for email notifications:"
+msgstr "Mottagare f?r e-postnotifieringar:"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:6002
+msgid ""
+"Please enter the email address of the user who should get the email "
+"notification for these important RAID events."
+msgstr ""
+"Ange e-postadressen till den anv?ndare som ska ta emot e-postnotifieringar f?"
+"r dessa viktiga RAID-h?ndelser."
+
+#~ msgid ""
+#~ "If RAID devices are started automatically, all RAID devices are "
+#~ "discovered and assembled automatically at system startup. This option "
+#~ "should only be used if the md driver is compiled as a module. If it is "
+#~ "compiled into your kernel, the automatic startup will be performed at "
+#~ "boot time by the kernel and therefore you should not choose this option."
+#~ msgstr ""
+#~ "Om RAID-enheter startas automatiskt kommer alla RAID-enheter att uppt?"
+#~ "ckas och s?ttas ihop automatiskt vid systemets uppstart. Denna funktion b?"
+#~ "r bara anv?ndas om md-drivaren ?r byggd som en modul. Om den ?r inbyggd i "
+#~ "din k?rna kommer den automatiska uppstarten att g?ras av k?rnan vid "
+#~ "systemets uppstart och d?rf?r b?r du inte v?lja denna funktion h?r."
+
+#~ msgid ""
+#~ "When the RAID monitor daemon runs, email notifications are sent when a "
+#~ "disk belonging to a RAID array fails or changes its status for some "
+#~ "reason."
+#~ msgstr ""
+#~ "N?r RAID-?vervakningsdaemonen k?r kommer e-postnotifieringar att skickas "
+#~ "n?r en disk som tillh?r en RAID-array fallerar eller ?ndrar status av n?"
+#~ "gon anledning."

@@ -1,0 +1,63 @@
+#!/bin/sh -eu
+#
+# Start the RAID monitor daemon for all active md arrays if desired.
+#
+# Copyright © 2001-2005 Mario Jou/3en <joussen@debian.org>
+# Copyright © 2005-2006 Martin F. Krafft <madduck@debian.org>
+# Distributable under the terms of the GNU GPL version 2.
+
+MDADM=/sbin/mdadm
+RUNDIR=/var/run/mdadm
+PIDFILE=$RUNDIR/monitor.pid
+DEBIANCONFIG=/etc/default/mdadm
+
+test -x $MDADM || exit 0
+
+test -f /proc/mdstat || exit 0
+
+START_DAEMON=true
+test -f $DEBIANCONFIG && . $DEBIANCONFIG
+
+. /lib/lsb/init-functions
+
+is_true()
+{
+  case "${1:-}" in
+    [Yy]es|[Yy]|1|[Tt]|[Tt]rue) return 0;;
+    *) return 1;
+  esac
+}
+
+case "${1:-}" in
+  start)
+    if is_true $START_DAEMON; then
+      log_daemon_msg "Starting RAID monitoring service" "mdadm --monitor"
+      mkdir -p $RUNDIR
+      set +e
+      start-stop-daemon -S -p $PIDFILE -x $MDADM -- \
+        --monitor --pid-file $PIDFILE --daemonise --scan
+      log_end_msg $?
+      set -e
+    fi
+    ;;
+  stop)
+    if [ -f $PIDFILE ] ; then
+      log_daemon_msg "Stopping RAID monitoring service" "mdadm --monitor"
+      set +e
+      start-stop-daemon -K -p $PIDFILE -x $MDADM
+      rm -f $PIDFILE
+      log_end_msg $?
+      set -e
+    fi
+    ;;
+  restart|reload|force-reload)
+    ${0:-} stop
+    ${0:-} start
+    ;;
+  *)
+    echo "Usage: ${0:-} {start|stop|restart|reload|force-reload}" >&2
+    exit 1
+    ;;
+esac
+
+exit 0
