@@ -38,4 +38,19 @@ For completeness: The upstream repository is available from
   http://neil.brown.name/cgi-bin/gitweb.cgi?p=mdadm
   git clone git://neil.brown.name/mdadm
 
+Debian package maintenance
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+The package is maintained in SVN on alioth.debian.org. To obtain the source:
+
+  svn://svn.debian.org/svn/pkg-mdadm/mdadm/trunk
+  svn+ssh://<username>@svn.debian.org/svn/pkg-mdadm/mdadm/trunk
+
+The second form is for developers with the intention to contribute. If you
+want to join the mdadm effort, please talk to me.
+
+Since the SVN repository only store the ./debian directory, you need the
+upstream tarball as well. I suggest using svn-buildpackage.
+
+Please do not forget to tag new releases.
+
  -- martin f. krafft <madduck@debian.org>  Fri, 07 Jul 2006 10:55:42 +0200
