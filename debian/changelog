@@ -1,4 +1,13 @@
-mdadm (2.5.2-5) experimental; urgency=low
+mdadm (2.5.2-6) experimental; urgency=low
+
+  * Adding mdrun to generated udeb. I will only remove mdrun after etch.
+  * Updated debconf translations:
+    - Dutch, thanks to Frans "Franzerl" Pop! (closes: #377412)
+    - French, thanks to Florentin Duneau! (closes: #377968)
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 13 Jul 2006 23:11:24 +0200
+
+mdadm (2.5.2-5) UNRELEASED; urgency=low
 
   * Remove the check for the lvm prereq in the initramfs hook, as #369617 is
     now fixed. Thus conflicts against initramfs-tools (<< 0.65).
@@ -6,9 +15,9 @@ mdadm (2.5.2-5) experimental; urgency=low
     - German, thanks to Mario Joußen!
   * Added short note about maintenance in SVN to README.Debian.
 
- -- martin f. krafft <madduck@debian.org>  Mon, 10 Jul 2006 14:36:06 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 13 Jul 2006 23:10:36 +0200
 
-mdadm (2.5.2-4) experimental; urgency=low
+mdadm (2.5.2-4) UNRELEASED; urgency=low
 
   * The "it takes two to swing" release.
   * Now does not stop arrays on upgrade or remove. Thanks (and sorry) to
@@ -18,7 +27,7 @@ mdadm (2.5.2-4) experimental; urgency=low
 
  -- martin f. krafft <madduck@debian.org>  Fri,  7 Jul 2006 16:59:01 +0200
 
-mdadm (2.5.2-3) experimental; urgency=low
+mdadm (2.5.2-3) UNRELEASED; urgency=low
 
   * The initramfs now gets all RAID modules installed. It's a lot safer to
     have them all around, the size difference is negligible, and we still only
