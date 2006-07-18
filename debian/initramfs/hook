@@ -98,6 +98,6 @@ else
   echo "I: mdadm: not including RAID stuff." >&2
 fi
 
-echo 'I: mdadm: use `dpkg-reconfigure -plow mdadm` if this is not correct.' >&2
+echo 'I: mdadm: use `dpkg-reconfigure -plow mdadm` to change this.' >&2
 
 exit 0
