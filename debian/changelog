@@ -1,3 +1,9 @@
+mdadm (2.5.2-7) unstable; urgency=low
+
+  * Release to unstable.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 18 Jul 2006 07:15:35 +0200
+
 mdadm (2.5.2-6) experimental; urgency=low
 
   * Adding mdrun to generated udeb. I will only remove mdrun after etch.
