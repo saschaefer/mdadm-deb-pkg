@@ -1,8 +1,9 @@
 mdadm (2.5.2-7) unstable; urgency=low
 
   * Release to unstable.
+  * Re-added rootraiddoc.97.html which was mysteriously lost (closes: #378678).
 
- -- martin f. krafft <madduck@debian.org>  Tue, 18 Jul 2006 07:15:35 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 20 Jul 2006 17:23:23 +0100
 
 mdadm (2.5.2-6) experimental; urgency=low
 
