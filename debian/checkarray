@@ -91,6 +91,11 @@ if [ ! -f /proc/mdstat ]; then
   exit 2
 fi
 
+if [ -z "$(ls /sys/block/md* 2>/dev/null)" ]; then
+  [ $quiet -lt 2 ] && echo "$PROGNAME: E: no active RAID arrays found." >&2
+  exit 5
+fi
+
 if [ -z "$(ls /sys/block/md*/md/sync_action 2>/dev/null)" ]; then
   [ $quiet -lt 2 ] && echo "$PROGNAME: E: no kernel support for parity checks." >&2
   exit 3

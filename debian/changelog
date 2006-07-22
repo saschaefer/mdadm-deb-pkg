@@ -3,8 +3,10 @@ mdadm (2.5.2-8) unstable; urgency=low
   * Re-added rootraiddoc.97.html which was mysteriously lost (closes: #378678).
   * Catching modprobe error in case of absence of the kernel modules, or
     a non-modular kernel. Thanks to Holger Levsen.
+  * Check for presence of active RAID arrays and give an appropriate error if
+    there are none present (closes: #379019).
 
- -- martin f. krafft <madduck@debian.org>  Sat, 22 Jul 2006 14:19:35 +0100
+ -- martin f. krafft <madduck@debian.org>  Sat, 22 Jul 2006 14:32:59 +0100
 
 mdadm (2.5.2-7) unstable; urgency=low
 
