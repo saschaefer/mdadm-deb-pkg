@@ -69,8 +69,8 @@ case "${1:-}" in
     PREFIX="Assembling RAID array"
 
     if is_true $AUTOSTART; then
-      if [ ! -f /proc/mdstat ] && [ -x $(command -v modprobe) ] ; then
-        modprobe -k md >/dev/null 2>&1  
+      if [ ! -f /proc/mdstat ] && [ -x "$(command -v modprobe)" ] ; then
+        modprobe -kq md 2>/dev/null || :
       fi
       if [ ! -f /proc/mdstat ]; then
         log_problem "failed to load RAID subsystem"
