@@ -105,6 +105,12 @@ fi
 
 for dev in $devices; do
   SYNC_ACTION_CTL=/sys/block/$dev/md/sync_action
+
+  if [ ! -e $SYNC_ACTION_CTL ]; then
+    [ $quiet -lt 1 ] && echo "$PROGNAME: I: skipping RAID0 array $dev." >&2
+    continue
+  fi
+
   if [ ! -w $SYNC_ACTION_CTL ]; then
     [ $quiet -lt 2 ] && echo "$PROGNAME: E: $SYNC_ACTION_CTL not writeable." >&2
     exit 4

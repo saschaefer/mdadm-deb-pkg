@@ -5,10 +5,11 @@ mdadm (2.5.2-8) unstable; urgency=low
     a non-modular kernel. Thanks to Holger Levsen.
   * checkarray: Check for presence of active RAID arrays and give an
     appropriate error if there are none present (closes: #379019).
+  * checkarray: skip sync for RAID0 devices (closes: #379352).
   * Updated debconf translations:
     - Japanese by Hideki Yamane, thanks!
 
- -- martin f. krafft <madduck@debian.org>  Sun, 23 Jul 2006 06:55:10 +0100
+ -- martin f. krafft <madduck@debian.org>  Sun, 23 Jul 2006 12:16:15 +0100
 
 mdadm (2.5.2-7) unstable; urgency=low
 
