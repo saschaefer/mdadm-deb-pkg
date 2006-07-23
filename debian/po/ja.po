@@ -14,62 +14,51 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: mdadm 1.7.0-2\n"
+"Project-Id-Version: mdadm 2.5.2-2\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2006-07-07 17:30+0200\n"
-"PO-Revision-Date: 2004-10-31 00:32+0900\n"
-"Last-Translator: Hideki Yamane <henrich@samba.gr.jp>\n"
+"POT-Creation-Date: 2006-06-29 02:16+0200\n"
+"PO-Revision-Date: 2006-07-14 20:33+0900\n"
+"Last-Translator: Hideki Yamane (Debian-JP) <henrich@debian.or.jp>\n"
 "Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=EUC-JP\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #. Type: note
 #. Description
 #: ../mdadm.templates:1001
 msgid "Initialise the superblock if you reuse hard disks"
-msgstr "�ϡ��ɥǥ�����������Ѥ������ superblock ���������Ƥ�������"
+msgstr "ハードディスクを再利用する場合は superblock を初期化してください"
 
 #. Type: note
 #. Description
 #: ../mdadm.templates:1002
-#, fuzzy
 msgid ""
 "WARNING! If you are using hard disks which have RAID superblocks from "
 "earlier installations in different RAID arrays, you MUST zero each "
 "superblock *before* activating the autostart feature."
 msgstr ""
-"�ٹ�! �����Υ��󥹥ȡ���ˤ�äưۤʤ� RAID ���쥤��Ǥ� md superblock ���ݻ�"
-"���Ƥ���ϡ��ɥǥ�������ȤäƤ����硢��ư��ư��ǽ��ͭ���ˤ������� "
-"superblock �򥼥��Ǿ�񤭤��뤳�Ȥ���ɬ�ספǤ���"
+"警告! 以前のインストールによって他の RAID アレイに対する RAID superblock "
+"を保持しているハードディスクを使っている場合、自動起動機能を有効にする「前」に、"
+"その superblock をゼロで上書きすることが「必要」です。"
 
 #. Type: note
 #. Description
 #: ../mdadm.templates:1003
-#, fuzzy
 msgid ""
 "To do this, do not start the RAID devices automatically. First, zero the "
 "superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-reconfigure "
 "mdadm` to reactivate the autostart feature."
 msgstr ""
-"�����Ԥ��ˤϡ�RAID �ǥХ�����ưŪ�˵�ư������ superblock �򥼥��Ǿ�񤭤�"
-"�ޤ� (mdadm --zero-superblock /dev/xxx)�� �����ơ���ư��ư��ǽ��ͭ���ˤ��뤿"
-"��ˤ� 'dpkg-reconfigure mdadm' ���ޥ�ɤ����ѤǤ��ޤ���"
-
-#. Type: note
-#. Description
-#: ../mdadm.templates:1004
-msgid ""
-"If you manage your RAIDs otherwise (e.g. EVMS), either disable autostart, or "
-"ensure that /etc/mdadm/mdadm.conf only lists those arrays you want to start "
-"by mdadm."
-msgstr ""
+"これを行うには、RAID デバイスを自動的に起動してはいけません。まず、 superblock "
+"をゼロで上書きします (mdadm --zero-superblock /dev/xxx)。 そして、自動起動機能"
+"を有効にするため、'dpkg-reconfigure mdadm' コマンドを実行します。"
 
 #. Type: string
 #. Description
 #: ../mdadm.templates:2001
 msgid "RAID arrays needed for the root filesystem:"
-msgstr ""
+msgstr "root ファイルシステムには RAID アレイが必要です:"
 
 #. Type: string
 #. Description
@@ -80,6 +69,11 @@ msgid ""
 "logical volume (LVM), which is on RAID, all constituent arrays need to be "
 "started."
 msgstr ""
+"あなたのシステムが root ファイルシステムを RAID ボリューム上に配置しているならば、"
+"ブートシーケンスの初期段階で RAID を開始する必要があります。root ファイルシステム"
+"が RAID 上の論理ボリューム (LVM) 上にある場合、構成しているアレイ全ての開始が必要"
+"です。"
+
 
 #. Type: string
 #. Description
@@ -90,6 +84,11 @@ msgid ""
 "arrays. If you do not need or want to start any arrays for the root "
 "filesystem, leave the answer blank (or enter 'none')."
 msgstr ""
+"どのアレイが root ファイルシステムを立ち上げるのに必要かを正確に知っているなら、"
+"ここで入力してください。分からない場合は、'all' と入力して単に全ての利用可能な"
+"アレイを立ち上げてください。root ファイルシステムには、どのアレイも必要ない、ある"
+"いはどのアレイも立ち上げたくは無いという場合は、空白のままに (あるいは 'none' と"
+"入力) してください。"
 
 #. Type: string
 #. Description
@@ -100,6 +99,10 @@ msgid ""
 "control over the arrays with the mdadm configuration file. Starting all "
 "arrays at boot-time may be safer though."
 msgstr ""
+"ブートシーケンスの後ろの方で (root ファイルシステムには必要ない) 他のアレイ全てを"
+"起動するという選択肢もあります。これを選べば、mdadm の設定ファイルを使って、アレイ"
+"について様々な設定が出来るようになるでしょう。もっとも、起動時に全てのアレイを起動"
+"するほうが安全ではあります。"
 
 #. Type: string
 #. Description
@@ -108,80 +111,60 @@ msgid ""
 "Please enter a space-separated list of devices, or 'all'. You may omit the "
 "leading '/dev/' and just enter e.g. \"md0 md1\"."
 msgstr ""
+"デバイスのリストをスペースで区切って入力するか、'all' と入力してください。"
+"前の '/dev/' を省略して、単に \"md0 md1\" などとしても構いません。"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:3001
-#, fuzzy
 msgid "Do you want to start RAID devices automatically?"
-msgstr "RAID �ǥХ�����ưŪ�˵�ư���ޤ���?"
+msgstr "RAID デバイスを自動的に起動しますか?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:3002
 msgid ""
-"Once the base system has come up, mdadm can start all RAID devices specified "
-"in /etc/mdadm/mdadm.conf, which have not yet been started. Unless you have "
-"compiled RAID support into the kernel (in which case all RAID arrays with "
-"partitions of type 0xfd (and only those) are started automatically anyway), "
+"Once the base system has come up, mdadm can start all RAID devices it finds "
+"which have not been started. Unless you have compiled RAID support into the "
+"kernel (in which case all RAID arrays are started automatically anyway), "
 "this is probably what you want."
 msgstr ""
+"一旦ベースシステムが起動すると、mdadm は認識した起動されていない全ての RAID デバ"
+"イスを起動出来ます。RAID をサポートするようにカーネルでコンパイルしている (この"
+"場合は全ての RAID アレイはいずれにせよ自動的に起動されます) という状態では無い限り、"
+"この動作が恐らく必要とされているものです。"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:4001
-msgid "Should mdadm run monthly parity checks of the RAID arrays?"
-msgstr ""
+msgid "Do you want to start the RAID monitoring daemon?"
+msgstr "RAID 監視デーモンを起動しますか?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:4002
 msgid ""
-"If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
-"parity of your RAID devices. This may be a resource-intensive process, "
-"depending on your setup, but it could help prevent rare cases of data loss."
-msgstr ""
-
-#. Type: boolean
-#. Description
-#: ../mdadm.templates:4003
-msgid ""
-"The default, if turned on, is to run the checks on the first Sunday of every "
-"month at 01:06 o'clock."
-msgstr ""
-
-#. Type: boolean
-#. Description
-#: ../mdadm.templates:5001
-#, fuzzy
-msgid "Do you want to start the RAID monitoring daemon?"
-msgstr "RAID �ƻ�ǡ�����ư���ޤ���?"
-
-#. Type: boolean
-#. Description
-#: ../mdadm.templates:5002
-msgid ""
 "The RAID monitor daemon sends email notifications in response to important "
 "RAID events (such as a disk failure). You probably want to enable it."
 msgstr ""
+"RAID 監視デーモンは、重大な RAID 関連のイベント (ディスク障害など) に対して"
+"メールで通知を送ります。おそらく有効にする方が良いでしょう。"
 
 #. Type: string
 #. Description
-#: ../mdadm.templates:6001
-#, fuzzy
+#: ../mdadm.templates:5001
 msgid "Recipient for email notifications:"
-msgstr "�ǡ���󤫤�����Τ������밸��:"
+msgstr "メール通知の宛先:"
 
 #. Type: string
 #. Description
-#: ../mdadm.templates:6002
-#, fuzzy
+#: ../mdadm.templates:5002
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notification for these important RAID events."
 msgstr ""
-"RAID ���쥤�Υ��ơ��������Ѳ��������˥᡼�����Τ�������桼���Υ᡼�륢��"
-"�쥹�����Ϥ��Ƥ���������"
+"RAID 関連の重大なイベントが発生した際、メールでの通知を受け取る必要がある"
+"ユーザのメールアドレスを入力してください。"
 
 #~ msgid ""
 #~ "If RAID devices are started automatically, all RAID devices are "
@@ -190,16 +173,16 @@ msgstr ""
 #~ "compiled into your kernel, the automatic startup will be performed at "
 #~ "boot time by the kernel and therefore you should not choose this option."
 #~ msgstr ""
-#~ "RAID �ǥХ�������ưŪ�˵�ư����褦�ˤ���ȡ������ƥ൯ư�������Ƥ� RAID "
-#~ "�ǥХ��������Ф��졢��ưŪ�˹�������ޤ������Υ��ץ����� md �ɥ饤�Ф���"
-#~ "���塼��Ȥ��ƥ���ѥ��뤵��Ƥ�����Τߤ����Ѥ��ޤ��������ͥ���Ȥ߹���"
-#~ "�ǥ���ѥ��뤷�Ƥ�����硢�����ƥ൯ư���˥����ͥ�ˤ�äƼ�ư��ư���¹Ԥ�"
-#~ "���Τǡ����Υ��ץ����Ǥ�����ϤǤ��ޤ���"
+#~ "RAID デバイスが自動的に起動するようにすると、システム起動時に全ての RAID "
+#~ "デバイスが検出され、自動的に構成されます。このオプションは md ドライバがモ"
+#~ "ジュールとしてコンパイルされている場合のみに利用します。カーネルに組み込ん"
+#~ "でコンパイルしていた場合、システム起動時にカーネルによって自動起動が実行さ"
+#~ "れるので、このオプションでの選択はできません。"
 
 #~ msgid ""
 #~ "When the RAID monitor daemon runs, email notifications are sent when a "
 #~ "disk belonging to a RAID array fails or changes its status for some "
 #~ "reason."
 #~ msgstr ""
-#~ "RAID �ƻ�ǡ����ư��Ƥ����硢RAID ���쥤��°���Ƥ���ǥ��������ξ�"
-#~ "���뤫���餫����ͳ���Ѳ������ݤ˥᡼������Τ������ޤ���"
+#~ "RAID 監視デーモンが動作している場合、RAID アレイに属しているディスクが故障"
+#~ "するか何らかの理由で変化した際にメールで通知が送られます。"
