@@ -1,6 +1,6 @@
 #!/bin/sh -eu
 #
-# checkarray -- initiates a check run of a device's parity information.
+# checkarray -- initiates a check run of an array's parity information.
 #
 # Copyright © 2006 martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence.
@@ -20,7 +20,7 @@ usage()
 {
   about
   echo
-  echo "Usage: $PROGNAME [options] [devices]"
+  echo "Usage: $PROGNAME [options] [arrays]"
   echo
   echo "Valid options are:"
   cat <<-_eof | column -s\& -t
@@ -40,7 +40,7 @@ usage()
   echo "all equivalent:"
   echo "  /dev/md0, md0, /dev/md/0, /sys/block/md0"
   echo
-  echo "The --all option overrides all devices passed to the script."
+  echo "The --all option overrides all arrays passed to the script."
   echo
   echo "You can control the status of a check with /proc/mdstat ."
 }
@@ -50,7 +50,7 @@ LONGOPTS=all,cron,help,version,quiet,real-quiet
 
 eval set -- $(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@")
 
-devices=''
+arrays=''
 cron=0
 all=0
 quiet=0
@@ -63,9 +63,9 @@ for opt in $@; do
     -q|--quiet) quiet=1;;
     -Q|--real-quiet) quiet=2;;
     -V|--version) about; exit 0;;
-    /dev/md/*|md/*) devices="${devices:+$devices }md${opt#*md/}";;
-    /dev/md*|md*) devices="${devices:+$devices }${opt#/dev/}";;
-    /sys/block/md*) devices="${devices:+$devices }${opt#/sys/block/}";;
+    /dev/md/*|md/*) arrays="${arrays:+$arrays }md${opt#*md/}";;
+    /dev/md*|md*) arrays="${arrays:+$arrays }${opt#/dev/}";;
+    /sys/block/md*) arrays="${arrays:+$arrays }${opt#/sys/block/}";;
     --) :;;
     *) echo "$PROGNAME: E: invalid option: $opt" >&2; usage >&2; exit0;;
   esac
@@ -101,13 +101,13 @@ if [ -z "$(ls /sys/block/md*/md/sync_action 2>/dev/null)" ]; then
   exit 3
 fi
 
-[ $all = 1 ] && devices="$(ls -d1 /sys/block/md* | cut -d/ -f4)"
+[ $all = 1 ] && arrays="$(ls -d1 /sys/block/md* | cut -d/ -f4)"
 
-for dev in $devices; do
-  SYNC_ACTION_CTL=/sys/block/$dev/md/sync_action
+for array in $arrays; do
+  SYNC_ACTION_CTL=/sys/block/$array/md/sync_action
 
   if [ ! -e $SYNC_ACTION_CTL ]; then
-    [ $quiet -lt 1 ] && echo "$PROGNAME: I: skipping RAID0 array $dev." >&2
+    [ $quiet -lt 1 ] && echo "$PROGNAME: I: skipping RAID0 array $array." >&2
     continue
   fi
 
@@ -117,14 +117,14 @@ for dev in $devices; do
   fi
 
   if [ "$(cat $SYNC_ACTION_CTL)" != idle ]; then
-    [ $quiet -lt 2 ] && echo "$PROGNAME: W: device $dev not idle, skipping..." >&2
+    [ $quiet -lt 2 ] && echo "$PROGNAME: W: array $array not idle, skipping..." >&2
     continue
   fi
 
-  # run check for the device. The kernel will make sure that these requests
-  # are properly queued so as to not kill one of the devices.
+  # run check for the array. The kernel will make sure that these requests
+  # are properly queued so as to not kill one of the array.
   echo check > $SYNC_ACTION_CTL
-  [ $quiet -lt 1 ] && echo "$PROGNAME: I: check queued for device $dev." >&2
+  [ $quiet -lt 1 ] && echo "$PROGNAME: I: check queued for array $array." >&2
   
 done
 
