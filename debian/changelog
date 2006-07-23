@@ -3,7 +3,7 @@ mdadm (2.5.2-8) unstable; urgency=low
   * Re-added rootraiddoc.97.html which was mysteriously lost (closes: #378678).
   * Catching modprobe error in case of absence of the kernel modules, or
     a non-modular kernel. Thanks to Holger Levsen.
-  * checkarray: Check for presence of active RAID arrays and give an
+  * checkarray: check for presence of active RAID arrays and give an
     appropriate error if there are none present (closes: #379019).
   * checkarray: skip sync for RAID0 devices (closes: #379352).
   * Updated debconf translations:
