@@ -10,15 +10,15 @@
 #         or http://www.debian.org/intl/l10n/po-debconf/README-trans
 #
 #    Developers do not need to manually edit POT or PO files.
-# 
+#
 # Éric Madesclair <eric-m@wanadoo.fr>, 2005, 2006.
 # Florentin Duneau <f.baced@wanadoo.fr>, 2006.
 msgid ""
 msgstr ""
 "Project-Id-Version: mdadm\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2006-07-09 01:19+0200\n"
-"PO-Revision-Date: 2006-07-09 12:13+0200\n"
+"POT-Creation-Date: 2006-07-18 08:07+0200\n"
+"PO-Revision-Date: 2006-07-24 01:26+0200\n"
 "Last-Translator: Florentin Duneau <f.baced@wanadoo.fr>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
@@ -56,6 +56,19 @@ msgstr ""
 "RAID. Veuillez commencer par effacer le superbloc (mdadm --zero-superblock /"
 "dev/xxx) et activer ensuite le démarrage automatique avec la commande « dpkg-"
 "reconfigure mdadm »."
+
+#. Type: note
+#. Description
+#: ../mdadm.templates:1001
+msgid ""
+"If you manage your RAIDs otherwise (e.g. EVMS), either disable autostart, or "
+"ensure that /etc/mdadm/mdadm.conf only lists those arrays you want to start "
+"by mdadm."
+msgstr ""
+"Si vous gérez les périphériques RAID différemment (par exemple, avec EVMS), "
+"veuillez, soit désactiver le démarrage automatique (« autostart »), ou soit "
+"vous assurer que tous les ensembles que vous voulez démarrer avec mdadm sont "
+"listés dans /etc/mdadm/mdadm.conf."
 
 #. Type: string
 #. Description
@@ -128,25 +141,56 @@ msgstr "Faut-il démarrer automatiquement les périphériques RAID ?"
 #. Description
 #: ../mdadm.templates:3001
 msgid ""
-"Once the base system has come up, mdadm can start all RAID devices it finds "
-"which have not been started. Unless you have compiled RAID support into the "
-"kernel (in which case all RAID arrays are started automatically anyway), "
+"Once the base system has come up, mdadm can start all RAID devices specified "
+"in /etc/mdadm/mdadm.conf, which have not yet been started. Unless you have "
+"compiled RAID support into the kernel (in which case all RAID arrays with "
+"partitions of type 0xfd (and only those) are started automatically anyway), "
 "this is probably what you want."
 msgstr ""
 "Lorsque le système de base a démarré, mdadm peut démarrer tous les "
-"périphériques RAID qu'il trouve et qui n'ont pas été démarrés. Cela est "
-"recommandé, à moins que la gestion RAID ne soit compilée dans le noyau (dans "
-"ce cas tous les ensembles RAID sont toujours démarrés automatiquement)."
+"périphériques RAID spécifiés dans /etc/mdadm/mdadm.conf qui n'ont pas été "
+"démarrés. Cela est recommandé, à moins que la gestion RAID ne soit compilée "
+"dans le noyau (dans ce cas tous les ensembles RAID sont toujours démarrés "
+"automatiquement)."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:4001
+msgid "Should mdadm run monthly parity checks of the RAID arrays?"
+msgstr "Faut-il vérifier la parité des ensembles RAID ?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:4001
+msgid ""
+"If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
+"parity of your RAID devices. This may be a resource-intensive process, "
+"depending on your setup, but it could help prevent rare cases of data loss."
+msgstr ""
+"Si le noyau le gère (à partir de Linux 2.6.14), mdadm peut vérifier "
+"périodiquement la parité des périphériques RAID. Cette action peut demander "
+"beaucoup de ressources selon la configuration, mais cela aide à prévenir les "
+"rares cas de pertes de données."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:4001
+msgid ""
+"The default, if turned on, is to run the checks on the first Sunday of every "
+"month at 01:06 o'clock."
+msgstr ""
+"Par défaut, la vérification s'effectuera tous les premiers dimanche du mois "
+"à 01h06."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:5001
 msgid "Do you want to start the RAID monitoring daemon?"
 msgstr "Faut-il démarrer le démon de surveillance RAID ?"
 
 #. Type: boolean
 #. Description
-#: ../mdadm.templates:4001
+#: ../mdadm.templates:5001
 msgid ""
 "The RAID monitor daemon sends email notifications in response to important "
 "RAID events (such as a disk failure). You probably want to enable it."
@@ -157,13 +201,13 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../mdadm.templates:5001
+#: ../mdadm.templates:6001
 msgid "Recipient for email notifications:"
 msgstr "Destinataire des notifications par courriel :"
 
 #. Type: string
 #. Description
-#: ../mdadm.templates:5001
+#: ../mdadm.templates:6001
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notification for these important RAID events."

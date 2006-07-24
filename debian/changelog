@@ -8,8 +8,9 @@ mdadm (2.5.2-8) unstable; urgency=low
   * checkarray: skip sync for RAID0 devices (closes: #379352).
   * Updated debconf translations:
     - Japanese by Hideki Yamane, thanks!
+    - French by Florentin Duneau, thanks! (closes: #379511)
 
- -- martin f. krafft <madduck@debian.org>  Sun, 23 Jul 2006 12:16:15 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon, 24 Jul 2006 07:54:10 +0100
 
 mdadm (2.5.2-7) unstable; urgency=low
 
