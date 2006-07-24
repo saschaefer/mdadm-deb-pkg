@@ -6,11 +6,15 @@ mdadm (2.5.2-8) unstable; urgency=low
   * checkarray: check for presence of active RAID arrays and give an
     appropriate error if there are none present (closes: #379019).
   * checkarray: skip sync for RAID0 devices (closes: #379352).
+  * Removed the code writing auto-detected devices to /var, which was silly
+    since /var isn't necessarily mounted yet by the time mdadm-raid is called.
+    Thanks to Mau for pointing this out.
+  * Added questionable RAID5-vs-RAID10.txt document.
   * Updated debconf translations:
     - Japanese by Hideki Yamane, thanks!
     - French by Florentin Duneau, thanks! (closes: #379511)
 
- -- martin f. krafft <madduck@debian.org>  Mon, 24 Jul 2006 07:54:10 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon, 24 Jul 2006 23:07:33 +0100
 
 mdadm (2.5.2-7) unstable; urgency=low
 
