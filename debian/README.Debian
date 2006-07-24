@@ -32,6 +32,13 @@ Common recipes
 Check /usr/share/doc/mdadm/README.recipes.gz for some simple examples of how
 to do the most common stuff with mdadm.
 
+RAID5 or not to RAID5
+~~~~~~~~~~~~~~~~~~~~~
+See http://www.miracleas.com/BAARF/BAARF2.html . The package maintainer could
+not possibly come up with so much emotion over such a technical topic.
+
+See also the RAID5_versus_RAID10.txt.gz document included with this package.
+
 Upstream
 ~~~~~~~~
 For completeness: The upstream repository is available from

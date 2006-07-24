@@ -7,13 +7,19 @@
 @DPATCH@
 diff -urNad trunk~/RAID5_versus_RAID10.txt trunk/RAID5_versus_RAID10.txt
 --- trunk~/RAID5_versus_RAID10.txt	1970-01-01 01:00:00.000000000 +0100
-+++ trunk/RAID5_versus_RAID10.txt	2006-07-24 23:06:52.373326792 +0100
-@@ -0,0 +1,171 @@
++++ trunk/RAID5_versus_RAID10.txt	2006-07-24 23:18:32.250326974 +0100
+@@ -0,0 +1,177 @@
 +# from http://www.miracleas.com/BAARF/RAID5_versus_RAID10.txt
++# also see http://www.miracleas.com/BAARF/BAARF2.html
 +#
-+# note: I, the Debian maintainer, do not agree with much of what's written
-+# here, but it's a good argument the author is putting forth. In the end, the
-+# RAID level you choose depends on your needs only.
++# Note: I, the Debian maintainer, do not agree with some of the arguments,
++# especially not with the total condemning of RAID5. Anyone who talks about
++# data loss and blames the RAID system should spend time reading up on Backups
++# instead of trying to evangelise, but that's only my opinion. RAID5 has its
++# merits and its shortcomings, just like any other method. However, the author
++# of this argument puts forth a good case and thus I am including the
++# document. Remember that you're the only one that can decide which RAID level
++# to use.
 +#
 +
 +RAID5 versus RAID10 (or even RAID3 or RAID4)
