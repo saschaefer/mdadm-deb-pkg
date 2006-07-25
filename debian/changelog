@@ -8,7 +8,7 @@ mdadm (2.5.2-8) unstable; urgency=low
   * checkarray: skip sync for RAID0 devices (closes: #379352).
   * Removed the code writing auto-detected devices to /var, which was silly
     since /var isn't necessarily mounted yet by the time mdadm-raid is called.
-    Thanks to Mau for pointing this out.
+    Thanks to Maurizio Avogadro for pointing this out.
   * Add reference to BAARF to README.Debian and included the RAID5 vs RAID10
     article from the BAARF website.
   * Updated debconf translations:
