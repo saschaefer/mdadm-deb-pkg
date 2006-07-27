@@ -75,8 +75,10 @@ if [ -n "$DEVS" ]; then
 
   copy_exec $MDADM /sbin
 
-  # copy all modules into the initramfs, just for safety
-  MODULES="linear multipath raid0 raid1 raid5 raid6 raid10"
+  # copy all modules into the initramfs, just for safety.
+  # we copy raid456 / raid5+raid6 because the hook script just won't do
+  # anything when the module cannot be found.
+  MODULES="linear multipath raid0 raid1 raid456 raid5 raid6 raid10"
   for mod in $MODULES; do manual_add_modules $mod; done
 
   # prevent problems with old md script. Since this hook is only called if
