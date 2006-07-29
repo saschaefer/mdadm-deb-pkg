@@ -9,6 +9,11 @@
 MDADM=/sbin/mdadm
 DEBIANCONFIG=/etc/default/mdadm
 
+if [ ! -d /proc/$$ ]; then
+  echo E: /proc not available. Exiting... >&2
+  exit 2
+fi
+
 test -f $DEBIANCONFIG && . $DEBIANCONFIG
 
 if [ -r /proc/partitions ]; then
