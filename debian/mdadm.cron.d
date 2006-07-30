@@ -5,7 +5,8 @@
 # distributed under the terms of the Artistic Licence.
 #
 
-# by default, run at 01:06 on the 5th of every month. I would like to be able
-# to limit this down to weekends, but crontab(5) is not able to do so
-# (see #380425)
-6 1 5 * * root [ -x /usr/share/mdadm/checkarray ] && /usr/share/mdadm/checkarray --cron --all --quiet
+# By default, run at 01:06 on the every Sunday, but do nothing unless the day
+# of the month is less than or equal to 7. Thus, only run on the first Sunday
+# of each month. crontab(5) sucks, unfortunately, so therefore this hack
+# (see #380425).
+6 1 * * 0 root [ -x /usr/share/mdadm/checkarray ] && [ $(date +\%d) -le 7 ] && /usr/share/mdadm/checkarray --cron --all --quiet

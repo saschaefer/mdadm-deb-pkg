@@ -7,9 +7,9 @@ mdadm (2.5.2-8) unstable; urgency=low
   * checkarray: check for presence of active RAID arrays and give an
     appropriate error if there are none present (closes: #379019).
   * checkarray: skip sync for RAID0 devices (closes: #379352, #380424).
-  * Fixing cron registration for checkarray to really only run once a month.
-    crontab(5) is really stupid and makes me think that they simply documented
-    a bug instead of fixing it (closes: #380425).
+  * Fixing cron registration for checkarray. crontab(5) is really stupid and
+    makes me think that they simply documented a bug instead of fixing it, so
+    now I have to hack around it. See the cron.d file (closes: #380425).
   * Removed the code writing auto-detected devices to /var, which was silly
     since /var isn't necessarily mounted yet by the time mdadm-raid is called.
     Thanks to Maurizio Avogadro for pointing this out.
