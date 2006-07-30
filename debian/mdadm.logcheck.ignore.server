@@ -1,0 +1,9 @@
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: syncing RAID array md[[:digit:]]+$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: md[[:digit:]]+: sync done\.$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: minimum _guaranteed_ reconstruction speed: [[:digit:]]+ KB/sec/disc\.$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: using maximum available idle IO bandwidth \(but not more than [[:digit:]]+ KB/sec\) for reconstruction\.$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: delaying resync of md[[:digit:]]+ until md[[:digit:]]+ has finished resync \(they share one or more physical units\)$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: using [[:digit:]]+k window, over a total of [[:digit:]]+ blocks\.$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: RAID[01456] conf printout:$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel:  ---( [wrf]d:[[:digit:]]+){2,3}$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel:  disk [[:digit:]]+,( wo:[[:digit:]]+,)? o:[[:digit:]]+, dev:[sh]d[[:lower:]][[:digit:]]+$
