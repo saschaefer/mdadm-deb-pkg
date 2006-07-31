@@ -108,7 +108,7 @@ for array in $arrays; do
   SYNC_ACTION_CTL=/sys/block/$array/md/sync_action
 
   if [ ! -e $SYNC_ACTION_CTL ]; then
-    [ $quiet -lt 1 ] && echo "$PROGNAME: I: skipping RAID0 array $array." >&2
+    [ $quiet -lt 1 ] && echo "$PROGNAME: I: skipping non-redundant array $array." >&2
     continue
   fi
 
