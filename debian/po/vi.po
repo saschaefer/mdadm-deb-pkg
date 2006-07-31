@@ -1,178 +1,132 @@
 # Vietnamese Translation for mdadm.
-# Copyright © 2005 Free Software Foundation, Inc.
-# Clytie Siddall <clytie@riverland.net.au>, 2005.
+# Copyright © 2006 Free Software Foundation, Inc.
+# Clytie Siddall <clytie@riverland.net.au>, 2005-2006.
 # 
 msgid ""
-msgstr ""
-"Project-Id-Version: mdadm 1.12.0-1\n"
+""
+msgstr "Project-Id-Version: mdadm 2.5.2-2\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2006-07-07 17:30+0200\n"
-"PO-Revision-Date: 2005-08-19 21:55+0930\n"
+"POT-Creation-Date: 2006-06-29 02:16+0200\n"
+"PO-Revision-Date: 2006-07-31 21:42+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
-"Language-Team: Vietnamese <gnomevi-list@lists.sourceforge.net>\n"
+"Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0\n"
-"X-Generator: LocFactoryEditor 1.2.2\n"
+"X-Generator: LocFactoryEditor 1.6fc1\n"
 
-#. Type: note
-#. Description
+#.Type: note
+#.Description
 #: ../mdadm.templates:1001
 msgid "Initialise the superblock if you reuse hard disks"
 msgstr "Hãy khởi động siêu khối nếu bạn sử dụng lại đĩa cứng."
 
-#. Type: note
-#. Description
+#.Type: note
+#.Description
 #: ../mdadm.templates:1002
-#, fuzzy
 msgid ""
 "WARNING! If you are using hard disks which have RAID superblocks from "
 "earlier installations in different RAID arrays, you MUST zero each "
 "superblock *before* activating the autostart feature."
-msgstr ""
-"CẢNH BÁO: nếu bạn đang sử dụng đĩa cứng nào có một siêu khối md từ một việc "
-"cài đặt trước trong một mảng RAID khác, thì bạn PHẢI định dạng siêu khối ấy "
-"trước khi hoạt hóa tính năng tự động khởi động."
+msgstr "CẢNH BÁO : nếu bạn đang sử dụng đĩa cứng nào chứa siêu khối RAID từ bản cài đặt trước nằm trong  mảng RAID khác nhau, bạn CẦN PHẢI làm số không mỗi siêu khối _trước_ khi kích hoạt tính năng khởi chạy tự động."
 
-#. Type: note
-#. Description
+#.Type: note
+#.Description
 #: ../mdadm.templates:1003
 msgid ""
 "To do this, do not start the RAID devices automatically. First, zero the "
 "superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-reconfigure "
 "mdadm` to reactivate the autostart feature."
-msgstr ""
-"Để làm như thế, đừng tự động khởi động những thiết bị RAID. Hãy định dạng "
-"siêu khối (« mdadm --zero-superblock /dev/mdX »). Sau đó, bạn có thể sử dụng "
-"lệnh « dpkg-reconfigure mdadm » để hoạt hóa tính năng tự động khởi động."
+msgstr "Để làm như thế, đừng khởi chạy tự động những thiết bị RAID. Trước tiên, hãy làm số không siêu khối (« mdadm --zero-superblock /dev/mdX »). Sau đó, chạy lệnh « dpkg-reconfigure mdadm » để kích hoạt tính năng khởi chạy tự động."
 
-#. Type: note
-#. Description
-#: ../mdadm.templates:1004
-msgid ""
-"If you manage your RAIDs otherwise (e.g. EVMS), either disable autostart, or "
-"ensure that /etc/mdadm/mdadm.conf only lists those arrays you want to start "
-"by mdadm."
-msgstr ""
-
-#. Type: string
-#. Description
+#.Type: string
+#.Description
 #: ../mdadm.templates:2001
 msgid "RAID arrays needed for the root filesystem:"
-msgstr ""
+msgstr "Các mảng RAID cần thiết cho hệ thống tập tin gốc:"
 
-#. Type: string
-#. Description
+#.Type: string
+#.Description
 #: ../mdadm.templates:2002
 msgid ""
 "If your system has its root filesystem on a RAID volume, it needs to be "
 "started early during the boot sequence. If your root filesystem is on a "
 "logical volume (LVM), which is on RAID, all constituent arrays need to be "
 "started."
-msgstr ""
+msgstr "Nếu hệ thống này có hệ thống tập tin gốc nằm trên khối tin RAID, nó cần phải được khởi chạy sớm trong dãy khởi động. Còn nếu hệ thống tập tin gốc nằm trên khối tin hợp lý (LVM) lần lượt nằm trên RAID, mọi mảng hợp thành cần phải được khởi chạy."
 
-#. Type: string
-#. Description
+#.Type: string
+#.Description
 #: ../mdadm.templates:2003
 msgid ""
 "If you know exactly which arrays are needed to bring up the root filesystem, "
 "enter them here. Alternatively, enter 'all' to simply start all available "
 "arrays. If you do not need or want to start any arrays for the root "
 "filesystem, leave the answer blank (or enter 'none')."
-msgstr ""
+msgstr "Nếu bạn biết chính xác những mảng nào cần thiết để kích hoạt hệ thống tập tin gốc, hãy nhập chúng vào đây. Hoặc nhập « all » (tất cả) để khởi chạy đơn giản tất cả các mảng. Còn nếu bạn không muốn hay cần khởi chạy mảng nào cho hệ thống tập tin gốc, bỏ trống trường này (hoặc nhập « none » [không có])."
 
-#. Type: string
-#. Description
+#.Type: string
+#.Description
 #: ../mdadm.templates:2004
 msgid ""
 "You have the option to start all other arrays (those not needed for the root "
 "filesystem) later in the boot sequence. Doing so will give you greater "
 "control over the arrays with the mdadm configuration file. Starting all "
 "arrays at boot-time may be safer though."
-msgstr ""
+msgstr "Tùy chọn bạn có khả năng khởi chạy các mảng khác (những mảng không phải cần thiết cho hệ thống tập tin gốc) vào lúc sau trong dãy khởi động. Làm như thế sẽ cho bạn độ điều khiển hơn với các mảng bằng tập tin cấu hình mdadm. Tuy nhiên, có thể là an toàn hơn để khởi chạy mọi mảng vào lúc khởi động."
 
-#. Type: string
-#. Description
+#.Type: string
+#.Description
 #: ../mdadm.templates:2005
 msgid ""
 "Please enter a space-separated list of devices, or 'all'. You may omit the "
 "leading '/dev/' and just enter e.g. \"md0 md1\"."
-msgstr ""
+msgstr "Hãy nhập danh sách các thiết bị (định giới bằng dấu cách) hay « all » (tất cả). Có thể bỏ phần « /dev/ » đi trước, chỉ nhập (v.d.) « md0 md1 »."
 
-#. Type: boolean
-#. Description
+#.Type: boolean
+#.Description
 #: ../mdadm.templates:3001
-#, fuzzy
 msgid "Do you want to start RAID devices automatically?"
-msgstr "Bạn có muốn tự động khởi động những thiết bị RAID không?"
+msgstr "Bạn có muốn khởi động tự động những thiết bị RAID không?"
 
-#. Type: boolean
-#. Description
+#.Type: boolean
+#.Description
 #: ../mdadm.templates:3002
 msgid ""
-"Once the base system has come up, mdadm can start all RAID devices specified "
-"in /etc/mdadm/mdadm.conf, which have not yet been started. Unless you have "
-"compiled RAID support into the kernel (in which case all RAID arrays with "
-"partitions of type 0xfd (and only those) are started automatically anyway), "
+"Once the base system has come up, mdadm can start all RAID devices it finds "
+"which have not been started. Unless you have compiled RAID support into the "
+"kernel (in which case all RAID arrays are started automatically anyway), "
 "this is probably what you want."
-msgstr ""
+msgstr "Một khi hệ thống cơ bản được kích hoạt, mdadm có khả năng khởi động mọi thiết bị RAID nó tìm mà chưa được khởi động. Trừ bạn đã biên dịch khả năng hỗ trợ RAID vào hạt nhân (trong trường hợp đó mọi mảng RAID vẫn còn được khởi động tự động), rất có thể là bạn muốn bật tùy chọn này."
 
-#. Type: boolean
-#. Description
+#.Type: boolean
+#.Description
 #: ../mdadm.templates:4001
-msgid "Should mdadm run monthly parity checks of the RAID arrays?"
-msgstr ""
-
-#. Type: boolean
-#. Description
-#: ../mdadm.templates:4002
-msgid ""
-"If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
-"parity of your RAID devices. This may be a resource-intensive process, "
-"depending on your setup, but it could help prevent rare cases of data loss."
-msgstr ""
-
-#. Type: boolean
-#. Description
-#: ../mdadm.templates:4003
-msgid ""
-"The default, if turned on, is to run the checks on the first Sunday of every "
-"month at 01:06 o'clock."
-msgstr ""
-
-#. Type: boolean
-#. Description
-#: ../mdadm.templates:5001
-#, fuzzy
 msgid "Do you want to start the RAID monitoring daemon?"
 msgstr "Bạn có muốn khởi chạy trình nền theo dõi RAID không?"
 
-#. Type: boolean
-#. Description
-#: ../mdadm.templates:5002
+#.Type: boolean
+#.Description
+#: ../mdadm.templates:4002
 msgid ""
 "The RAID monitor daemon sends email notifications in response to important "
 "RAID events (such as a disk failure). You probably want to enable it."
-msgstr ""
+msgstr "Trình nền theo dõi RAID gởi thư thông báo hưởng ứng sự kiện RAID quan trọng (v.d. đĩa bị hỏng). Rất có thể là bạn nên bật chạy nó."
 
-#. Type: string
-#. Description
-#: ../mdadm.templates:6001
-#, fuzzy
+#.Type: string
+#.Description
+#: ../mdadm.templates:5001
 msgid "Recipient for email notifications:"
-msgstr "Người nhận thư thông báo từ trình nền:"
+msgstr "Người nhận thư thông báo :"
 
-#. Type: string
-#. Description
-#: ../mdadm.templates:6002
-#, fuzzy
+#.Type: string
+#.Description
+#: ../mdadm.templates:5002
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notification for these important RAID events."
-msgstr ""
-"Hãy nhập địa chỉ thư điện tử của người dùng nên nhận thư thông báo họ nếu "
-"trạng thái của một mảng RAID có thay đổi."
+msgstr "Hãy nhập địa chỉ thư của người dùng nên nhận thư thông báo về sự kiện RAID quan trọng như vậy."
 
 #~ msgid ""
 #~ "If RAID devices are started automatically, all RAID devices are "
@@ -180,8 +134,7 @@ msgstr ""
 #~ "should only be used if the md driver is compiled as a module. If it is "
 #~ "compiled into your kernel, the automatic startup will be performed at "
 #~ "boot time by the kernel and therefore you should not choose this option."
-#~ msgstr ""
-#~ "Nếu bạn chọn tự động khởi động thiết bị RAID, khi hệ thống khởi động, nó "
+#~ msgstr "Nếu bạn chọn tự động khởi động thiết bị RAID, khi hệ thống khởi động, nó "
 #~ "tự động phát hiện và tập hợp các thiết bị RAID. Bạn chỉ nên sử dụng tùy "
 #~ "chọn này nếu đã biên dịch trình hỗ trợ thiết bị md là một mô-đun. Nếu đã "
 #~ "biên dịch nó vào hạt nhân bạn, thì hạt nhân sẽ tự động khởi động, vì vậy "
@@ -191,7 +144,6 @@ msgstr ""
 #~ "When the RAID monitor daemon runs, email notifications are sent when a "
 #~ "disk belonging to a RAID array fails or changes its status for some "
 #~ "reason."
-#~ msgstr ""
-#~ "Khi trình nền (dæmon) theo dõi RAID chạy thì nó gửi thông báo qua thư mỗi "
+#~ msgstr "Khi trình nền (dæmon) theo dõi RAID chạy thì nó gửi thông báo qua thư mỗi "
 #~ "lúc một đĩa thuộc về một mảng RAID có hỏng hóc hoặc thay đổi trạng thái "
 #~ "vì một lý do nào đó,"
