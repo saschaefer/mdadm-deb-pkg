@@ -1,26 +1,23 @@
-mdadm for Debian - EXPERIMENTAL RELEASE
+mdadm for Debian - initramfs transition
 ---------------------------------------
-
-THIS IS AN EXPERIMENTAL RELEASE. DO NOT EVEN THINK ABOUT RUNNING IT ON
-PRODUCTION SERVERS. or at least don't blame me for it afterwards.
 
 None of the following needs to concern you if you are using monolithic kernels
 (no modules), yaird, or initrd-tools/mkinitrd.
 
-I will leave this version in experimental, until enough success reports have
-reached me at madduck@debian.org (and no failures). Thus, please report your
-experience to me.
+This information is about #367567. The gist is that the hooks and scripts to
+take care of RAID during boot with an initramfs have been improved and moved
+into the mdadm package. mdrun has been deprecated on the way.
 
-This version of mdadm basically addresses #367567 (but also provides a new
-upstream release, of course). The gist is that the hooks and scripts to take
-care of RAID during boot with an initramfs have been improved and moved into
-the mdadm package. mdrun has been deprecated on the way.
+As long as the version of initramfs-tools you have installed still provides
+the old hooks and scripts (which use mdrun), the new ones will simply not do
+anything (which allows me to get rid of the conflict I needed previously).
+Version 0.70 and later does not provide these hooks anymore, so the new mdadm
+hooks will be used, which use mdadm instead of mdrun.
 
-As long as initramfs-tools still provides the old hooks and scripts (which use
-mdrun), the new ones will simply not do anything (which allows me to get rid
-of the conflict I needed previously). Once initramfs-tools removes the md
-hooks from the package, the new mdadm hooks will configure the initramfs to
-use mdadm for assembly (and not mdrun).
+initramfs-tools does *not* conflict with older mdadm but instead provides
+fallback code in case mdadm << 2.5-1 is installed (which does not provide the
+hooks yet). This decision was made in order to prevent the slight chance that
+mdadm would be removed due to the conflict. See #380089.
 
 Unless I've overlooked a detail, no interaction is required from the side of
 the user (apart from the new debconf question) to install and get mdadm
@@ -38,8 +35,8 @@ and then to duplicate your main grub or lilo stanzas (rerun lilo!) and point
 them to the saved initrd. If things go haywire, you should be able to restore
 a working condition with the saved initrd.
 
-If you want to move to the new hooks and scripts immediately (without waiting
-for #367567 to be solved), do this:
+If you want to move to the new hooks and scripts without installing
+initramfs-tools 0.70, do this:
 
   rm /usr/share/initramfs-tools/hooks/md
   sed -i -e 's,^PREREQ=\"md\"$,PREREQ=\"mdadm\",' \
@@ -52,4 +49,4 @@ modified the initrd on purpose and don't want it overwritten.)
 
 Again, please report success or failure to me.
 
- -- martin f. krafft <madduck@debian.org>  Thu, 29 Jun 2006 01:07:09 +0200
+ -- martin f. krafft <madduck@debian.org>  Mon, 31 Jul 2006 14:32:21 +0100
