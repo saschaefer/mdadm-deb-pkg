@@ -1,4 +1,5 @@
 debian/README.recipes
+debian/README.initramfs-transition
 debian/README.mdrun
 md.txt
 rootraiddoc.97.html

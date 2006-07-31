@@ -6,10 +6,12 @@ mdadm (2.5.2-9) unstable; urgency=low
     (closes: #380596).
   * Forcing RAID assembly to run the arrays, working around an upstream bug
     until that's fixed (closes: #287415).
+  * Updated documentation in README.initramfs-transition to include
+    information related to #380089.
   * Updated debconf translations:
     - Vietnamese by Clytie Syddall, thanks!
 
- -- martin f. krafft <madduck@debian.org>  Mon, 31 Jul 2006 12:37:29 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon, 31 Jul 2006 14:35:38 +0100
 
 mdadm (2.5.2-8) unstable; urgency=low
 
