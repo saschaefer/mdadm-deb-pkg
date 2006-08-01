@@ -5,7 +5,7 @@
 # Copyright © 2006 martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence.
 #
-REVISION=2006.07.07.1121
+REVISION=2006.08.01.1621
 
 PROGNAME=${0##*/}
 
@@ -97,8 +97,18 @@ if [ -z "$(ls /sys/block/md* 2>/dev/null)" ]; then
   exit 5
 fi
 
+if [ -z "$(ls /sys/block/md*/md/level 2>/dev/null)" ]; then
+  [ $quiet -lt 2 ] && echo "$PROGNAME: W: kernel too old, no support for parity checks." >&2
+  exit 6
+fi
+
+if ! egrep -q '^raid([1456]|10)$' /sys/block/md*/md/level 2>/dev/null; then
+  [ $quiet -lt 1 ] && echo "$PROGNAME: I: no redundant arrays present; skipping checks..." >&2
+  exit 0
+fi
+
 if [ -z "$(ls /sys/block/md*/md/sync_action 2>/dev/null)" ]; then
-  [ $quiet -lt 2 ] && echo "$PROGNAME: E: no kernel support for parity checks." >&2
+  [ $quiet -lt 2 ] && echo "$PROGNAME: W: no kernel support for parity checks." >&2
   exit 3
 fi
 
