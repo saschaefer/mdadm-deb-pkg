@@ -125,4 +125,15 @@ Enjoy. Submissions welcome.
     mount /dev/md0 /home    # also change /etc/fstab
     mdadm --add /dev/md0 /dev/sda1
 
- -- martin f. krafft <madduck@debian.org>  Fri, 07 Jul 2006 10:51:29 +0200
+12. change the preferred minor of a RAID array
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # you need to manually assemble the array to change the preferred minor
+    # if you manually assemble, the superblock will be updated to reflect
+    # the preferred minor as you indicate with the assembly.
+    # for example, to set the preferred minor to 4:
+    mdadm --assemble /dev/md4 /dev/sd[abc]1
+
+    # if this does not work (you need a 2.6 kernel), try:
+    mdadm --assemble --update super-minor /dev/md4 /dev/sd[abc]1
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 01 Aug 2006 12:08:22 +0100
