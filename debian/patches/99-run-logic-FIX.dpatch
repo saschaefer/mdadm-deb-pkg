@@ -1,0 +1,53 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 99-run-logic-FIX.dpatch by martin f. krafft <madduck@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad mdadm-2.5.2.obsolete.0.0575067182808233~/mdadm.c mdadm-2.5.2.obsolete.0.0575067182808233/mdadm.c
+--- mdadm-2.5.2.obsolete.0.0575067182808233~/mdadm.c	2006-06-26 06:11:00.000000000 +0100
++++ mdadm-2.5.2.obsolete.0.0575067182808233/mdadm.c	2006-08-01 14:16:07.253413451 +0100
+@@ -1017,7 +1017,7 @@
+ 				else {
+ 					rv |= Assemble(ss, array_list->devname, mdfd,
+ 						       array_list,
+-						       devlist, NULL,
++						       NULL, NULL,
+ 						       readonly, runstop, NULL, homehost, verbose-quiet, force);
+ 					if (rv == 0) cnt++;
+ 				}
+@@ -1036,7 +1036,7 @@
+ 					do {
+ 						rv2 = Assemble(ss, NULL, -1,
+ 							       &ident,
+-							       devlist, NULL,
++							       NULL, NULL,
+ 							       readonly, runstop, NULL, homehost, verbose-quiet, force);
+ 						if (rv2==0) {
+ 							cnt++;
+@@ -1049,7 +1049,6 @@
+ 							auto_update_home = 0;
+ 					} while (rv2!=2);
+ 					/* Incase there are stacked devices, we need to go around again */
+-					devlist = conf_get_devs();
+ 				} while (acnt);
+ 				if (cnt == 0 && auto_update_home && homehost) {
+ 					/* Nothing found, maybe we need to bootstrap homehost info */
+@@ -1058,7 +1057,7 @@
+ 						do {
+ 							rv2 = Assemble(ss, NULL, -1,
+ 								       &ident,
+-								       devlist, NULL,
++								       NULL, NULL,
+ 								       readonly, runstop, "homehost", homehost, verbose-quiet, force);
+ 							if (rv2==0) {
+ 								cnt++;
+@@ -1066,7 +1065,6 @@
+ 							}
+ 						} while (rv2!=2);
+ 						/* Incase there are stacked devices, we need to go around again */
+-						devlist = conf_get_devs();
+ 					} while (acnt);
+ 				}
+ 				if (cnt == 0 && rv == 0) {

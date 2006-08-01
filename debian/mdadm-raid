@@ -80,7 +80,7 @@ case "${1:-}" in
         IFSOLD=${IFS:-}
         IFS='
 '
-        for line in $($MDADM --assemble --scan --run --auto=yes 2>&1); do
+        for line in $($MDADM --assemble --scan --auto=yes 2>&1); do
           IFS=$IFSOLD
           set -- $line
           shift
