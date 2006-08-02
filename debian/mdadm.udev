@@ -1,2 +1,3 @@
-# mdadm creates its own device nodes
+# mdadm creates its own device nodes, and it gets really annoyed when someone
+# creates /dev/mdX nodes and it's not supposed to use them
 KERNEL="md[0-9]*", NAME=""

@@ -135,3 +135,13 @@ if [ -x /etc/init.d/mdadm-raid ]; then
     /etc/init.d/mdadm-raid start || exit $?
   fi
 fi
+
+# install udev symlink if it's not already there and we're being upgraded,
+# see #359614
+V=2.5.2-10
+F=/etc/udev/rules.d/z60_mdadm.rules
+if [ "${1:-}" = "configure" ] && dpkg --compare-versions "${2:-$V}" lt $V \
+  && [ ! -e $F ]; then
+
+  ln -s ../mdadm.rules $F
+fi
