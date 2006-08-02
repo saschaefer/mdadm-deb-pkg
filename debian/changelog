@@ -11,6 +11,10 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
     The autodetection code now doesn't care about the actual name of the array
     device, but instead only insists that it exists, is a block device, and
     recognised as an array by mdadm (mdadm --detail).
+  * Add safety net to prevent endless loops in RAID autodetection. Now just
+    falls back to starting all arrays from the initramfs if it fails to
+    determine an acceptable array for the / filesystem in three tries
+    (see #381007).
   * checkarray: correctly recognise when the kernel is too old for parity
     checks, or when there are no redundant arrays present (closes: #380746).
   * checkarray: now supports -s|--status switch to query parity check status
@@ -18,7 +22,7 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
   * checkarray: now supports -x|--cancel switch to cancel running checks.
   * mkconf: now also outputs MAILADDR.
 
- -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 16:17:09 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 16:18:18 +0100
 
 mdadm (2.5.2-9) unstable; urgency=low
 
