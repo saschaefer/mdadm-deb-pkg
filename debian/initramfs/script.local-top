@@ -40,7 +40,6 @@ verbose()
 
 [ -s /conf/raid.conf ] && . /conf/raid.conf
 
-mkdir /etc/mdadm
 $MDADM --examine --scan --config=partitions > /etc/mdadm.conf
 
 verbose && log_begin_msg Loading RAID modules
