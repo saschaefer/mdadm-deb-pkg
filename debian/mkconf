@@ -24,6 +24,7 @@ else
 fi
 
 echo CREATE owner=root group=disk mode=0660 auto=yes metadata=1
+echo MAILADDR root
 
 if [ ! -r /proc/mdstat ]; then
   echo W: RAID subsystem is not loaded, thus I cannot scan for arrays. >&2
