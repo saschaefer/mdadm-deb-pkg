@@ -1,7 +1,5 @@
 debian mdadm TODO list
 ======================
 
-- level:module is 1:1 and the initramfs stuff makes use of that. However,
-  check what happens with raid456 module!
 - use mdadm.conf during initramfs assembly to make sure super-minor is
   honoured.

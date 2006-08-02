@@ -36,7 +36,7 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
     Let's call the resulting number MINOR. Also see FAQ 1 further up.
 
     Given MINOR, mdadm will output /dev/md<MINOR> if the device node
-    /dev/md<MINOR> exits.
+    /dev/md<MINOR> exists.
     Otherwise, it outputs /dev/md/<MINOR>
 
   Version 1 superblocks (01.XX.XX)
