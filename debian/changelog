@@ -12,10 +12,12 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
     device, but instead only insists that it exists, is a block device, and
     recognised as an array by mdadm (mdadm --detail).
   * checkarray: correctly recognise when the kernel is too old for parity
-    checks, or when there are no redundant arrays present.
+    checks, or when there are no redundant arrays present (closes: #380746).
+  * checkarray: now supports -s|--status switch to query parity check status
+    for given devices.
   * mkconf: now also outputs MAILADDR.
 
- -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 12:01:25 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 16:07:03 +0100
 
 mdadm (2.5.2-9) unstable; urgency=low
 

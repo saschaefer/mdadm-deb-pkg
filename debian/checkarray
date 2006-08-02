@@ -5,7 +5,7 @@
 # Copyright © 2006 martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence.
 #
-REVISION=2006.08.01.1621
+REVISION=2006.08.02.1604
 
 PROGNAME=${0##*/}
 
@@ -42,11 +42,11 @@ usage()
   echo
   echo "The --all option overrides all arrays passed to the script."
   echo
-  echo "You can control the status of a check with /proc/mdstat ."
+  echo "You can also control the status of a check with /proc/mdstat ."
 }
 
-SHORTOPTS=achVqQ
-LONGOPTS=all,cron,help,version,quiet,real-quiet
+SHORTOPTS=achVqQs
+LONGOPTS=all,cron,help,version,quiet,real-quiet,status
 
 eval set -- $(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@")
 
@@ -54,11 +54,13 @@ arrays=''
 cron=0
 all=0
 quiet=0
+status=0
 
 for opt in $@; do
   case "$opt" in
     -a|--all) all=1;;
     -c|--cron) cron=1;;
+    -s|--status) status=1;;
     -h|--help) usage; exit 0;;
     -q|--quiet) quiet=1;;
     -Q|--real-quiet) quiet=2;;
@@ -89,6 +91,11 @@ fi
 if [ ! -f /proc/mdstat ]; then
   [ $quiet -lt 2 ] && echo "$PROGNAME: E: RAID subsystem not loaded, or /proc unavailable." >&2
   exit 2
+fi
+
+if [ ! -d /sys/block ]; then
+  [ $quiet -lt 2 ] && echo "$PROGNAME: E: /sys filesystem not available." >&2
+  exit 7
 fi
 
 if [ -z "$(ls /sys/block/md* 2>/dev/null)" ]; then
@@ -122,12 +129,19 @@ for array in $arrays; do
     continue
   fi
 
+  cur_status="$(cat $SYNC_ACTION_CTL)"
+
+  if [ $status -eq 1 ]; then
+    echo "$array: $cur_status"
+    continue
+  fi
+
   if [ ! -w $SYNC_ACTION_CTL ]; then
     [ $quiet -lt 2 ] && echo "$PROGNAME: E: $SYNC_ACTION_CTL not writeable." >&2
     exit 4
   fi
 
-  if [ "$(cat $SYNC_ACTION_CTL)" != idle ]; then
+  if [ "$cur_status" != idle ]; then
     [ $quiet -lt 2 ] && echo "$PROGNAME: W: array $array not idle, skipping..." >&2
     continue
   fi
