@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mdadm\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2006-07-18 08:07+0200\n"
+"POT-Creation-Date: 2006-08-02 18:05+0100\n"
 "PO-Revision-Date: 2006-07-24 01:26+0200\n"
 "Last-Translator: Florentin Duneau <f.baced@wanadoo.fr>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
@@ -156,16 +156,21 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:4001
-msgid "Should mdadm run monthly parity checks of the RAID arrays?"
+#, fuzzy
+msgid "Should mdadm run monthly redundancy checks of the RAID arrays?"
 msgstr "Faut-il vérifier la parité des ensembles RAID ?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:4001
+#, fuzzy
 msgid ""
 "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
-"parity of your RAID devices. This may be a resource-intensive process, "
-"depending on your setup, but it could help prevent rare cases of data loss."
+"redundancy of your RAID devices. This may be a resource-intensive process, "
+"depending on your setup, but it could help prevent rare cases of data loss. "
+"Note that this is a read-only check unless errors are found; if errors are "
+"found, mdadm will try to correct them, which may result in write access to "
+"the media."
 msgstr ""
 "Si le noyau le gère (à partir de Linux 2.6.14), mdadm peut vérifier "
 "périodiquement la parité des périphériques RAID. Cette action peut demander "
