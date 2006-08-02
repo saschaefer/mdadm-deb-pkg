@@ -76,6 +76,9 @@ case "${1:-}" in
       fi
 
       if [ -f $CONFIG ] || [ -f $ALTCONFIG ]; then
+        # handle devfs-style names and version-1 devices
+        mkdir --parent /dev/md
+
         # ugly hack because shell sucks
         IFSOLD=${IFS:-}
         IFS='
