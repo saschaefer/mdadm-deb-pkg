@@ -11,12 +11,15 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
     The autodetection code now doesn't care about the actual name of the array
     device, but instead only insists that it exists, is a block device, and
     recognised as an array by mdadm (mdadm --detail).
-  * Add safety net to prevent endless loops in RAID autodetection. Now just
+  * Added safety net to prevent endless loops in RAID autodetection. Now just
     falls back to starting all arrays from the initramfs if it fails to
     determine an acceptable array for the / filesystem in three tries
     (see #381007).
   * Added udev rules file to prevent udev from ever creating md device nodes,
-    which can get in the way of mdadm.
+    which can get in the way of mdadm (also see next item).
+  * Added a workaround to the initramfs hook to deal with the problem with
+    /dev/md/X device nodes when /dev/mdX is also present and version-0
+    superblocks are in use (closes: #381181).
   * checkarray: correctly recognise when the kernel is too old for parity
     checks, or when there are no redundant arrays present (closes: #380746).
   * checkarray: now supports -s|--status switch to query parity check status
@@ -25,7 +28,7 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
   * mkconf: now also outputs MAILADDR.
   * Added /usr/share/doc/mdadm/FAQ to answer some FAQs.
 
- -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 19:16:18 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 20:10:00 +0100
 
 mdadm (2.5.2-9) unstable; urgency=low
 
