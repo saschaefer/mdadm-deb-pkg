@@ -1,0 +1,2 @@
+# mdadm creates its own device nodes
+KERNEL="md[0-9]*", NAME=""
