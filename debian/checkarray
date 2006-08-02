@@ -5,7 +5,7 @@
 # Copyright © 2006 martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence.
 #
-REVISION=2006.08.02.1620
+REVISION=2006.08.02.2025
 
 PROGNAME=${0##*/}
 
@@ -25,7 +25,9 @@ usage()
   echo "Valid options are:"
   cat <<-_eof | column -s\& -t
 	-a|--all & check all assembled arrays (check /proc/mdstat).
-	-c|--cron & honour setting AUTOCHECK in /etc/default/mdadm.
+	-c|--cron & honour AUTOCHECK setting in /etc/default/mdadm.
+	-s|--status & print redundancy check status of devices.
+	-x|--cancel & queue a request to cancel a running redundancy check.
 	-q|--quiet & suppress informational messages.
 	-Q|--real-quiet & suppress all output messages, including warnings and errors.
 	-h|--help & show this output.
@@ -34,7 +36,9 @@ usage()
   echo
   echo "Examples:"
   echo "  $PROGNAME --all"
-  echo "  $PROGNAME /dev/md[123]"
+  echo "  $PROGNAME --quiet /dev/md[123]"
+  echo "  $PROGNAME -sa"
+  echo "  $PROGNAME -x --all"
   echo
   echo "Devices can be specified in almost any format. The following are"
   echo "all equivalent:"
