@@ -8,11 +8,14 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
     RAID autodetection code (closes: #381007), which was introduced as part of
     the fix for #380596 in the 2.5.2-9 upload. The bug is RC, but it only
     applies to unstable right now, so I am not pumping up the urgency.
+    The autodetection code now doesn't care about the actual name of the array
+    device, but instead only insists that it exists, is a block device, and
+    recognised as an array by mdadm (mdadm --detail).
   * checkarray: correctly recognise when the kernel is too old for parity
     checks, or when there are no redundant arrays present.
   * mkconf: now also outputs MAILADDR.
 
- -- martin f. krafft <madduck@debian.org>  Tue,  1 Aug 2006 20:23:09 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 12:01:25 +0100
 
 mdadm (2.5.2-9) unstable; urgency=low
 
