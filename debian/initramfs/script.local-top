@@ -58,11 +58,13 @@ if [ ! -f /proc/mdstat ]; then
   exit 1
 fi
 
+# handle /dev/md/X nodes
+mkdir --parent /dev/md
+
 if [ ${RAID_DEVS:-all} = all ]; then
   
   verbose && log_begin_msg "Assemblinging all RAID arrays"
   
-  mkdir /dev/md # busybox has devfs compat flag set, so expect /dev/md/X nodes
   if $MDADM --assemble --config=/etc/mdadm.conf --scan --run --auto=yes; then
     verbose && log_success_msg "success"
   else
