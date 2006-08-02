@@ -5,7 +5,7 @@
 # Copyright © 2006 martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence.
 #
-REVISION=2006.08.02.1604
+REVISION=2006.08.02.1620
 
 PROGNAME=${0##*/}
 
@@ -45,8 +45,8 @@ usage()
   echo "You can also control the status of a check with /proc/mdstat ."
 }
 
-SHORTOPTS=achVqQs
-LONGOPTS=all,cron,help,version,quiet,real-quiet,status
+SHORTOPTS=achVqQsx
+LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel
 
 eval set -- $(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@")
 
@@ -55,12 +55,14 @@ cron=0
 all=0
 quiet=0
 status=0
+action=check
 
 for opt in $@; do
   case "$opt" in
     -a|--all) all=1;;
     -c|--cron) cron=1;;
-    -s|--status) status=1;;
+    -s|--status) action=status;;
+    -x|--cancel) action=idle;;
     -h|--help) usage; exit 0;;
     -q|--quiet) quiet=1;;
     -Q|--real-quiet) quiet=2;;
@@ -131,7 +133,7 @@ for array in $arrays; do
 
   cur_status="$(cat $SYNC_ACTION_CTL)"
 
-  if [ $status -eq 1 ]; then
+  if [ $action = status ]; then
     echo "$array: $cur_status"
     continue
   fi
@@ -141,16 +143,25 @@ for array in $arrays; do
     exit 4
   fi
 
-  if [ "$cur_status" != idle ]; then
-    [ $quiet -lt 2 ] && echo "$PROGNAME: W: array $array not idle, skipping..." >&2
-    continue
-  fi
+  case "$action" in
+    idle)
+      echo $action > $SYNC_ACTION_CTL
+      [ $quiet -lt 1 ] && echo "$PROGNAME: I: cancel request queued for array $array." >&2
+      ;;
 
-  # run check for the array. The kernel will make sure that these requests
-  # are properly queued so as to not kill one of the array.
-  echo check > $SYNC_ACTION_CTL
-  [ $quiet -lt 1 ] && echo "$PROGNAME: I: check queued for array $array." >&2
-  
+    check)
+      if [ "$cur_status" != idle ]; then
+        [ $quiet -lt 2 ] && echo "$PROGNAME: W: array $array not idle, skipping..." >&2
+        continue
+      fi
+
+      # queue request for the array. The kernel will make sure that these requests
+      # are properly queued so as to not kill one of the array.
+      echo $action > $SYNC_ACTION_CTL
+      [ $quiet -lt 1 ] && echo "$PROGNAME: I: check queued for array $array." >&2
+      ;;
+  esac
+
 done
 
 exit 0
