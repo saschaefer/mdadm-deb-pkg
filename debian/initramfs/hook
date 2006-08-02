@@ -47,7 +47,7 @@ if [ "$INITRDSTART" != none ]; then
   eval $(mdadm --examine --scan --config=partitions \
     | while read a dev level num uuid; do
 
-      if expr "$dev" : '/dev/md(_d)?[0-9].*' >/dev/null; then
+      if expr "$dev" : '/dev/md[0-9].*' >/dev/null; then
         devfs_name="/dev/md/${dev#/dev/md}"
         if [ -b "$dev" ] && [ -b "$devfs_name" ] \
             && expr "$INITRDSTART" : ".*${devfs_name}.*" >/dev/null; then
