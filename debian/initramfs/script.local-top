@@ -38,7 +38,7 @@ verbose()
   esac
 }
 
-[ -s /conf/mdadm.conf ] && . /conf/mdadm.conf
+[ -s /conf/raid.conf ] && . /conf/raid.conf
 
 mkdir /etc/mdadm
 $MDADM --examine --scan --config=partitions > /etc/mdadm.conf
@@ -63,7 +63,7 @@ mkdir --parent /dev/md
 
 if [ ${RAID_DEVS:-all} = all ]; then
   
-  verbose && log_begin_msg "Assemblinging all RAID arrays"
+  verbose && log_begin_msg "Assembling all RAID arrays"
   
   if $MDADM --assemble --config=/etc/mdadm.conf --scan --run --auto=yes; then
     verbose && log_success_msg "success"
@@ -76,8 +76,8 @@ if [ ${RAID_DEVS:-all} = all ]; then
 else
   for dev in ${RAID_DEVS:-}; do
 
-    DEV=${dev%%:*}
-    UUID=${dev#*:}
+    DEV=${dev%=*}
+    UUID=${dev#*=}
 
     verbose && log_begin_msg "Assembling RAID array $DEV ($UUID)"
 

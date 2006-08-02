@@ -48,7 +48,7 @@ if [ "$INITRDSTART" != none ]; then
     | while read a dev level num uuid; do
 
       if [ "$INITRDSTART" = all ] || expr "$INITRDSTART" : ".*${dev}.*" >/dev/null; then
-          DEVS="$DEVS ${dev}:${uuid#UUID=}"
+          DEVS="$DEVS ${dev}=${uuid#UUID=}"
           LEVELS="$LEVELS ${level#level=}"
       fi
 
@@ -66,12 +66,18 @@ uniquify()
 
 if [ -n "$DEVS" ]; then
 
-  touch $DESTDIR/conf/mdadm.conf
-  echo "RAID_DEVS='${DEVS## }'" >> $DESTDIR/conf/mdadm.conf
+  echo "RAID_DEVS='${DEVS## }'" > $DESTDIR/conf/raid.conf
+  echo "RAID_LEVELS='${LEVELS## }'" >> $DESTDIR/conf/raid.conf
 
-  # 1:1 mapping between level names and modules
-  MODULES="$(uniquify $LEVELS | tr '\n' ' ')"
-  echo "RAID_MODULES='$MODULES'" >> $DESTDIR/conf/mdadm.conf
+  # raid4 is handled by raid5
+  MODULES="$(echo $LEVELS | sed -e 's,raid4,raid5,g')"
+
+  # if raid456 module is present, use it for raid[456]
+  modprobe --set-version="$version" --show-depends raid456 >/dev/null 2>&1 \
+    && MODULES="$(echo $MODULES | sed -e 's,raid[456],raid456,g')"
+
+  MODULES="$(uniquify $MODULES | tr '\n' ' ')"
+  echo "RAID_MODULES='${MODULES%% }'" >> $DESTDIR/conf/raid.conf
 
   copy_exec $MDADM /sbin
 
@@ -89,7 +95,7 @@ if [ -n "$DEVS" ]; then
   if [ "$DEVS" = all ]; then
     DEVNAMES="all RAID arrays"
   else
-    DEVNAMES="$(for i in $DEVS; do echo -n "${i%%:*},"; done)"
+    DEVNAMES="$(for i in $DEVS; do echo -n "${i%=*},"; done)"
     DEVNAMES="${DEVNAMES%,}"
   fi
 
