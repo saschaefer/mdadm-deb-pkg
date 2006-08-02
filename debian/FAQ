@@ -1,0 +1,66 @@
+Frequently asked questions -- Debian mdadm
+==========================================
+
+Also see /usr/share/doc/mdadm/README.recipes.gz
+
+1. How do I change the preferred minor of a RAID array?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  See item 12 in /usr/share/doc/mdadm/README.recipes.gz and read the mdadm
+  manpage (search for 'preferred').
+
+2. How does mdadm determine which /dev/mdX or /dev/md/X to use?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  The logic used by mdadm to determine the device node name in the mdadm
+  --examine output (which is used to generate mdadm.conf) depends on several
+  factors. Here's how mdadm determines it:
+
+  It first checks the superblock version of a given array (or each array in
+  turn when iterating all of them). Run
+
+    mdadm --detail /dev/mdX | sed -ne 's,.*Version : ,,p'
+
+  to determine the superblock version of a running array, or
+  
+    mdadm --examine /dev/sdXY | sed -ne 's,.*Version : ,,p'
+
+  to determine the superblock version from a component device of an array.
+  
+  Version 0 superblocks (00.90.XX)
+  ''''''''''''''''''''''''''''''''
+    You need to know the preferred minor number stored in the superblock,
+    so run either of
+
+      mdadm --detail /dev/mdX | sed -ne 's,.*Preferred Minor : ,,p'
+      mdadm --examine /dev/sdXY | sed -ne 's,.*Preferred Minor : ,,p'
+
+    Let's call the resulting number MINOR. Also see FAQ 1 further up.
+
+    Given MINOR, mdadm will output /dev/md<MINOR> if the device node
+    /dev/md<MINOR> exits.
+    Otherwise, it outputs /dev/md/<MINOR>
+
+  Version 1 superblocks (01.XX.XX)
+  ''''''''''''''''''''''''''''''''
+    Version 1 superblocks actually seem to ignore preferred minors and instead
+    use the value of the name field in the superblock. Unless specified
+    explicitly during creation (-N|--name) the name is determined from the
+    device name used, using the following regexp: 's,/dev/md/?(.*),$1,', thus:
+
+      /dev/md0     -> 0
+      /dev/md/0    -> 0
+      /dev/md_d0   -> _d0
+      /dev/md/d0   -> d0
+      /dev/md/name -> name
+      (/dev/name does not seem to work)
+
+    mdadm will append the name to '/dev/md/', so it will always output device
+    names under the /dev/md/ directory.
+
+    If you want to change the name, you can do so during assembly:
+
+      mdadm -A -U name -N newname /dev/mdX /dev/sd[abc]X
+
+    I know this all sounds inconsistent and upstream has some work to do.
+    We're on it.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 02 Aug 2006 16:38:29 +0100

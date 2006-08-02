@@ -21,8 +21,9 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
     for given devices.
   * checkarray: now supports -x|--cancel switch to cancel running checks.
   * mkconf: now also outputs MAILADDR.
+  * Added /usr/share/doc/mdadm/FAQ to answer some FAQs.
 
- -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 16:18:18 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 17:00:08 +0100
 
 mdadm (2.5.2-9) unstable; urgency=low
 

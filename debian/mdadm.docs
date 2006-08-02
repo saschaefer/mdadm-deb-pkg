@@ -2,6 +2,7 @@ debian/README.recipes
 debian/README.initramfs-transition
 debian/README.mdrun
 debian/README.checkarray
+debian/FAQ
 md.txt
 rootraiddoc.97.html
 RAID5_versus_RAID10.txt
