@@ -1,4 +1,4 @@
-mdadm (2.5.2-10) UNRELEASED; urgency=low
+mdadm (2.5.2-10) unstable; urgency=low
 
   * Applied patch by upstream to fix the logic of the --run switch (see
     #287415). Thus also reverted the mdadm-raid hack used to fix the bug in
@@ -28,7 +28,7 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
   * Added README.checkarray with some information about the check process.
   * Added /usr/share/doc/mdadm/FAQ to answer some FAQs.
 
- -- martin f. krafft <madduck@debian.org>  Thu,  3 Aug 2006 14:13:48 +0100
+ -- martin f. krafft <madduck@debian.org>  Thu,  3 Aug 2006 22:54:04 +0100
 
 mdadm (2.5.2-9) unstable; urgency=low
 
