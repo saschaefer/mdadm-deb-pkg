@@ -1,6 +1,5 @@
 mdadm (2.5.2-10) UNRELEASED; urgency=low
 
-  * Added README.checkarray with some information about the check process.
   * Applied patch by upstream to fix the logic of the --run switch (see
     #287415). Thus also reverted the mdadm-raid hack used to fix the bug in
     the 2.5.2-9 upload.
@@ -14,7 +13,7 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
   * Added safety net to prevent endless loops in RAID autodetection. Now just
     falls back to starting all arrays from the initramfs if it fails to
     determine an acceptable array for the / filesystem in three tries
-    (see #381007).
+    (closes: #381284, also see #381007).
   * Added udev rules file to prevent udev from ever creating md device nodes,
     which can get in the way of mdadm (also see next item).
   * Added a workaround to the initramfs hook to deal with the problem with
@@ -25,10 +24,11 @@ mdadm (2.5.2-10) UNRELEASED; urgency=low
   * checkarray: now supports -s|--status switch to query parity check status
     for given devices.
   * checkarray: now supports -x|--cancel switch to cancel running checks.
-  * mkconf: now also outputs MAILADDR.
+  * mkconf: now also outputs 'MAILADDR root' and 'HOMEHOST <system>'.
+  * Added README.checkarray with some information about the check process.
   * Added /usr/share/doc/mdadm/FAQ to answer some FAQs.
 
- -- martin f. krafft <madduck@debian.org>  Wed,  2 Aug 2006 20:10:00 +0100
+ -- martin f. krafft <madduck@debian.org>  Thu,  3 Aug 2006 14:13:48 +0100
 
 mdadm (2.5.2-9) unstable; urgency=low
 

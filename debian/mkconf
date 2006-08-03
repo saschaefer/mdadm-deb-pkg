@@ -24,6 +24,7 @@ else
 fi
 
 echo CREATE owner=root group=disk mode=0660 auto=yes metadata=1
+echo HOMEHOST <system>
 echo MAILADDR root
 
 if [ ! -r /proc/mdstat ]; then
