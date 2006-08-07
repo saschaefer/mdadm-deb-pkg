@@ -5,13 +5,14 @@
 # Copyright © 2006 martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence.
 #
-REVISION=2006.08.02.2025
+# Revision: $Id$
+#
 
 PROGNAME=${0##*/}
 
 about()
 {
-  echo "$PROGNAME -- RAID redundancy checker tool (revision $REVISION)"
+  echo "$PROGNAME -- RAID redundancy checker tool (revision $Id$)"
   echo "Copyright © 2006 martin f. krafft <madduck@debian.org>"
   echo "Released under the terms of the Artistic Licence."
 }

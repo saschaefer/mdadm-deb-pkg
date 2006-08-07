@@ -1,5 +1,6 @@
 mdadm for Debian -- notes on mdrun
 ==================================
+Revision: $Id$
 
 mdadm for Debian ships with /sbin/mdrun, which is a sledgehammer approach to
 assembling RAID volumes during boot. Unfortunately, the script has several

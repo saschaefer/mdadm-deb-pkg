@@ -1,5 +1,6 @@
 checkarray notes
 ================
+Revision: $Id$
 
 checkarray will run parity checks across all your redundant arrays. By
 default, it is configured to run on the first Sunday of each month, at 01:06

@@ -5,6 +5,8 @@
 # Copyright © 2006 martin f. krafft <madduck@madduck.net>
 # distributed under the terms of the Artistic Licence.
 #
+# Revision: $Id$
+#
 
 MDADM=/sbin/mdadm
 DEBIANCONFIG=/etc/default/mdadm

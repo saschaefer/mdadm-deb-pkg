@@ -1,5 +1,6 @@
 mdadm recipes
 =============
+Revision: $Id$
 
 The following examples/recipes may help you with your mdadm experience. I'll
 leave it as an exercise to use the correct device names and parameters in each

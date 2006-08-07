@@ -1,5 +1,6 @@
 mdadm for Debian
 ================
+Revision: $Id$
 
 Please make sure you read into /usr/share/doc/mdadm/NEWS.Debian.gz . Also, the
 documentation for the kernel md driver is included in

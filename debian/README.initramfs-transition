@@ -1,5 +1,6 @@
 mdadm for Debian - initramfs transition
----------------------------------------
+=======================================
+Revision: $Id$
 
 None of the following needs to concern you if you are using monolithic kernels
 (no modules), yaird, or initrd-tools/mkinitrd.

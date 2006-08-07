@@ -9,6 +9,8 @@
 #
 # we need /bin/bash for readline capabalities in the prompt(s)
 #
+# Revision: $Id$
+#
 
 if [ ! -r /proc/mdstat ]; then
   echo "The local system does not have RAID support (no drivers loaded)."
