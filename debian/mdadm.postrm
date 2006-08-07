@@ -8,7 +8,7 @@ case "${1:-}" in
     if command -v update-initramfs >/dev/null; then
       echo "W: mdadm: I'll update the initramfs, but if you need RAID to boot" >&2
       echo "W: mdadm: with initramfs, you'll be screwed!" >&2
-      update-initramfs -u
+      update-initramfs -u -k all
     fi
     ;;
 

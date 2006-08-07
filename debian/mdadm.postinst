@@ -110,7 +110,7 @@ _eof
 
   db_stop
 
-  command -v update-initramfs >/dev/null && update-initramfs -u
+  command -v update-initramfs >/dev/null && update-initramfs -u -k all
 fi
 
 # remove S04 installed as a fix to #294404 as it does not work

@@ -41,11 +41,11 @@ initramfs-tools 0.70, do this:
   rm /usr/share/initramfs-tools/hooks/md
   sed -i -e 's,^PREREQ=\"md\"$,PREREQ=\"mdadm\",' \
     /usr/share/initramfs-tools/scripts/local-top/lvm
-  update-initramfs -u -k$(uname -r)
+  update-initramfs -u -k all
 
-(that -k is due to #375671. If update-initramfs says something about
-initrd having been altered and refuses to do something, use -t unless you
-modified the initrd on purpose and don't want it overwritten.)
+If update-initramfs says something about initrd having been altered and
+refuses to do something, use -t unless you modified the initrd on purpose and
+don't want it overwritten.
 
 Again, please report success or failure to me.
 
