@@ -7,8 +7,9 @@ mdadm (2.5.3-1~unrelease.1) UNRELEASED; urgency=low
       0 instead of _d0) for device names like md_dX. I actually think this is
       a bug and hope upstream will use dX (e.g. d0) instead in a future
       version.
+  * Now rebuilds initramfs for all installed kernels.
 
- -- martin f. krafft <madduck@debian.org>  Mon,  7 Aug 2006 11:08:53 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon,  7 Aug 2006 11:13:04 +0100
 
 mdadm (2.5.2-10) unstable; urgency=low
 
