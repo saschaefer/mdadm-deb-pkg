@@ -17,10 +17,15 @@ endif
 
 include /usr/share/dpatch/dpatch.make
 
-.PHONY: configure
-configure:
+$(DPATCH_STAMPFN): debian/patches/00list
+force-run:
+.PHONY: force-run
+debian/patches/00list: force-run
 	dh_testdir
 	make -sC debian/patches
+
+.PHONY: configure
+configure: debian/patches/00list
 
 build: configure patch build-stamp
 build-stamp: 
@@ -44,6 +49,8 @@ mdadm: configure
 .PHONY: mdadm
 
 clean: clean-patched unpatch
+	rm -f debian/patches/00list
+
 clean-patched:
 	dh_testdir
 	dh_testroot
@@ -57,7 +64,6 @@ install: DESTDIR=$(CURDIR)/debian/mdadm
 install: DESTDIR_UDEB=$(DESTDIR)-udeb
 install: build
 	dh_testdir
-	dh_testroot
 	dh_clean -k
 	dh_installdirs
 	install -m0755 mdadm $(DESTDIR)/sbin
