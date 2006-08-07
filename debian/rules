@@ -4,6 +4,7 @@
 # Distributable under the terms of the GNU GPL version 2.
 #
 # Revision: $Id$
+#
 
 #export DH_VERBOSE=1
 

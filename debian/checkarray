@@ -3,7 +3,7 @@
 # checkarray -- initiates a check run of an array's redundancy information.
 #
 # Copyright © 2006 martin f. krafft <madduck@debian.org>
-# distributed under the terms of the Artistic Licence.
+# distributed under the terms of the Artistic Licence 2.0
 #
 # Revision: $Id$
 #
@@ -12,9 +12,10 @@ PROGNAME=${0##*/}
 
 about()
 {
-  echo "$PROGNAME -- RAID redundancy checker tool (revision $Id$)"
+  echo "$PROGNAME -- RAID redundancy checker tool"
+  echo "$Id$)"
   echo "Copyright © 2006 martin f. krafft <madduck@debian.org>"
-  echo "Released under the terms of the Artistic Licence."
+  echo "Released under the terms of the Artistic Licence 2.0"
 }
 
 usage()

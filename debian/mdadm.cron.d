@@ -2,7 +2,9 @@
 # cron.d/mdadm -- schedules periodic parity checks of RAID devices
 #
 # Copyright © 2006 martin f. krafft <madduck@madduck.net>
-# distributed under the terms of the Artistic Licence.
+# distributed under the terms of the Artistic Licence 2.0
+#
+# Revision: $Id$
 #
 
 # By default, run at 01:06 on the every Sunday, but do nothing unless the day

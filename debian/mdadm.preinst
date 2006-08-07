@@ -1,6 +1,9 @@
 #!/bin/sh -eu
 # Copyright © 2006 martin f. krafft <madduck@debian.org>
-# Distributed under the terms of the Artistic Licence.
+# Distributed under the terms of the Artistic Licence 2.0
+#
+# Revision: $Id$
+#
 
 # migrate old configuration from *way back then*
 DEBIANCONFIG=/etc/default/mdadm
