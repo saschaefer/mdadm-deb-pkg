@@ -1,6 +1,5 @@
 mdadm recipes
 =============
-Revision: $Id$
 
 The following examples/recipes may help you with your mdadm experience. I'll
 leave it as an exercise to use the correct device names and parameters in each
@@ -138,3 +137,5 @@ Enjoy. Submissions welcome.
     mdadm --assemble --update super-minor /dev/md4 /dev/sd[abc]1
 
  -- martin f. krafft <madduck@debian.org>  Tue, 01 Aug 2006 12:08:22 +0100
+
+Revision: $Id$

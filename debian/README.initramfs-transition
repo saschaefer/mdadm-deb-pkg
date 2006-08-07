@@ -1,6 +1,5 @@
 mdadm for Debian - initramfs transition
 =======================================
-Revision: $Id$
 
 None of the following needs to concern you if you are using monolithic kernels
 (no modules), yaird, or initrd-tools/mkinitrd.
@@ -51,3 +50,5 @@ don't want it overwritten.
 Again, please report success or failure to me.
 
  -- martin f. krafft <madduck@debian.org>  Mon, 31 Jul 2006 14:32:21 +0100
+
+Revision: $Id$
