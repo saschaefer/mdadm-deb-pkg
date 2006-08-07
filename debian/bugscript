@@ -4,7 +4,7 @@
 #
 # allows Debian's bug tools to include relevant information in bug reports.
 #
-# Copyright © 2006 martin f. krafft <madduck@debian.org>
+# Copyright © martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence 2.0
 #
 # we need /bin/bash for readline capabalities in the prompt(s)

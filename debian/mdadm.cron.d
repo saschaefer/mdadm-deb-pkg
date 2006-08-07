@@ -1,7 +1,7 @@
 #
 # cron.d/mdadm -- schedules periodic parity checks of RAID devices
 #
-# Copyright © 2006 martin f. krafft <madduck@madduck.net>
+# Copyright © martin f. krafft <madduck@madduck.net>
 # distributed under the terms of the Artistic Licence 2.0
 #
 # Revision: $Id$
