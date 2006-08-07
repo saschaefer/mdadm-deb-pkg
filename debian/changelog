@@ -1,4 +1,4 @@
-mdadm (2.5.3-1~unrelease.1) UNRELEASED; urgency=low
+mdadm (2.5.3-1~unreleased.1) UNRELEASED; urgency=low
 
   * New upstream release.
     - now the --run switch behaves as stated in the manpage. This properly
@@ -9,7 +9,7 @@ mdadm (2.5.3-1~unrelease.1) UNRELEASED; urgency=low
       version.
   * Now rebuilds initramfs for all installed kernels.
 
- -- martin f. krafft <madduck@debian.org>  Mon,  7 Aug 2006 11:13:04 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon,  7 Aug 2006 11:39:01 +0100
 
 mdadm (2.5.2-10) unstable; urgency=low
 
