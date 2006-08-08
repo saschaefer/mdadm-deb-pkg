@@ -1,4 +1,4 @@
-mdadm (2.5.3-1~unreleased.1) UNRELEASED; urgency=low
+mdadm (2.5.3-1~unreleased.2) UNRELEASED; urgency=low
 
   * New upstream release.
     - now the --run switch behaves as stated in the manpage. This properly
@@ -8,6 +8,9 @@ mdadm (2.5.3-1~unreleased.1) UNRELEASED; urgency=low
       a bug and hope upstream will use dX (e.g. d0) instead in a future
       version.
   * Now rebuilds initramfs for all installed kernels.
+  * Removed udev rules because it was causing unbootable systems when the
+    kernel autoassembly assembled the RAIDs (and not mdadm) and thus no device
+    nodes were created.
 
  -- martin f. krafft <madduck@debian.org>  Mon,  7 Aug 2006 11:39:01 +0100
 

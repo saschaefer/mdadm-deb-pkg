@@ -101,7 +101,7 @@ binary-arch: build install
 	dh_installcron
 	dh_installchangelogs ChangeLog
 	dh_installlogcheck
-	dh_installudev
+	#dh_installudev
 	dh_strip
 	dh_compress
 	dh_fixperms
