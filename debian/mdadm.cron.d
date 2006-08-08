@@ -4,7 +4,7 @@
 # Copyright © martin f. krafft <madduck@madduck.net>
 # distributed under the terms of the Artistic Licence 2.0
 #
-# Revision: $Id$
+# $Id$
 #
 
 # By default, run at 01:06 on the every Sunday, but do nothing unless the day

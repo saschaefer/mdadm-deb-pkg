@@ -9,7 +9,7 @@
 #
 # we need /bin/bash for readline capabalities in the prompt(s)
 #
-# Revision: $Id$
+# $Id$
 #
 
 if [ ! -r /proc/mdstat ]; then

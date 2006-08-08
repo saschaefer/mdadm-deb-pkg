@@ -3,7 +3,7 @@
 # Copyright © 2006 Martin F. Krafft <madduck@debian.org>
 # Distributable under the terms of the GNU GPL version 2.
 #
-# Revision: $Id$
+# $Id$
 #
 
 case "${1:-}" in
