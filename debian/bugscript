@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/bin/sh -eu
 #
 # mdadm bug submission control script
 #
@@ -6,8 +6,6 @@
 #
 # Copyright © martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence 2.0
-#
-# we need /bin/bash for readline capabalities in the prompt(s)
 #
 # $Id$
 #
