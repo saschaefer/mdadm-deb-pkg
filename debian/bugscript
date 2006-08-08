@@ -13,9 +13,10 @@
 if [ ! -r /proc/mdstat ]; then
   echo "The local system does not have RAID support (no drivers loaded)."
   echo "Without RAID support, I cannot collect as much information as I'd like."
-  yesno "Are you sure you want to report a bug at this time? " yep
 
-  [ "$REPLY" = yep ] || exit 0
+  #yesno "Are you sure you want to report a bug at this time? " yep
+  yesno "Hit any key to continue..."
+  #[ "$REPLY" = yep ] || exit 1
 fi
 
 echo "--- mount output" >&3
