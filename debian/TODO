@@ -1,7 +1,8 @@
 debian mdadm TODO list
 ======================
 
-- use mdadm.conf during initramfs assembly to make sure super-minor is
-  honoured.
+- check whether mdadm.conf and system are consistent during initramfs creation
+  and fail otherwise (#381303).
+- then switch to using system mdadm.conf in initramfs.
 
 $Id$
