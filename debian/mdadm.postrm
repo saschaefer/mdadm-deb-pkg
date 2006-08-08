@@ -29,5 +29,5 @@ esac
 # just in case somebody actually purges mdadm, we need this to make debconf
 # (added by dh_installdebconf) behave. See #369953
 set +u
-
 #DEBHELPER#
+set -u

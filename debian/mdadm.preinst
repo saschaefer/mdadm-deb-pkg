@@ -12,4 +12,7 @@ if [ -s $OLDCONFIG ] && [ ! -f $DEBIANCONFIG ]; then
   mv $OLDCONFIG $DEBIANCONFIG
 fi
 
+# See #369953
+set +u
 #DEBHELPER#
+set -u

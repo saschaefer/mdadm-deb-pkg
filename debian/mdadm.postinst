@@ -127,7 +127,10 @@ then
 	update-rc.d -f mdadm-raid remove
 fi
 
+# See #369953
+set +u
 #DEBHELPER#
+set -u
 
 # do start mdadm-raid, but don't use dh_installinit to do so, to prevent
 # stopping raids on remove/upgrade.
