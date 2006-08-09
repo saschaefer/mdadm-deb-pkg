@@ -10,9 +10,9 @@ mdadm (2.5.3-1~unreleased.2) UNRELEASED; urgency=low
   * Now rebuilds initramfs for all installed kernels.
   * Removed udev rules because it was causing unbootable systems when the
     kernel autoassembly assembled the RAIDs (and not mdadm) and thus no device
-    nodes were created.
+    nodes were created (closes: #382263).
 
- -- martin f. krafft <madduck@debian.org>  Mon,  7 Aug 2006 11:39:01 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed,  9 Aug 2006 22:25:19 +0100
 
 mdadm (2.5.2-10) unstable; urgency=low
 
