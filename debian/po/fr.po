@@ -18,13 +18,14 @@ msgstr ""
 "Project-Id-Version: mdadm\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
 "POT-Creation-Date: 2006-08-02 18:05+0100\n"
-"PO-Revision-Date: 2006-07-24 01:26+0200\n"
+"PO-Revision-Date: 2006-08-09 22:03+0200\n"
 "Last-Translator: Florentin Duneau <f.baced@wanadoo.fr>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.11.2\n"
+"Plural-Forms:  nplurals=2; plural=(n > 1);\n"
 
 #. Type: note
 #. Description
@@ -66,8 +67,8 @@ msgid ""
 "by mdadm."
 msgstr ""
 "Si vous gérez les périphériques RAID différemment (par exemple, avec EVMS), "
-"veuillez, soit désactiver le démarrage automatique (« autostart »), ou soit "
-"vous assurer que tous les ensembles que vous voulez démarrer avec mdadm sont "
+"veuillez soit désactiver le démarrage automatique (« autostart »), soit vous "
+"assurer que tous les ensembles que vous voulez démarrer avec mdadm sont "
 "listés dans /etc/mdadm/mdadm.conf."
 
 #. Type: string
@@ -149,21 +150,19 @@ msgid ""
 msgstr ""
 "Lorsque le système de base a démarré, mdadm peut démarrer tous les "
 "périphériques RAID spécifiés dans /etc/mdadm/mdadm.conf qui n'ont pas été "
-"démarrés. Cela est recommandé, à moins que la gestion RAID ne soit compilée "
+"démarrés. Cela est recommandé, à moins que la gestion RAID soit compilée "
 "dans le noyau (dans ce cas tous les ensembles RAID sont toujours démarrés "
 "automatiquement)."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:4001
-#, fuzzy
 msgid "Should mdadm run monthly redundancy checks of the RAID arrays?"
-msgstr "Faut-il vérifier la parité des ensembles RAID ?"
+msgstr "Faut-il vérifier tous les mois la redondance des ensembles RAID ?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:4001
-#, fuzzy
 msgid ""
 "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
 "redundancy of your RAID devices. This may be a resource-intensive process, "
@@ -173,9 +172,12 @@ msgid ""
 "the media."
 msgstr ""
 "Si le noyau le gère (à partir de Linux 2.6.14), mdadm peut vérifier "
-"périodiquement la parité des périphériques RAID. Cette action peut demander "
-"beaucoup de ressources selon la configuration, mais cela aide à prévenir les "
-"rares cas de pertes de données."
+"périodiquement la redondance des périphériques RAID. Cette action peut "
+"demander beaucoup de ressources selon la configuration, mais cela aide à "
+"prévenir les rares cas de pertes de données. Notez que ce test est réalisé "
+"en lecture seule à moins que des erreurs soient rencontrées. Si des erreurs "
+"sont détectées, mdadm essayera de les corriger, ce qui entraînera des "
+"écritures sur le média."
 
 #. Type: boolean
 #. Description
@@ -185,7 +187,7 @@ msgid ""
 "month at 01:06 o'clock."
 msgstr ""
 "Par défaut, la vérification s'effectuera tous les premiers dimanche du mois "
-"à 01h06."
+"à 01 h 06."
 
 #. Type: boolean
 #. Description
