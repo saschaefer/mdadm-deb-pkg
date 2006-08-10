@@ -46,16 +46,17 @@ DEVS=''; LEVELS=''
 if [ "$INITRDSTART" != none ]; then
   eval $(mdadm --examine --scan --config=partitions \
     | while read a dev level num uuid; do
-
-      if expr "$dev" : '/dev/md[0-9].*' >/dev/null; then
-        devfs_name="/dev/md/${dev#/dev/md}"
-        if [ -b "$dev" ] && [ -b "$devfs_name" ] \
-            && expr "$INITRDSTART" : ".*${devfs_name}.*" >/dev/null; then
-          echo "W: mdadm: both $dev and $devfs_name exist, and $devfs_name appears to be used." >&2
-          echo "W: mdadm: applying workaround for mdadm bug, don't worry! (see #381181)" >&2
-          dev="$devfs_name"
-        fi
-      fi
+      case "$dev" in
+        (/dev/md[0-9]*)
+          devfs_name="/dev/md/${dev#/dev/md}"
+            if [ -b "$dev" ] && [ -b "$devfs_name" ] \
+                && expr "$INITRDSTART" : ".*${devfs_name}.*" >/dev/null; then
+              echo "W: mdadm: both $dev and $devfs_name exist, and $devfs_name appears to be used." >&2
+              echo "W: mdadm: applying workaround for mdadm bug, don't worry! (see #381181)" >&2
+              dev="$devfs_name"
+            fi
+          ;;
+      esac
 
       if [ "$INITRDSTART" = all ] || expr "$INITRDSTART" : ".*${dev}.*" >/dev/null; then
           uuid="${uuid#*UUID=}"
