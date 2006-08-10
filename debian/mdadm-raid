@@ -93,7 +93,7 @@ case "${1:-}" in
 
           case "$@" in
 
-            'No arrays found in config file')
+            'No arrays found in config file'*)
               # no point in carrying on.
               shift
               log_problem "no $*"
