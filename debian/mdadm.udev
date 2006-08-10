@@ -1,3 +1,9 @@
 # mdadm creates its own device nodes, and it gets really annoyed when someone
-# creates /dev/mdX nodes and it's not supposed to use them. see #381181.
-KERNEL=="md[0-9]*", NAME="", SYMLINK=""
+# creates /dev/mdX nodes and it's not supposed to use them. see #381181. But
+# sometimes udev needs to create them (#382263), so we now use a script to
+# determine which one to use.
+
+KERNEL=="md[0-9]*", PROGRAM="/etc/udev/scripts/mdadm-name-generator.sh %k", \
+  NAME="%c", SYMLINK=""
+KERNEL=="md_d[0-9]*", PROGRAM="/etc/udev/scripts/mdadm-name-generator.sh %k", \
+  NAME="%c", SYMLINK=""

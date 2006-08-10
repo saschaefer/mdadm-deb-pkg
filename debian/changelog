@@ -3,6 +3,7 @@ mdadm (2.5.3-1~unreleased.4) UNRELEASED; urgency=low
   * Readded udev rules, but consult a script now to figure out the name to
     use. This should address #382263 appropriately. In the long run, I should
     give the user a debconf question to decide which naming scheme to use.
+    Thanks to Marco d'Itri for his help.
 
  -- martin f. krafft <madduck@debian.org>  Thu, 10 Aug 2006 15:00:06 +0100
 
