@@ -83,8 +83,7 @@ install: build
 	install -m0755 debian/mkconf $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/checkarray $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/bugscript $(DESTDIR)/usr/share/bug/mdadm/script
-	install -m0755 debian/mdadm-name-generator.sh \
-		$(DESTDIR)/etc/udev/scripts
+	install -m0755 debian/mdadm-name-generator.sh $(DESTDIR)/lib/udev
 
 	install -m0644 debian/mdadm.lintian-overrides \
 		$(DESTDIR)/usr/share/lintian/overrides/mdadm
