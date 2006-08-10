@@ -4,5 +4,11 @@ debian mdadm TODO list
 - check whether mdadm.conf and system are consistent during initramfs creation
   and fail otherwise (#381303).
 - then switch to using system mdadm.conf in initramfs.
+- add debconf question to determine naming scheme. Reuse logic from udev
+  script mdadm-name-generator.sh to preseed the question, store answer in
+  /etc/default, make mdadm-name-generator.sh actually use that value. Or just
+  get rid of mdadm-name-generator.sh and move everything to debconf.config,
+  then install udev rules for each naming scheme to /usr/share/mdadm and use
+  ucf to install the appropriate one to /etc.
 
 $Id$

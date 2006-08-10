@@ -83,6 +83,8 @@ install: build
 	install -m0755 debian/mkconf $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/checkarray $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/bugscript $(DESTDIR)/usr/share/bug/mdadm/script
+	install -m0755 debian/mdadm-name-generator.sh \
+		$(DESTDIR)/etc/udev/scripts
 
 	install -m0644 debian/mdadm.lintian-overrides \
 		$(DESTDIR)/usr/share/lintian/overrides/mdadm
@@ -101,7 +103,7 @@ binary-arch: build install
 	dh_installcron
 	dh_installchangelogs ChangeLog
 	dh_installlogcheck
-	#dh_installudev
+	dh_installudev
 	dh_strip
 	dh_compress
 	dh_fixperms

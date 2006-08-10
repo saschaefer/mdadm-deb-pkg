@@ -1,4 +1,12 @@
-mdadm (2.5.3-1~unreleased.2) UNRELEASED; urgency=low
+mdadm (2.5.3-1~unreleased.4) UNRELEASED; urgency=low
+
+  * Readded udev rules, but consult a script now to figure out the name to
+    use. This should address #382263 appropriately. In the long run, I should
+    give the user a debconf question to decide which naming scheme to use.
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 10 Aug 2006 15:00:06 +0100
+
+mdadm (2.5.3-1~unreleased.3) UNRELEASED; urgency=low
 
   * New upstream release.
     - now the --run switch behaves as stated in the manpage. This properly
@@ -12,7 +20,7 @@ mdadm (2.5.3-1~unreleased.2) UNRELEASED; urgency=low
     kernel autoassembly assembled the RAIDs (and not mdadm) and thus no device
     nodes were created (closes: #382263).
 
- -- martin f. krafft <madduck@debian.org>  Wed,  9 Aug 2006 22:25:19 +0100
+ -- martin f. krafft <madduck@debian.org>  Thu, 10 Aug 2006 14:56:47 +0100
 
 mdadm (2.5.2-10) unstable; urgency=low
 

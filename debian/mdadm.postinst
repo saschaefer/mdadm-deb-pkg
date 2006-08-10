@@ -129,7 +129,7 @@ fi
 
 # try to undo udev rules (installed by 2.5.2-10, see 2.5.3-1 changelog)
 # commented original install snippet included below
-if [ "${1:-}" = "configure" ] && [ "${2:-}" = "2.5.2-10" ]; then
+if false && [ "${1:-}" = "configure" ] && [ "${2:-}" = "2.5.2-10" ]; then
   # first, disable the rules
   rm -f /etc/udev/rules.d/z60_mdadm.rules
 
@@ -162,11 +162,10 @@ fi
 #see 2.5.3-1 changelog why this is commented out.
 # install udev symlink if it's not already there and we're being upgraded,
 # see #359614
-#V=2.5.2-10
-#F=/etc/udev/rules.d/z60_mdadm.rules
-#if [ "${1:-}" = "configure" ] && dpkg --compare-versions "${2:-$V}" lt $V \
-#  && [ ! -e $F ]; then
-#
-#  ln -s ../mdadm.rules $F
-#fi
+V=2.5.3-1
+F=/etc/udev/rules.d/z60_mdadm.rules
+if [ "${1:-}" = "configure" ] && dpkg --compare-versions "${2:-$V}" lt $V \
+  && [ ! -e $F ]; then
 
+  ln -s ../mdadm.rules $F
+fi

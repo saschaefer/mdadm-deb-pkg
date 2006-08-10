@@ -195,12 +195,12 @@ case "${1:-}" in
     fi
     ;;
 
-  restart)
+  restart|force-reload)
     ${0:-} stop
     ${0:-} start
     ;;
 
-  reload|force-reload)
+  reload)
     PREFIX="Reloading RAID array"
     log_notice "never anything to do"
     ;;
