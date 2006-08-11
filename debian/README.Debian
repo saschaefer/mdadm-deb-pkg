@@ -42,7 +42,7 @@ See also the RAID5_versus_RAID10.txt.gz document included with this package.
 Upstream
 ~~~~~~~~
 For completeness: The upstream repository is available from
-  http://neil.brown.name/cgi-bin/gitweb.cgi?p=mdadm
+  http://neil.brown.name/git?p=mdadm
   git clone git://neil.brown.name/mdadm
 
 Debian package maintenance
