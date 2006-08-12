@@ -100,11 +100,6 @@ if [ -n "$DEVS" ]; then
   MODULES="linear multipath raid0 raid1 raid456 raid5 raid6 raid10"
   for mod in $MODULES; do manual_add_modules $mod; done
 
-  # prevent problems with old md script. Since this hook is only called if
-  # either this file does not exist or the user chose to try the new stuff,
-  # this is safe.
-  rm -f $DESTDIR/scripts/local-top/md
-
   if [ "$DEVS" = all ]; then
     DEVNAMES="all RAID arrays"
   else
