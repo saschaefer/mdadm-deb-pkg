@@ -80,7 +80,10 @@ case "${1:-}" in
 
       if [ -f $CONFIG ] || [ -f $ALTCONFIG ]; then
         # handle devfs-style names and version-1 devices
-        mkdir --parent /dev/md
+        # fail gracefully in case we're on a read-only filesystem, in which
+        # case it's safe to assume that the admin knows what s/he's doing.
+        # See (#382876).
+        mkdir --parent /dev/md || :
 
         # ugly hack because shell sucks
         IFSOLD=${IFS:-}

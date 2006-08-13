@@ -5,8 +5,10 @@ mdadm (2.5.3-1~unreleased.5) UNRELEASED; urgency=low
     - French by Florentin Duneau (closes: #382389).
   * Pushed build dependency to 5.0.32 and DH compatibility level to 5 because
     of dh_installudev use (closes: #382480).
+  * Don't fail mdadm-raid when /dev is on a read-only filesystem
+    (closes: #382876).
 
- -- martin f. krafft <madduck@debian.org>  Fri, 11 Aug 2006 13:23:57 +0100
+ -- martin f. krafft <madduck@debian.org>  Sun, 13 Aug 2006 23:40:27 +0100
 
 mdadm (2.5.3-1~unreleased.4) UNRELEASED; urgency=low
 
