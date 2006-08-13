@@ -79,7 +79,13 @@ uniquify()
 
 if [ -n "$DEVS" ]; then
 
-  echo "RAID_DEVS='${DEVS## }'" > $DESTDIR/conf/raid.conf
+  homehost=$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' \
+    /etc/mdadm.conf /etc/mdadm/mdadm.conf 2>/dev/null || :)
+  if [ -z "$homehost" ] || [ "$homehost" = '<system>' ]; then
+    homehost="$(hostname)"
+  fi
+  echo "RAID_HOMEHOST='$homehost'" > DESTDIR/conf/raid.conf
+  echo "RAID_DEVS='${DEVS## }'" >> $DESTDIR/conf/raid.conf
   echo "RAID_LEVELS='${LEVELS## }'" >> $DESTDIR/conf/raid.conf
 
   # raid4 is handled by raid5
