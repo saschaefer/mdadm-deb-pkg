@@ -1,3 +1,9 @@
+mdadm (2.5.3.git200608201206-1~unreleased.1) UNRELEASED; urgency=low
+
+  * Tracking upstream git now.
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 11 Aug 2006 10:25:30 +0100
+
 mdadm (2.5.3-1~unreleased.5) UNRELEASED; urgency=low
 
   * Improved udev integration.
