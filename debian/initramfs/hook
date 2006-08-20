@@ -131,7 +131,7 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
 
   for i in $INITRDSTART; do
     case "$devs" in
-      all|*${i}*) continue;::
+      all|*${i}*) continue;;
       *) :;;
     esac
 
