@@ -4,7 +4,7 @@ mdadm (2.5.3.git200608201206-1) unstable; urgency=low
   will be created for you.
 
   You must verify the contents of this file and ensure that it represents your
-  local configuration. See /usr/share/doc/mdadm/README.upgrading-2.5.3 for
+  local configuration. See /usr/share/doc/mdadm/README.upgrading-2.5.3.gz for
   more information.
 
  -- martin f. krafft <madduck@debian.org>  Sun, 20 Aug 2006 21:58:43 +0100

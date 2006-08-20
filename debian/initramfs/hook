@@ -53,7 +53,7 @@ if [ -f $CONFIG ]; then
     # work. We thus refuse to work.
 
     echo "E: mdadm: unchecked mdadm.conf file found." >&2
-    echo "I: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3 ." >&2
+    echo "I: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
     echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun)." >&2
     exit 0
   fi

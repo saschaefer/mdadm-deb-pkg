@@ -49,8 +49,8 @@ _Description: Proceed with starting arrays not listed in mdadm.conf?
  file ${config}. Therefore it cannot be started during boot, unless you
  correct the configuration file and recreate the initial ramdisk.
  .
- Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3 if you intend to
- continue.
+ Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend
+ to continue.
 
 Template: mdadm/autostart
 Type: boolean
