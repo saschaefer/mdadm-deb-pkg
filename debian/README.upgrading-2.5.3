@@ -26,8 +26,85 @@ with a mdadm.conf file").
 
 Systems with a mdadm.conf file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If an existing configuration file was found, 
+If an existing configuration file is found, it is *ignored* until you checked
+it and gave mdadm permission to use it. Even though this is a nuisance to some
+users, it is a necessary measure: previous versions of mdadm did not
+necessarily use the information in this file, and thus there is no guarantee
+that it is accurate.
 
- -- martin f. krafft <madduck@debian.org>  Mon, 20 Aug 2006 19:11:21 +0100
+Therefore, you are required to inspect /etc/mdadm/mdadm.conf or
+/etc/mdadm.conf (whichever one is present, the first gets priority if both are
+present) and ensure that all arrays are properly identified. Here are a number
+of recommended checks:
+
+  - Verify that all arrays referenced by /etc/fstab, /etc/crypttab, your LVM
+    metadata, and whatever other subsystem uses MD arrays on your machine
+    have a corresponding line in the configuration file.
+
+    In particular, verify that the device node name is exactly the same;
+    /dev/md6 is *not* identical to /dev/md/6. Partitionable arrays are
+    a slight exception: if /dev/md_d0p3 is referenced, you need an entry for
+    /dev/md_d0 in the configuration file.
+
+  - Compare your file with the output of /usr/share/mdadm/mkconf . In
+    particular, make sure that the UUID matches for each array, whenever
+    a UUID is specified. Also compare the values of super-minor, name, and
+    devices. Only one identifier is needed for each array, but if multiple
+    identifiers are specified, all must match. See mdadm.conf(5).
+
+    Identifying arrays by UUID is the preferred method.
+
+What to do if my system does not boot anymore?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+First thing: don't panic! If your system does not boot anymore as a result of
+an mdadm upgrade, it is *very* unlikely that you lost any data.
+
+Having said that, it is important that you exercise great care and understand
+what you are doing. If you do not know how to revive a system that does not
+boot because it fails to assemble MD arrays, consider asking someone who does
+for help.
+
+If you are using initramfs (which is the default since Debian "etch"), it will
+probably be easy to revive the system. If you are experiencing problems with
+another initial ramdisk alternative, you probably have to resort to using
+a rescue disk, such as the debian-installer CD/DVD, or a live system, such as
+Knoppix.
+
+With initramfs, specify 'break=mount' as a kernel boot command line option,
+and comnmence the boot process. Eventually, you will be dumped into a shell.
+From here, you can execute
+
+  ./scripts/local-top/mdadm
+
+and inspect the output. If you want to see what exactly the script is doing,
+run
+
+  sh -x ./scripts/local-top/mdadm
+
+instead.
+
+Your primary goal is the assembly of the array(s) needed to bring up your root
+filesystem. If the above script fails to do that, take note of its output (for
+a later bug report), and then proceed to simply assemble the array by hand.
+
+For instance, if your root array is on /dev/md1, which is made up of
+/dev/sd[abc]1, just run:
+
+  /sbin/mdadm -A --auto=yes /dev/md1 --run /dev/sd[abc]1
+  /sbin/mdadm -Q /dev/md1  # to verify
+
+If your root filesystem is on multiple arrays (e.g. on LVM), repeat for each
+constituent array.
+
+When you are done, hit ctrl-d and watch the system boot.
+
+When it is back up, carefully inspect your mdadm.conf file and ensure that
+INITRDSTART is properly set in /etc/default/mdadm; set it to 'all' to be safe.
+
+If you continue to experience problems, please file a bug report with all the
+relevant information. The reportbug tool will automatically include the most
+relevant data in the report.
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 20 Aug 2006 23:23:21 +0100
 
 $Id: README.initramfs-transition 89 2006-08-08 09:33:05Z madduck $
