@@ -124,7 +124,7 @@ _eof
     # changelog). Do this before update-initramfs, which copies udev into
     # initrd.
     V=2.5.3.git200608202239-1~
-    if "$1" = "configure" ] && [ -n "${2:-}" ] \
+    if [ "$1" = "configure" ] && [ -n "${2:-}" ] \
         && dpkg --compare-versions $2 ge 2.5.2-10 \
         && dpkg --compare-versions $2 lt $V; then
 
