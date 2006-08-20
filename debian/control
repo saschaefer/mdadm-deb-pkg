@@ -3,7 +3,7 @@ Section: admin
 Priority: optional
 Maintainer: Debian mdadm maintainers <pkg-mdadm-devel@lists.alioth.debian.org>
 Uploaders: martin f. krafft <madduck@debian.org>, Mario Joussen <joussen@debian.org>
-Build-Depends: debhelper (>= 5.0.32), po-debconf, dpatch, groff-base
+Build-Depends: debhelper (>= 5), po-debconf, dpatch, groff-base
 Standards-Version: 3.7.2
 
 Package: mdadm
