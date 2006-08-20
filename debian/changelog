@@ -1,4 +1,4 @@
-mdadm (2.5.3.git200608202239-1~unreleased.1) UNRELEASED; urgency=low
+mdadm (2.5.3.git200608202239-1) unstable; urgency=low
 
   * Tracking upstream git releases.
     - now the --run switch behaves as stated in the manpage. This properly
@@ -50,7 +50,7 @@ mdadm (2.5.3.git200608202239-1~unreleased.1) UNRELEASED; urgency=low
   * Updated debconf translations:
     - French by Florentin Duneau (closes: #382389).
 
- -- martin f. krafft <madduck@debian.org>  Sun, 20 Aug 2006 22:38:03 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon, 21 Aug 2006 00:25:22 +0100
 
 mdadm (2.5.2-10) unstable; urgency=low
 
