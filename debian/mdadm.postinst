@@ -12,7 +12,7 @@ if [ "${1:-}" = "configure" ]; then
   . /usr/share/debconf/confmodule
   set -u
 
-  if [ ! -f /proc/mdstat ] && [ -x $(command -v modprobe) ] ; then
+  if [ ! -f /proc/mdstat ] && [ -x $(command -v modprobe) ]; then
     modprobe -k md >/dev/null 2>&1 || :
   fi
   if [ ! -f /proc/mdstat ]; then
@@ -23,7 +23,7 @@ if [ "${1:-}" = "configure" ]; then
     && [ ! -e /dev/.static/dev/md15 ] \
     && [ ! -e /dev/.devfsd ]; then
 
-      echo -n 'Generating device nodes... ' >&2
+      echo -n 'Generating array device nodes... ' >&2
       cd /dev
       if /sbin/MAKEDEV md >&2 >/dev/null; then
         echo 'done.' >&2
@@ -37,7 +37,8 @@ if [ "${1:-}" = "configure" ]; then
   ALTCONFIG=/etc/mdadm.conf
   MDADM=/sbin/mdadm
 
-  if [ -z "$2" ] && [ -s /etc/mdctl/mdctl.conf ] && [ ! -f /etc/mdadm/mdadm.conf ] ; then
+  if [ -z "$2" ] && [ -s /etc/mdctl/mdctl.conf ] \
+      && [ ! -f /etc/mdadm/mdadm.conf ]; then
     cp -a /etc/mdctl/mdctl.conf /etc/mdadm/mdadm.conf
   fi
 
@@ -70,21 +71,24 @@ if [ "${1:-}" = "configure" ]; then
 # mdadm Debian configuration
 #
 # You can run 'dpkg-reconfigure mdadm' to modify the values in this file, if
-# you want. You can also edit things here and changes will be preserved.
+# you want. You can also change the values here and changes will be preserved.
+# Do note that only the values are preserved; the rest of the file is
+# rewritten.
 #
 
 # INITRDSTART:
-#   list of devices (or 'all') to start automatically when the initial ramdisk
-#   loads. This list *must* include the device of your root filesystem.
+#   list of arrays (or 'all') to start automatically when the initial ramdisk
+#   loads. This list *must* include the array holding your root filesystem. Use
+#   'none' to prevent any array from being started from the initial ramdisk.
 INITRDSTART='$INITRDSTART'
 
 # AUTOSTART:
-#   should mdadm start devices listed in /etc/mdadm/mdadm.conf automatically
+#   should mdadm start arrays listed in /etc/mdadm/mdadm.conf automatically
 #   during boot?
 AUTOSTART=$AUTOSTART
 
 # AUTOCHECK:
-#   should mdadm run periodic parity checks over your arrays? See
+#   should mdadm run periodic redundancy checks over your arrays? See
 #   /etc/cron.d/mdadm.
 AUTOCHECK=$AUTOCHECK
 
@@ -116,6 +120,21 @@ _eof
   command -v update-initramfs >/dev/null && update-initramfs -u -k all
 fi
 
+# See #369953
+set +u
+#DEBHELPER#
+set -u
+
+# do start mdadm-raid, but don't use dh_installinit to do so, to prevent
+# stopping raids on remove/upgrade.
+if [ -x /etc/init.d/mdadm-raid ]; then
+  if [ -x "$(command -v invoke-rc.d)" ]; then
+    invoke-rc.d mdadm-raid start || exit $?
+  else
+    /etc/init.d/mdadm-raid start || exit $?
+  fi
+fi
+
 # remove S04 installed as a fix to #294404 as it does not work
 # we only remove the startup links if the previous version was 1.9.0-2.1 (the
 # one with the erroneous fix) and the S04 link exists to make sure that
@@ -144,28 +163,3 @@ if false && [ "${1:-}" = "configure" ] && [ "${2:-}" = "2.5.2-10" ]; then
   fi
 fi
 
-# See #369953
-set +u
-#DEBHELPER#
-set -u
-
-# do start mdadm-raid, but don't use dh_installinit to do so, to prevent
-# stopping raids on remove/upgrade.
-if [ -x /etc/init.d/mdadm-raid ]; then
-  if [ -x "$(command -v invoke-rc.d)" ]; then
-    invoke-rc.d mdadm-raid start || exit $?
-  else
-    /etc/init.d/mdadm-raid start || exit $?
-  fi
-fi
-
-#see 2.5.3-1 changelog why this is commented out.
-# install udev symlink if it's not already there and we're being upgraded,
-# see #359614
-V=2.5.3-1
-F=/etc/udev/rules.d/z60_mdadm.rules
-if [ "${1:-}" = "configure" ] && dpkg --compare-versions "${2:-$V}" lt $V \
-  && [ ! -e $F ]; then
-
-  ln -s ../mdadm.rules $F
-fi
