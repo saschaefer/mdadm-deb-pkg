@@ -26,14 +26,13 @@ else
 fi
 
 echo CREATE owner=root group=disk mode=0660 auto=yes metadata=1
-echo 'HOMEHOST <system>'
+echo HOMEHOST '<system>'
 echo MAILADDR root
 
 if [ ! -r /proc/mdstat ]; then
   echo W: RAID subsystem is not loaded, thus I cannot scan for arrays. >&2
 else
-  # || : is workaround for #367901
-  $MDADM --examine --scan --config=partitions || :
+  $MDADM --examine --scan --config=partitions
 fi
 
 exit 0
