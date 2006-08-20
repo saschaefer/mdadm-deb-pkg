@@ -1,9 +1,13 @@
-#!/bin/sh -eu
+#!/bin/sh
 #
 # Copyright © 2006 Martin F. Krafft <madduck@debian.org>
 # based on the scripts in the initramfs-tools package.
 # released under the terms of the Artistic Licence.
 #
+# $Id$
+#
+
+set -eu
 
 PREREQ=""
 
@@ -33,94 +37,127 @@ if [ -e /etc/initramfs-tools/hooks/md ]; then
   exit 0
 fi
 
-MDADM=$(command -v mdadm)
+MDADM=$(command -v mdadm 2>/dev/null) || :
 [ -x $MDADM ] || exit 0
 
 [ -r /usr/share/initramfs-tools/hook-functions ] || exit 0
 . /usr/share/initramfs-tools/hook-functions
 
+DEBIANCONFIG=/etc/default/mdadm
+CONFIG=/etc/mdadm/mdadm.conf
+ALTCONFIG=/etc/mdadm.conf
+
 INITRDSTART=all
-[ -s /etc/default/mdadm ] && . /etc/default/mdadm
+[ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
 
-DEVS=''; LEVELS=''
-if [ "$INITRDSTART" != none ]; then
-  eval $(mdadm --examine --scan --config=partitions \
-    | while read a dev level num uuid; do
-      case "$dev" in
-        (/dev/md[0-9]*|/dev/md_d[0-9]*)
-          dev_part="${dev#/dev/md}"
-          devfs_name="/dev/md/${dev_part#_}"
-            if [ -b "$dev" ] && [ -b "$devfs_name" ] \
-                && expr "$INITRDSTART" : ".*${devfs_name}.*" >/dev/null; then
-              echo "W: mdadm: both $dev and $devfs_name exist, and $devfs_name appears to be used." >&2
-              echo "W: mdadm: applying workaround for mdadm bug, don't worry! (see #381181)" >&2
-              dev="$devfs_name"
-            fi
-          ;;
-      esac
+[ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG
+if [ -f $CONFIG ]; then
+  if [ -e /var/lib/mdadm/CONF-UNCHECKED ]; then
+    # the file comes from an old installation and hence is not guaranteed to
+    # work. We thus refuse to work.
 
-      if [ "$INITRDSTART" = all ] || expr "$INITRDSTART" : ".*${dev}.*" >/dev/null; then
-          uuid="${uuid#*UUID=}"
-          DEVS="$DEVS ${dev}=${uuid%% *}"
-          LEVELS="$LEVELS ${level#level=}"
-      fi
+    echo "E: mdadm: unchecked mdadm.conf file found." >&2
+    echo "I: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3 ." >&2
+    echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun)." >&2
+    exit 0
+  fi
 
-      echo "DEVS='$DEVS'"
-      echo "LEVELS='$LEVELS'"
-    done)
-
-  [ "$INITRDSTART" = all ] && DEVS=all
+else
+  # there is no configuration file, so let's create one
+  if /usr/share/mdadm/mkconf generate $CONFIG; then
+    echo "I: mdadm: auto-generated the mdadm.conf configuration file." >&2
+  else
+    echo "E: mdadm: failed to autogenerate the mdadm.conf file." >&2
+    echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun)." >&2
+    rm -f $CONFIG
+    exit 0
+  fi
 fi
+
+# install the configuration file
+mkdir -p $DESTDIR/etc/mdadm
+sed -e :a -re '$!N;s/\n[[:space:]]+/ /;ta' -ne '/^(ARRAY|DEVICE)/P;D' \
+  < $CONFIG > $DESTDIR/etc/mdadm/mdadm.conf
+
+# obtain dev:level pairs from config file, honouring multiline entries
+devpairs="$(
+  while read line; do
+    for atom in $line; do
+      case "$atom" in
+        (/dev*) dev=$atom;;
+        (level=*) level=${atom#level=};;
+        (*) :;;
+      esac
+    done
+    [ -n "${dev:-}" ] && echo -n "${dev}:${level} "
+  done < $DESTDIR/etc/mdadm/mdadm.conf)"
+
+copy_exec $MDADM /sbin
+
+# copy all modules into the initramfs, just for safety.
+# we copy raid456 / raid5+raid6 because the hook script just won't do
+# anything when the module cannot be found.
+modules="linear multipath raid0 raid1 raid456 raid5 raid6 raid10"
+for mod in $modules; do manual_add_modules $mod; done
 
 uniquify()
 {
   for i in $@; do echo "$i"; done | sort -u
 }
 
-if [ -n "$DEVS" ]; then
-
-  homehost=$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' \
-    /etc/mdadm.conf /etc/mdadm/mdadm.conf 2>/dev/null || :)
+if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
+  # save the homehost for now, even if we don't use it yet
+  homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
   if [ -z "$homehost" ] || [ "$homehost" = '<system>' ]; then
     homehost="$(hostname)"
   fi
-  echo "RAID_HOMEHOST='$homehost'" > DESTDIR/conf/raid.conf
-  echo "RAID_DEVS='${DEVS## }'" >> $DESTDIR/conf/raid.conf
-  echo "RAID_LEVELS='${LEVELS## }'" >> $DESTDIR/conf/raid.conf
+  echo "MD_HOMEHOST='$homehost'" > $DESTDIR/conf/md.conf
+  echo "MD_DEVPAIRS='${devpairs% }'" >> $DESTDIR/conf/md.conf
+
+  devs=''; levels=''
+  for i in $devpairs; do
+    dev=${i%:*}
+    level=${i##*:}
+    case "$INITRDSTART" in
+      all|*${dev}*)
+        devs="${devs:+$devs }$dev"
+        levels="${levels:+$levels }$level"
+        ;;
+      *) :;;
+    esac
+  done
+
+  echo "MD_LEVELS='$levels'" >> $DESTDIR/conf/md.conf
+  if [ "$INITRDSTART" = all ]; then
+    echo "MD_DEVS=all" >> $DESTDIR/conf/md.conf
+  else
+    echo "MD_DEVS='$devs'" >> $DESTDIR/conf/md.conf
+  fi
 
   # raid4 is handled by raid5
-  MODULES="$(echo $LEVELS | sed -e 's,raid4,raid5,g')"
+  modules="$(echo $levels | sed -e 's,raid4,raid5,g')"
 
   # if raid456 module is present, use it for raid[456]
   modprobe --set-version="$version" --show-depends raid456 >/dev/null 2>&1 \
-    && MODULES="$(echo $MODULES | sed -e 's,raid[456],raid456,g')"
+    && modules="$(echo $modules | sed -e 's,raid[456],raid456,g')"
 
-  MODULES="$(uniquify $MODULES | tr '\n' ' ')"
-  echo "RAID_MODULES='${MODULES%% }'" >> $DESTDIR/conf/raid.conf
+  modules="$(uniquify $modules | tr '\n' ' ')"
+  echo "MD_MODULES='${modules% }'" >> $DESTDIR/conf/md.conf
 
-  copy_exec $MDADM /sbin
-
-  # copy all modules into the initramfs, just for safety.
-  # we copy raid456 / raid5+raid6 because the hook script just won't do
-  # anything when the module cannot be found.
-  MODULES="linear multipath raid0 raid1 raid456 raid5 raid6 raid10"
-  for mod in $MODULES; do manual_add_modules $mod; done
-
-  if [ "$DEVS" = all ]; then
-    DEVNAMES="all RAID arrays"
+  if [ "$INITRDSTART" = all ]; then
+    echo "I: mdadm: will start all available MD arrays from the initial ramdisk." >&2
   else
-    DEVNAMES="$(for i in $DEVS; do echo -n "${i%=*},"; done)"
-    DEVNAMES="${DEVNAMES%,}"
+    for i in $devs; do
+      echo "I: mdadm: will start MD array $i from the initial ramdisk." >&2
+    done
   fi
 
-  echo "I: mdadm: RAID support installed to mount $DEVNAMES during boot." >&2
-
 else
-  echo "I: mdadm: no RAID devices selected for initrd initialisation." >&2
-  echo "I: mdadm: not including RAID stuff." >&2
+  echo "I: mdadm: no MD arrays will be started from the initial ramdisk." >&2
 fi
 
+# only output this on Debian systems
 [ -s /etc/default/mdadm ] && \
-  echo 'I: mdadm: use `dpkg-reconfigure -plow mdadm` to change this.' >&2
+  echo 'I: mdadm: use `dpkg-reconfigure --priority=low mdadm` to change this.' >&2
 
 exit 0

@@ -20,21 +20,67 @@ fi
 
 test -f $DEBIANCONFIG && . $DEBIANCONFIG
 
+generate=0
+CONFIG=/etc/mdadm/mdadm.conf
+[ "${1:-}" = force-generate ] && rm -f $CONFIG
+case "${1:-}" in
+  generate|force-generate)
+    [ -n "${2:-}" ] && CONFIG=$2
+    if [ -e $CONFIG ]; then
+      echo "E: ${##*/}: $CONFIG already exists." >&2
+      exit 3
+    fi
+    
+    mkdir --parent ${CONFIG%/*}
+    exec >$CONFIG
+    generate=1
+    ;;
+esac
+
+cat <<_eof
+# mdadm.conf
+#
+# This file was auto-generated on $(date -R)
+# by mkconf \$Id$
+#
+# Please refer to mdadm.conf(5) for information about this file.
+#
+
+_eof
+
 if [ -r /proc/partitions ]; then
-  echo DEVICE partitions
+  cat <<_eof
+# scan all partitions (/proc/partitions) for MD superblocks"
+DEVICE partitions
+
+_eof
 else
   echo E: cannot read /proc/partitions and thus cannot do my magic. >&2
   exit 1
 fi
 
-echo CREATE owner=root group=disk mode=0660 auto=yes metadata=1
-echo HOMEHOST '<system>'
-echo MAILADDR root
+cat <<_eof
+# auto-create devices with Debian standard permissions and v1 superblocks
+CREATE owner=root group=disk mode=0660 auto=yes metadata=1
+
+# automatically tag new arrays as belonging to the local system
+HOMEHOST <system>
+
+# instruct the monitoring daemon to send mail alerts to root
+MAILADDR root
+
+_eof
 
 if [ ! -r /proc/mdstat ]; then
-  echo W: RAID subsystem is not loaded, thus I cannot scan for arrays. >&2
+  echo W: MD subsystem is not loaded, thus I cannot scan for arrays. >&2
 else
+  echo "# definitions of existing MD arrays"
   $MDADM --examine --scan --config=partitions
+fi
+
+if [ $generate -eq 1 ]; then
+  mkdir -p /var/lib/mdadm
+  md5sum $CONFIG > /var/lib/mdadm/mdadm.conf-generated
 fi
 
 exit 0

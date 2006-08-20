@@ -19,12 +19,13 @@ case "$1" in
     fi
 
     # save the v1 output of -Es just in case we need it for upgrades
-    MDADM="$(command -v mdadm 2>/dev/null)"
-    if [ -x "$MDADM" ] && dpkg --compare-versions "${2:-1}" lt 2; then
+    MDADM="$(command -v mdadm 2>/dev/null || :)"
+    if [ -x "$MDADM" ] && [ -n "${2:-}" ] && \
+        dpkg --compare-versions $2 lt 2; then
       echo DEVICE partitions > /var/backups/mdadm-Es_v1.dump
-      $MDADM -Esc /var/backups/mdadm-Es_v1.dump >> /var/backups/mdadm-Es_v1.dump
+      $MDADM -Esc /var/backups/mdadm-Es_v1.dump >> /var/backups/mdadm-Es_v1.dump || :
     fi
-  ;;
+    ;;
 
   *) :;;
 esac

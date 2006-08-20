@@ -69,14 +69,14 @@ is_true()
 
 case "${1:-}" in
   start)
-    PREFIX="Assembling RAID array"
+    PREFIX="Assembling MD array"
 
     if is_true $AUTOSTART; then
       if [ ! -f /proc/mdstat ] && [ -x "$(command -v modprobe)" ] ; then
         modprobe -kq md 2>/dev/null || :
       fi
       if [ ! -f /proc/mdstat ]; then
-        log_problem "failed to load RAID subsystem"
+        log_problem "failed to load MD subsystem"
         exit 0
       fi
 
@@ -152,11 +152,11 @@ case "${1:-}" in
     ;;
 
   stop)
-    PREFIX="Stopping RAID array"
+    PREFIX="Stopping MD array"
 
     if is_true $AUTOSTART; then
       if [ ! -f /proc/mdstat ]; then
-        log_problem "no RAID subsystem loaded"
+        log_problem "no MD subsystem loaded"
         exit 0
       fi
 
@@ -206,7 +206,7 @@ case "${1:-}" in
     ;;
 
   reload)
-    PREFIX="Reloading RAID array"
+    PREFIX="Reloading MD array"
     log_notice "never anything to do"
     ;;
 

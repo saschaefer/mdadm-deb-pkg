@@ -10,7 +10,7 @@ sarge. The plan is to support
 
 We want to be able to deal with:
 
-  - any filesystem on RAID, including root and swap
+  - any filesystem on MD, including root and swap
   - assembly/starting by kernel, mdadm -A, and mdadm -As (mdrun)
   - partitionable arrays
   - plain /dev, udev, or devfs
@@ -22,8 +22,8 @@ We explicitly do not support:
 What do we have to worry about?
 
   - root must be mounted either by the initrd or by the kernel
-  - other RAIDs must be mounted either by the initrd or by the kernel or by
-    the init script
+  - other MD arrays must be mounted either by the initrd or by the kernel or
+    by the init script
   - device nodes must exist by the time the init script finished
     - no real need to worry about root, but good to have a device node on the
       running system anyway. See next point.

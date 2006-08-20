@@ -11,7 +11,7 @@ set -eu
 case "${1:-}" in
   remove)
     if command -v update-initramfs >/dev/null; then
-      echo "W: mdadm: I'll update the initramfs, but if you need RAID to boot" >&2
+      echo "W: mdadm: I'll update the initramfs, but if you need MD to boot" >&2
       echo "W: mdadm: with initramfs, you'll be screwed!" >&2
       update-initramfs -u -k all
     fi
@@ -19,10 +19,11 @@ case "${1:-}" in
 
   purge)
     rm -f /etc/default/mdadm
-    if [ -f /var/lib/mdadm/mdadm.conf-generated ]; then
-      rm -f /etc/mdadm/mdadm.conf
+    GEN_SENTINEL=/var/lib/mdadm/mdadm.conf-generated
+    if [ -r $GEN_SENTINEL ]; then
+      rm -f "$(sed -rne 's,[[:xdigit:]]+  ,,p' $GEN_SENTINEL)"
     fi
-    rm -rf /var/lib/mdadm/CONF-UNCHECKED
+    rm -rf /var/lib/mdadm
     ;;
 
   *) :;;

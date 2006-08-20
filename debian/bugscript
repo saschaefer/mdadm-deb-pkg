@@ -13,8 +13,8 @@
 set -eu
 
 if [ ! -r /proc/mdstat ]; then
-  echo "The local system does not have RAID support (no drivers loaded)."
-  echo "Without RAID support, I cannot collect as much information as I'd like."
+  echo "The local system does not have MD support (no drivers loaded)."
+  echo "Without MD support, I cannot collect as much information as I'd like."
 
   #yesno "Are you sure you want to report a bug at this time? " yep
   yesno "Hit any key to continue..."

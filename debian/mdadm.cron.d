@@ -1,5 +1,5 @@
 #
-# cron.d/mdadm -- schedules periodic parity checks of RAID devices
+# cron.d/mdadm -- schedules periodic redundancy checks of MD devices
 #
 # Copyright © martin f. krafft <madduck@madduck.net>
 # distributed under the terms of the Artistic Licence 2.0

@@ -1,45 +1,52 @@
-mdadm (2.5.3.git200608201206-1~unreleased.1) UNRELEASED; urgency=low
+mdadm (2.5.3.git200608202239-1~unreleased.1) UNRELEASED; urgency=low
 
-  * Tracking upstream git now.
-
- -- martin f. krafft <madduck@debian.org>  Fri, 11 Aug 2006 10:25:30 +0100
-
-mdadm (2.5.3-1~unreleased.5) UNRELEASED; urgency=low
-
-  * Improved udev integration.
-  * Updated debconf translations:
-    - French by Florentin Duneau (closes: #382389).
-  * Pushed build dependency to 5.0.32 and DH compatibility level to 5 because
-    of dh_installudev use (closes: #382480).
-  * Don't fail mdadm-raid when /dev is on a read-only filesystem
-    (closes: #382876).
-
- -- martin f. krafft <madduck@debian.org>  Sun, 13 Aug 2006 23:40:27 +0100
-
-mdadm (2.5.3-1~unreleased.4) UNRELEASED; urgency=low
-
-  * Readded udev rules, but consult a script now to figure out the name to
-    use. This should address #382263 appropriately. In the long run, I should
-    give the user a debconf question to decide which naming scheme to use.
-    Thanks to Marco d'Itri for his help.
-
- -- martin f. krafft <madduck@debian.org>  Thu, 10 Aug 2006 20:30:42 +0100
-
-mdadm (2.5.3-1~unreleased.3) UNRELEASED; urgency=low
-
-  * New upstream release.
+  * Tracking upstream git releases.
     - now the --run switch behaves as stated in the manpage. This properly
       fixes #287415
     - new version-1 partitionable arrays are now named X instead of _dX (e.g.
       0 instead of _d0) for device names like md_dX. I actually think this is
       a bug and hope upstream will use dX (e.g. d0) instead in a future
       version.
+  * Instead of trying to do a whole lot of magic with respect to detecting
+    RAID devices to start, mdadm from now on requires a valid mdadm.conf file
+    to be installed. It still tries to do what it can, but there are no
+    heuristics anymore. See /usr/share/doc/mdadm/README.upgrading-2.5.3 .
+  * Removed the zero-superblock warning because we require the user to sign
+    off the configuration file anyway.
+  * This also enables us to use mdadm.conf from the initial ramdisk and thus
+    closes: #381303.
+  * In case the user chooses to assemble all arrays from the initial ramdisk,
+    use the new homehost feature of mdadm (closes: #381057). This will start
+    only those arrays belonging to the local system, unless it is the first
+    run on a system, in which case it will start all arrays and mark them as
+    belonging to the local system.
+  * Improved the debconf control script: integrated error messages into the
+    frontends, and made it a bit smarter. Error messages can now be
+    translated, and the script checks whether the user's choice is listed in
+    the configuration file and only proceeds if it is, or the user chooses to
+    ignore that it is not.
+  * mkconf can now take a generate/force-generate parameter to write directly
+    to /etc/mdadm/mdadm.conf. A second parameter specifies an alternate
+    filename.
+  * mkconf now outputs comments for the settings it suggests.
+  * Removed all udev-related stuff. We must coexist with udev because there
+    are setups that assemble arrays without mdadm, so the device nodes must be
+    created by udev, if that is used.
+    (closes: #382263, #382450, #383688, #383891, #383806, #382480)
+    Staying at low urgency since these (RC) bugs only exist in unstable.
+  * Now installs MD modules and mdadm/mdrun into initial ramdisk regardless of
+    whether the hook script thinks there are devices to start. This was done
+    to enable recovery from the initramfs shell.
+  * Now uses 'MD' instead of 'RAID' consistently in all messages.
   * Now rebuilds initramfs for all installed kernels.
-  * Removed udev rules because it was causing unbootable systems when the
-    kernel autoassembly assembled the RAIDs (and not mdadm) and thus no device
-    nodes were created (closes: #382263).
+  * Now breaks the endless config loop only when the user does not see the
+    question (see #381284, #381007).
+  * Don't fail mdadm-raid when /dev is on a read-only filesystem
+    (closes: #382876).
+  * Updated debconf translations:
+    - French by Florentin Duneau (closes: #382389).
 
- -- martin f. krafft <madduck@debian.org>  Thu, 10 Aug 2006 14:56:47 +0100
+ -- martin f. krafft <madduck@debian.org>  Sun, 20 Aug 2006 22:38:03 +0100
 
 mdadm (2.5.2-10) unstable; urgency=low
 

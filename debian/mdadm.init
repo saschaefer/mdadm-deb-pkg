@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Start the RAID monitor daemon for all active md arrays if desired.
+# Start the MD monitor daemon for all active MD arrays if desired.
 #
 # Copyright © 2001-2005 Mario Jou/3en <joussen@debian.org>
 # Copyright © 2005-2006 Martin F. Krafft <madduck@debian.org>
@@ -36,7 +36,7 @@ is_true()
 case "${1:-}" in
   start)
     if is_true $START_DAEMON; then
-      log_daemon_msg "Starting RAID monitoring service" "mdadm --monitor"
+      log_daemon_msg "Starting MD monitoring service" "mdadm --monitor"
       mkdir -p $RUNDIR
       set +e
       start-stop-daemon -S -p $PIDFILE -x $MDADM -- \
@@ -47,7 +47,7 @@ case "${1:-}" in
     ;;
   stop)
     if [ -f $PIDFILE ] ; then
-      log_daemon_msg "Stopping RAID monitoring service" "mdadm --monitor"
+      log_daemon_msg "Stopping MD monitoring service" "mdadm --monitor"
       set +e
       start-stop-daemon -K -p $PIDFILE -x $MDADM
       rm -f $PIDFILE

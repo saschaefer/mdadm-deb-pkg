@@ -1,3 +1,14 @@
+mdadm (2.5.3.git200608201206-1) unstable; urgency=low
+
+  This version makes mdadm.conf mandatory. If you do not have such a file, it
+  will be created for you.
+
+  You must verify the contents of this file and ensure that it represents your
+  local configuration. See /usr/share/doc/mdadm/README.upgrading-2.5.3 for
+  more information.
+
+ -- martin f. krafft <madduck@debian.org>  Sun, 20 Aug 2006 21:58:43 +0100
+
 mdadm (2.5-1) unstable; urgency=low
 
   mdrun has been (finally) obsoleted, and an appropriate warning message is

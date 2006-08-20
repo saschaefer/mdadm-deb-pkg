@@ -1,18 +1,16 @@
 mdadm for Debian - initramfs transition
 =======================================
 
-None of the following needs to concern you if you are using monolithic kernels
-(no modules), yaird, or initrd-tools/mkinitrd.
+If you are using monolithic kernels (no modules), you need not concern
+yourself with any of this.
 
-This information is about #367567. The gist is that the hooks and scripts to
-take care of RAID during boot with an initramfs have been improved and moved
-into the mdadm package. mdrun has been deprecated on the way.
+If you are using yaird or initrd-tools/mkinitrd, please see README.mdrun. The
+following information is irrelevant to you.
 
-As long as the version of initramfs-tools you have installed still provides
-the old hooks and scripts (which use mdrun), the new ones will simply not do
-anything (which allows me to get rid of the conflict I needed previously).
-Version 0.70 and later does not provide these hooks anymore, so the new mdadm
-hooks will be used, which use mdadm instead of mdrun.
+The following information is about #367567. The gist is that the hooks and
+scripts to take care of MD arrays during boot with an initramfs have been
+improved and moved into the mdadm package. mdrun has been deprecated on the
+way.
 
 initramfs-tools does *not* conflict with older mdadm but instead provides
 fallback code in case mdadm << 2.5-1 is installed (which does not provide the
@@ -29,7 +27,7 @@ is sane after installation and before you reboot.
 Also, you may want to provide yourself a safety net by making a copy of the
 initrd:
 
-  cp /boot/initrd.img-$(uname -r) /boot/initrd.img-$(uname -r).before-mdadm25
+  cp /boot/initrd.img-$(uname -r) /boot/initrd.img-$(uname -r).before-mdadm2
 
 and then to duplicate your main grub or lilo stanzas (rerun lilo!) and point
 them to the saved initrd. If things go haywire, you should be able to restore
@@ -49,6 +47,6 @@ don't want it overwritten.
 
 Again, please report success or failure to me.
 
- -- martin f. krafft <madduck@debian.org>  Mon, 31 Jul 2006 14:32:21 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon, 20 Aug 2006 17:32:21 +0100
 
 $Id$

@@ -3,8 +3,8 @@ Frequently asked questions -- Debian mdadm
 
 Also see /usr/share/doc/mdadm/README.recipes.gz
 
-1. How do I change the preferred minor of a RAID array?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. How do I change the preferred minor of a MD array?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   See item 12 in /usr/share/doc/mdadm/README.recipes.gz and read the mdadm
   manpage (search for 'preferred').
 

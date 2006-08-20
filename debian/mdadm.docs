@@ -1,6 +1,7 @@
 TODO
 debian/README.recipes
 debian/README.initramfs-transition
+debian/README.upgrading-2.5.3
 debian/README.mdrun
 debian/README.checkarray
 debian/FAQ

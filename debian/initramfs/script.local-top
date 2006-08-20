@@ -1,9 +1,13 @@
-#!/bin/sh -eu
+#!/bin/sh
 #
 # Copyright © 2006 Martin F. Krafft <madduck@debian.org>
 # based on the scripts in the initramfs-tools package.
 # released under the terms of the Artistic Licence.
 #
+# $Id$
+#
+
+set -eu
 
 PREREQ="udev_helper"
 
@@ -22,7 +26,7 @@ esac
 . /scripts/functions
 
 if [ -e /scripts/local-top/md ]; then
-  log_failure_msg "old RAID initialisation script found, getting out of its way..."
+  log_failure_msg "old md initialisation script found, getting out of its way..."
   exit 1
 fi
 
@@ -38,12 +42,17 @@ verbose()
   esac
 }
 
-[ -s /conf/raid.conf ] && . /conf/raid.conf
+MD_DEVS=all
+MD_MODULES='linear multipath raid0 raid1 raid456 raid5 raid6 raid10'
+[ -s /conf/md.conf ] && . /conf/md.conf
 
-$MDADM --examine --scan --config=partitions > /etc/mdadm.conf
+CONFIG=/etc/mdadm/mdadm.conf
+# this really should not be needed, but also doesn't hurt.
+[ -e $CONFIG ] || \
+  $MDADM --examine --scan --config=partitions > $CONFIG
 
-verbose && log_begin_msg Loading RAID modules
-for module in ${RAID_MODULES:-}; do
+verbose && log_begin_msg Loading MD modules
+for module in ${MD_MODULES:-}; do
   if modprobe --syslog "$module"; then
     verbose && log_success_msg "loaded module ${module}."
   else
@@ -53,18 +62,21 @@ done
 log_end_msg
 
 if [ ! -f /proc/mdstat ]; then
-  verbose && panic "cannot initialise RAID subsystem (/proc/mdstat missing)"
+  verbose && panic "cannot initialise MD subsystem (/proc/mdstat missing)"
   exit 1
 fi
 
 # handle /dev/md/X nodes
 mkdir --parent /dev/md
 
-if [ ${RAID_DEVS:-all} = all ]; then
+if [ "$MD_DEVS" = all ]; then
   
-  verbose && log_begin_msg "Assembling all RAID arrays"
+  verbose && log_begin_msg "Assembling all MD arrays"
   
-  if $MDADM --assemble --config=/etc/mdadm.conf --scan --run --auto=yes; then
+  extra_args=''
+  [ -n "$MD_HOMEHOST" ] && \
+    extra_args="--homehost='$MD_HOMEHOST' --auto-update-homehost"
+  if $MDADM --assemble --scan --run --auto=yes $extra_args; then
     verbose && log_success_msg "success"
   else
     verbose && log_failure_msg "failed"
@@ -73,17 +85,14 @@ if [ ${RAID_DEVS:-all} = all ]; then
   verbose && log_end_msg
 
 else
-  for dev in ${RAID_DEVS:-}; do
+  for dev in $MD_DEVS; do
 
-    DEV=${dev%=*}
-    UUID=${dev#*=}
+    verbose && log_begin_msg "Assembling MD array $dev"
 
-    verbose && log_begin_msg "Assembling RAID array $DEV ($UUID)"
-
-    if $MDADM --assemble --config=partitions --run --auto=yes --uuid $UUID $DEV; then
-      verbose && log_success_msg "started $DEV ($UUID)"
+    if $MDADM --assemble --run --auto=yes $dev; then
+      verbose && log_success_msg "started $dev"
     else
-      verbose && log_failure_msg "failed to start $DEV ($UUID)"
+      verbose && log_failure_msg "failed to start $dev"
     fi
 
     verbose && log_end_msg

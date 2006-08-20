@@ -1,0 +1,33 @@
+upgrading to mdadm 2.5.3 from previous versions
+===============================================
+
+With version 2.5.3, the Debian mdadm package now requires a mdadm.conf file.
+This file should be in /etc/mdadm/mdadm.conf, although /etc/mdadm.conf will
+also be read if the former is not present, but it is less preferred.
+
+The reason the configuration file is now required is because it was impossible
+to come up with robust heuristics to replace the previously used mdrun, while
+addressing its primary deficiency of not honouring the super-minor field and
+randomly assembling devices (see #354705).
+
+Systems without a mdadm.conf file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If your system does not have an mdadm.conf file, the package creates one for
+your during the installation phase. Furthermore, a configuration file is
+created during the updating of the initramfs (initial ramdisk), if no file is
+found at the time. In both cases, the running system is used as a reference,
+meaning that the file is generated automatically in such a way as to reflect
+the running system.
+
+This should work in most cases. I strongly suggest, however, that you inspect
+the generated file (/etc/mdadm/mdadm.conf) before you reboot. If you find any
+anomaly or mistakes, correct them and proceed with the next step ("Systems
+with a mdadm.conf file").
+
+Systems with a mdadm.conf file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If an existing configuration file was found, 
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 20 Aug 2006 19:11:21 +0100
+
+$Id: README.initramfs-transition 89 2006-08-08 09:33:05Z madduck $
