@@ -40,9 +40,6 @@ esac
 cat <<_eof
 # mdadm.conf
 #
-# This file was auto-generated on $(date -R)
-# by mkconf \$Id$
-#
 # Please refer to mdadm.conf(5) for information about this file.
 #
 
@@ -77,6 +74,12 @@ else
   echo "# definitions of existing MD arrays"
   $MDADM --examine --scan --config=partitions
 fi
+
+cat <<_eof
+
+# This file was auto-generated on $(date -R)
+# by mkconf \$Id$
+_eof
 
 if [ $generate -eq 1 ]; then
   mkdir -p /var/lib/mdadm
