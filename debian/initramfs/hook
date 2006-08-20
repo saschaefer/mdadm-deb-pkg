@@ -54,7 +54,7 @@ if [ -f $CONFIG ]; then
 
     echo "E: mdadm: unchecked mdadm.conf file found." >&2
     echo "I: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
-    echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun)." >&2
+    echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun) for now." >&2
     exit 0
   fi
 
@@ -64,7 +64,7 @@ else
     echo "I: mdadm: auto-generated the mdadm.conf configuration file." >&2
   else
     echo "E: mdadm: failed to autogenerate the mdadm.conf file." >&2
-    echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun)." >&2
+    echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun) for now." >&2
     rm -f $CONFIG
     exit 0
   fi
@@ -130,8 +130,9 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   done
 
   for i in $INITRDSTART; do
+    case "$INITRDSTART" in all|none|'') break;; *) :;; esac
     case "$devs" in
-      all|*${i}*) continue;;
+      *${i}*) continue;;
       *) :;;
     esac
 
