@@ -5,12 +5,27 @@
 # $Id$
 #
 
-# migrate old configuration from *way back then*
-DEBIANCONFIG=/etc/default/mdadm
-OLDCONFIG=/etc/mdadm/debian.conf
-if [ -s $OLDCONFIG ] && [ ! -f $DEBIANCONFIG ]; then
-  mv $OLDCONFIG $DEBIANCONFIG
-fi
+case "$1" in
+
+  upgrade|install)
+
+    # migrate old configuration from *way back then*
+    DEBIANCONFIG=/etc/default/mdadm
+    OLDCONFIG=/etc/mdadm/debian.conf
+    if [ -s $OLDCONFIG ] && [ ! -f $DEBIANCONFIG ]; then
+      mv $OLDCONFIG $DEBIANCONFIG
+    fi
+
+    # save the v1 output of -Es just in case we need it for upgrades
+    MDADM="$(command -v mdadm 2>/dev/null)"
+    if [ -x "$MDADM" ] && dpkg --compare-versions "$2" lt 2; then
+      echo DEVICE partitions > /var/backups/mdadm-Es_v1.dump
+      $MDADM -Esc /var/backups/mdadm-Es_v1.dump >> /var/backups/mdadm-Es_v1.dump
+    fi
+  ;;
+
+  *) :;;
+esac
 
 # See #369953
 set +u
