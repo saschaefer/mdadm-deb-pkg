@@ -5,10 +5,12 @@ Please make sure you read into /usr/share/doc/mdadm/NEWS.Debian.gz . Also, the
 documentation for the kernel md driver is included in
 /usr/share/doc/mdadm/md.txt.gz as well as the md(4) manpage. *Do* read those!
 
-The configuration file
-~~~~~~~~~~~~~~~~~~~~~~
-This version of mdadm now needs /etc/mdadm/mdadm.conf, which it will try to
+Upgrading and the configuration file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This version of mdadm now NEEDS /etc/mdadm/mdadm.conf, which it will try to
 generate during installation, if nonexistent.
+
+PLEASE MAKE SURE TO READ /usr/share/doc/mdadm/README.upgrading-2.5.3.gz !
 
 You can use the output of /usr/share/mdadm/mkconf to generate your very own
 mdadm.conf file, and look into

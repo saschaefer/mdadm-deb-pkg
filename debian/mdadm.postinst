@@ -8,7 +8,7 @@
 
 . /usr/share/debconf/confmodule
 # See #369953 for ordering
-set -eux
+set -eu
 
 case "${1:-}" in
   configure|reconfigure)

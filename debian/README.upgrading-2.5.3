@@ -1,4 +1,4 @@
-upgrading to mdadm 2.5.3 from previous versions
+Upgrading to mdadm 2.5.3 from previous versions
 ===============================================
 
 With version 2.5.3, the Debian mdadm package now requires a mdadm.conf file.
@@ -41,6 +41,9 @@ of recommended checks:
     metadata, and whatever other subsystem uses MD arrays on your machine
     have a corresponding line in the configuration file.
 
+    Make sure to verify that your bootloader refers to the proper device name,
+    in case your root filesystem is on an MD array.
+
     In particular, verify that the device node name is exactly the same;
     /dev/md6 is *not* identical to /dev/md/6. Partitionable arrays are
     a slight exception: if /dev/md_d0p3 is referenced, you need an entry for
@@ -53,6 +56,16 @@ of recommended checks:
     identifiers are specified, all must match. See mdadm.conf(5).
 
     Identifying arrays by UUID is the preferred method.
+
+Once you have verified that the configuration file is accurate, you need to
+let mdadm know, and update the initial ramdisk. This is accomplished with the
+following two commands:
+
+  rm -f /var/lib/mdadm/CONF-UNCHECKED
+  update-initramfs -u -k all
+
+Depending on your setup, mdadm should print an appropriate informational
+message. Please make sure that it is in accordance with what you would expect.
 
 What to do if my system does not boot anymore?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

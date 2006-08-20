@@ -7,6 +7,10 @@ mdadm (2.5.3.git200608202239-1~unreleased.1) UNRELEASED; urgency=low
       0 instead of _d0) for device names like md_dX. I actually think this is
       a bug and hope upstream will use dX (e.g. d0) instead in a future
       version.
+    - we specify --symlink=no and thus disable the new feature to create
+      /dev/mdX symlinks to /dev/md/X devices until the entire device node mess
+      is cleared up. No need to introduce yet another complicating factor at
+      this stage.
   * Instead of trying to do a whole lot of magic with respect to detecting
     RAID devices to start, mdadm from now on requires a valid mdadm.conf file
     to be installed. It still tries to do what it can, but there are no

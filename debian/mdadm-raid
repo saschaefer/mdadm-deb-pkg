@@ -28,6 +28,7 @@ short_dev()
   local dev=${1##*/}
   case "$dev" in
     md*|md_*|mdp*|mdp_*) echo "$dev";;
+    d*) echo "md_${dev}";;
     *) echo "md${dev}";;
   esac
 }
@@ -91,7 +92,7 @@ case "${1:-}" in
         IFSOLD=${IFS:-}
         IFS='
 '
-        for line in $($MDADM --assemble --scan --auto=yes 2>&1); do
+        for line in $($MDADM --assemble --scan --auto=yes --symlink=no 2>&1); do
           IFS=$IFSOLD
           set -- $line
           shift

@@ -1,6 +1,8 @@
 mdadm: upgrading from sarge -- braindump
 ========================================
 
+THIS IS AN OBSOLETE DOCUMENT
+
 The mdrun deprecation means we have to find a proper way to migrate from
 sarge. The plan is to support
 
