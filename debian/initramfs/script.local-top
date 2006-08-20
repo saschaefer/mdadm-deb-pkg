@@ -46,11 +46,6 @@ MD_DEVS=all
 MD_MODULES='linear multipath raid0 raid1 raid456 raid5 raid6 raid10'
 [ -s /conf/md.conf ] && . /conf/md.conf
 
-CONFIG=/etc/mdadm/mdadm.conf
-# this really should not be needed, but also doesn't hurt.
-[ -e $CONFIG ] || \
-  $MDADM --examine --scan --config=partitions > $CONFIG
-
 verbose && log_begin_msg Loading MD modules
 for module in ${MD_MODULES:-}; do
   if modprobe --syslog "$module"; then
@@ -69,6 +64,11 @@ fi
 # handle /dev/md/X nodes
 mkdir --parent /dev/md
 
+CONFIG=/etc/mdadm/mdadm.conf
+# this really should not be needed, but also doesn't hurt.
+[ -e $CONFIG ] || \
+  $MDADM --examine --scan --config=partitions > $CONFIG
+
 if [ "$MD_DEVS" = all ]; then
   
   verbose && log_begin_msg "Assembling all MD arrays"
@@ -84,7 +84,7 @@ if [ "$MD_DEVS" = all ]; then
 
   verbose && log_end_msg
 
-else
+elif [ "$MD_DEVS" != none ]; then
   for dev in $MD_DEVS; do
 
     verbose && log_begin_msg "Assembling MD array $dev"

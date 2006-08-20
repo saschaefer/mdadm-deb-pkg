@@ -43,12 +43,8 @@ MDADM=$(command -v mdadm 2>/dev/null) || :
 [ -r /usr/share/initramfs-tools/hook-functions ] || exit 0
 . /usr/share/initramfs-tools/hook-functions
 
-DEBIANCONFIG=/etc/default/mdadm
 CONFIG=/etc/mdadm/mdadm.conf
 ALTCONFIG=/etc/mdadm.conf
-
-INITRDSTART=all
-[ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
 
 [ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG
 if [ -f $CONFIG ]; then
@@ -105,13 +101,19 @@ uniquify()
   for i in $@; do echo "$i"; done | sort -u
 }
 
+DEBIANCONFIG=/etc/default/mdadm
+INITRDSTART=all
+[ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
+
+# save the homehost for now, even if we don't use it yet
+homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
+if [ -z "$homehost" ] || [ "$homehost" = '<system>' ]; then
+  homehost="$(hostname)"
+fi
+echo "MD_HOMEHOST='$homehost'" > $DESTDIR/conf/md.conf
+
+[ -z "$INITRDSTART" ] && INITRDSTART=none
 if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
-  # save the homehost for now, even if we don't use it yet
-  homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
-  if [ -z "$homehost" ] || [ "$homehost" = '<system>' ]; then
-    homehost="$(hostname)"
-  fi
-  echo "MD_HOMEHOST='$homehost'" > $DESTDIR/conf/md.conf
   echo "MD_DEVPAIRS='${devpairs% }'" >> $DESTDIR/conf/md.conf
 
   devs=''; levels=''
@@ -125,6 +127,19 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
         ;;
       *) :;;
     esac
+  done
+
+  for i in $INITRDSTART; do
+    case "$devs" in
+      all|*${i}*) continue;::
+      *) :;;
+    esac
+
+    echo "W: mdadm: I am supposed to start $i from the initial ramdisk," >&2
+    echo "W: mdadm: yet I cannot find the array in the configuration file." >&2
+    echo "W: mdadm: I am thus reverting to starting all arrays." >&2
+    INITRDSTART=all
+    break
   done
 
   echo "MD_LEVELS='$levels'" >> $DESTDIR/conf/md.conf
@@ -153,6 +168,7 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   fi
 
 else
+  echo "MD_DEVS=none" >> $DESTDIR/conf/md.conf
   echo "I: mdadm: no MD arrays will be started from the initial ramdisk." >&2
 fi
 
