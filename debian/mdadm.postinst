@@ -8,7 +8,7 @@
 
 . /usr/share/debconf/confmodule
 # See #369953 for ordering
-set -eu
+set -eux
 
 case "${1:-}" in
   configure|reconfigure)
@@ -120,6 +120,28 @@ _eof
 
     db_stop
 
+    # try to undo udev rules (installed by 2.5.2-10, see 2.5.3.git200608202239-1
+    # changelog). Do this before update-initramfs, which copies udev into
+    # initrd.
+    V=2.5.3.git200608202239-1~
+    if "$1" = "configure" ] && [ -n "${2:-}" ] \
+        && dpkg --compare-versions $2 ge 2.5.2-10 \
+        && dpkg --compare-versions $2 lt $V; then
+
+      # first, disable the rules
+      rm -f /etc/udev/rules.d/z60_mdadm.rules
+
+      if echo "0843432c9c01ed95c42481eee0cf6fbf  /etc/udev/mdadm.rules" \
+          | md5sum -c >/dev/null; then
+        # no changes by user, so remove
+        rm -f /etc/udev/mdadm.rules
+      else
+        echo "W: I tried to remove /etc/udev/mdadm.rules (see changelog), but you" >&2
+        echo "W: have modified it, so I won't touch it. Please remove the file" >&2
+        echo "W: at your leisure." >&2
+      fi
+    fi
+
     command -v update-initramfs >/dev/null && update-initramfs -u -k all
     ;;
 esac
@@ -149,21 +171,3 @@ if [ -x /etc/init.d/mdadm-raid ]; then
     /etc/init.d/mdadm-raid start || exit $?
   fi
 fi
-
-# try to undo udev rules (installed by 2.5.2-10, see 2.5.3-1 changelog)
-# commented original install snippet included below
-if false && [ "${1:-}" = "configure" ] && [ "${2:-}" = "2.5.2-10" ]; then
-  # first, disable the rules
-  rm -f /etc/udev/rules.d/z60_mdadm.rules
-
-  if echo "0843432c9c01ed95c42481eee0cf6fbf  /etc/udev/mdadm.rules" \
-      | md5sum -c >/dev/null; then
-    # no changes by user, so remove
-    rm -f /etc/udev/mdadm.rules
-  else
-    echo "W: I tried to remove /etc/udev/mdadm.rules (see changelog), but you" >&2
-    echo "W: have modified it, so I won't touch it. Please remove the file" >&2
-    echo "W: at your leisure." >&2
-  fi
-fi
-
