@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mdadm_2.5.2-2\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2006-08-02 18:05+0100\n"
+"POT-Creation-Date: 2006-08-21 00:28+0100\n"
 "PO-Revision-Date: 2006-07-05 17:30+0200\n"
 "Last-Translator: Frans Pop <aragorn@tiscali.nl>\n"
 "Language-Team: Dutch <debian-l10n-dutch@lists.debian.org>\n"
@@ -25,60 +25,39 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: KBabel 1.9.1\n"
 
-#. Type: note
-#. Description
-#: ../mdadm.templates:1001
-msgid "Initialise the superblock if you reuse hard disks"
-msgstr "Superblok initialiseren als u harde schijven hergebruikt?"
-
-#. Type: note
-#. Description
-#: ../mdadm.templates:1001
-msgid ""
-"WARNING! If you are using hard disks which have RAID superblocks from "
-"earlier installations in different RAID arrays, you MUST zero each "
-"superblock *before* activating the autostart feature."
-msgstr ""
-"Waarschuwing! Als u harde schijven gebruikt die een RAID-superblok bevatten "
-"van een eerdere installatie in een andere RAID-reeks, dan MOET u het "
-"superblok overschrijven met nullen vóórdat u de \"autostart\"-optie "
-"activeert."
-
-#. Type: note
-#. Description
-#: ../mdadm.templates:1001
-msgid ""
-"To do this, do not start the RAID devices automatically. First, zero the "
-"superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-reconfigure "
-"mdadm` to reactivate the autostart feature."
-msgstr ""
-"U kunt dit doen door RAID-apparaten nu niet automatisch te laten starten. "
-"Overschrijf eerst het superblok met nullen ('mdadm --zero-superblock /dev/"
-"mdX'). Gebruik daarna 'dpkg-reconfigure mdadm' om de \"autostart\"-optie te "
-"activeren."
-
-#. Type: note
-#. Description
-#: ../mdadm.templates:1001
-msgid ""
-"If you manage your RAIDs otherwise (e.g. EVMS), either disable autostart, or "
-"ensure that /etc/mdadm/mdadm.conf only lists those arrays you want to start "
-"by mdadm."
-msgstr ""
-
 #. Type: string
 #. Description
-#: ../mdadm.templates:2001
-msgid "RAID arrays needed for the root filesystem:"
+#: ../mdadm.templates:1001
+#, fuzzy
+msgid "MD arrays needed for the root filesystem:"
 msgstr "Voor het basisbestandssysteem benodigde RAID-reeksen:"
 
 #. Type: string
 #. Description
-#: ../mdadm.templates:2001
+#: ../mdadm.templates:1001
+msgid "${msg}"
+msgstr ""
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:1001
+#, fuzzy
 msgid ""
-"If your system has its root filesystem on a RAID volume, it needs to be "
+"Please enter a space-separated list of devices, 'all', or 'none'. You may "
+"omit the leading '/dev/' and just enter e.g. \"md0 md1\", or \"md/1 md/d0\"."
+msgstr ""
+"Geef de apparaatbestanden (gescheiden met spaties) of 'all' in. U kunt "
+"volstaan met het ingeven van bijvoorbeeld \"md0 md1\" (en dus '/dev/...' "
+"weglaten)."
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+#, fuzzy
+msgid ""
+"If your system has its root filesystem on a MD volume, it needs to be "
 "started early during the boot sequence. If your root filesystem is on a "
-"logical volume (LVM), which is on RAID, all constituent arrays need to be "
+"logical volume (LVM), which is on MD, all constituent arrays need to be "
 "started."
 msgstr ""
 "Als het basisbestandssysteem van uw systeem zich op een RAID-volume bevindt, "
@@ -86,14 +65,16 @@ msgstr ""
 "basisbestandssysteem zich op een logisch volume (LVM) op RAID bevindt, "
 "dienen alle betrokken reeksen geactiveerd te worden."
 
-#. Type: string
+#. Type: text
 #. Description
 #: ../mdadm.templates:2001
+#, fuzzy
 msgid ""
 "If you know exactly which arrays are needed to bring up the root filesystem, "
-"enter them here. Alternatively, enter 'all' to simply start all available "
-"arrays. If you do not need or want to start any arrays for the root "
-"filesystem, leave the answer blank (or enter 'none')."
+"and you want to postpone starting all other arrays to a later point in the "
+"boot sequence, enter the arrays to start here. Alternatively, enter 'all' to "
+"simply start all available arrays. If you do not need or want to start any "
+"arrays for the root filesystem, leave the answer blank (or enter 'none')."
 msgstr ""
 "Als u exact weet welke reeksen nodig zijn om het basisbestandssysteem te "
 "activeren, geef deze dan hier in. Als alternatief kunt u 'all' opgeven wat "
@@ -101,46 +82,68 @@ msgstr ""
 "reeksen hoeft of wenst te activeren voor het basisbestandssysteem, laat dan "
 "het antwoord leeg (of geef 'none' in)."
 
-#. Type: string
+#. Type: text
 #. Description
-#: ../mdadm.templates:2001
-msgid ""
-"You have the option to start all other arrays (those not needed for the root "
-"filesystem) later in the boot sequence. Doing so will give you greater "
-"control over the arrays with the mdadm configuration file. Starting all "
-"arrays at boot-time may be safer though."
+#: ../mdadm.templates:3001
+msgid "An error occurred: device node does not exist"
 msgstr ""
-"U heeft de optie om alle andere reeksen (die niet benodigd zijn voor het "
-"basisbestandssysteem) later in de opstartcyclus te activeren. Dit geeft u "
-"meer controle over de reeksen met het mdadm configuratiebestand. Het is "
-"echter mogelijk veiliger om alle reeksen tijdens het opstarten van het "
-"systeem te activeren."
 
-#. Type: string
+#. Type: text
 #. Description
-#: ../mdadm.templates:2001
-msgid ""
-"Please enter a space-separated list of devices, or 'all'. You may omit the "
-"leading '/dev/' and just enter e.g. \"md0 md1\"."
+#: ../mdadm.templates:4001
+msgid "An error occurred: not a block device"
 msgstr ""
-"Geef de apparaatbestanden (gescheiden met spaties) of 'all' in. U kunt "
-"volstaan met het ingeven van bijvoorbeeld \"md0 md1\" (en dus '/dev/...' "
-"weglaten)."
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:5001
+msgid "An error occurred: not a MD array"
+msgstr ""
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:6001
+msgid "An error occurred: array not listed in mdadm.conf file"
+msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../mdadm.templates:3001
-msgid "Do you want to start RAID devices automatically?"
+#: ../mdadm.templates:7001
+msgid "Proceed with starting arrays not listed in mdadm.conf?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid ""
+"The array you have specified (${array}) is not listed in the configuration "
+"file ${config}. Therefore it cannot be started during boot, unless you "
+"correct the configuration file and recreate the initial ramdisk."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid ""
+"Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend "
+"to continue."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:8001
+#, fuzzy
+msgid "Do you want to start MD devices automatically?"
 msgstr "RAID-apparaten automatisch starten?"
 
 #. Type: boolean
 #. Description
-#: ../mdadm.templates:3001
+#: ../mdadm.templates:8001
 #, fuzzy
 msgid ""
-"Once the base system has come up, mdadm can start all RAID devices specified "
+"Once the base system has come up, mdadm can start all MD devices specified "
 "in /etc/mdadm/mdadm.conf, which have not yet been started. Unless you have "
-"compiled RAID support into the kernel (in which case all RAID arrays with "
+"compiled MD support into the kernel (in which case all MD arrays with "
 "partitions of type 0xfd (and only those) are started automatically anyway), "
 "this is probably what you want."
 msgstr ""
@@ -152,16 +155,16 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../mdadm.templates:4001
-msgid "Should mdadm run monthly redundancy checks of the RAID arrays?"
+#: ../mdadm.templates:9001
+msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
 msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../mdadm.templates:4001
+#: ../mdadm.templates:9001
 msgid ""
 "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
-"redundancy of your RAID devices. This may be a resource-intensive process, "
+"redundancy of your MD devices. This may be a resource-intensive process, "
 "depending on your setup, but it could help prevent rare cases of data loss. "
 "Note that this is a read-only check unless errors are found; if errors are "
 "found, mdadm will try to correct them, which may result in write access to "
@@ -170,7 +173,7 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../mdadm.templates:4001
+#: ../mdadm.templates:9001
 msgid ""
 "The default, if turned on, is to run the checks on the first Sunday of every "
 "month at 01:06 o'clock."
@@ -178,16 +181,18 @@ msgstr ""
 
 #. Type: boolean
 #. Description
-#: ../mdadm.templates:5001
-msgid "Do you want to start the RAID monitoring daemon?"
+#: ../mdadm.templates:10001
+#, fuzzy
+msgid "Do you want to start the MD monitoring daemon?"
 msgstr "Wilt u de achtergronddienst voor de RAID-monitor starten?"
 
 #. Type: boolean
 #. Description
-#: ../mdadm.templates:5001
+#: ../mdadm.templates:10001
+#, fuzzy
 msgid ""
-"The RAID monitor daemon sends email notifications in response to important "
-"RAID events (such as a disk failure). You probably want to enable it."
+"The MD monitor daemon sends email notifications in response to important MD "
+"events (such as a disk failure). You probably want to enable it."
 msgstr ""
 "De achtergronddienst voor de RAID-monitor stuurt per mail berichten bij "
 "belangrijke gebeurtenissen die betrekking hebben op RAID (zoals een falende "
@@ -195,16 +200,52 @@ msgstr ""
 
 #. Type: string
 #. Description
-#: ../mdadm.templates:6001
+#: ../mdadm.templates:11001
 msgid "Recipient for email notifications:"
 msgstr "Adres voor mailberichten:"
 
 #. Type: string
 #. Description
-#: ../mdadm.templates:6001
+#: ../mdadm.templates:11001
+#, fuzzy
 msgid ""
 "Please enter the email address of the user who should get the email "
-"notification for these important RAID events."
+"notification for these important MD events."
 msgstr ""
 "Geef het mailadres in van de gebruiker die een mailbericht dient te "
 "ontvangen voor belangrijke gebeurtenissen met betrekking tot RAID."
+
+#~ msgid "Initialise the superblock if you reuse hard disks"
+#~ msgstr "Superblok initialiseren als u harde schijven hergebruikt?"
+
+#~ msgid ""
+#~ "WARNING! If you are using hard disks which have RAID superblocks from "
+#~ "earlier installations in different RAID arrays, you MUST zero each "
+#~ "superblock *before* activating the autostart feature."
+#~ msgstr ""
+#~ "Waarschuwing! Als u harde schijven gebruikt die een RAID-superblok "
+#~ "bevatten van een eerdere installatie in een andere RAID-reeks, dan MOET u "
+#~ "het superblok overschrijven met nullen vóórdat u de \"autostart\"-optie "
+#~ "activeert."
+
+#~ msgid ""
+#~ "To do this, do not start the RAID devices automatically. First, zero the "
+#~ "superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-"
+#~ "reconfigure mdadm` to reactivate the autostart feature."
+#~ msgstr ""
+#~ "U kunt dit doen door RAID-apparaten nu niet automatisch te laten starten. "
+#~ "Overschrijf eerst het superblok met nullen ('mdadm --zero-superblock /dev/"
+#~ "mdX'). Gebruik daarna 'dpkg-reconfigure mdadm' om de \"autostart\"-optie "
+#~ "te activeren."
+
+#~ msgid ""
+#~ "You have the option to start all other arrays (those not needed for the "
+#~ "root filesystem) later in the boot sequence. Doing so will give you "
+#~ "greater control over the arrays with the mdadm configuration file. "
+#~ "Starting all arrays at boot-time may be safer though."
+#~ msgstr ""
+#~ "U heeft de optie om alle andere reeksen (die niet benodigd zijn voor het "
+#~ "basisbestandssysteem) later in de opstartcyclus te activeren. Dit geeft u "
+#~ "meer controle over de reeksen met het mdadm configuratiebestand. Het is "
+#~ "echter mogelijk veiliger om alle reeksen tijdens het opstarten van het "
+#~ "systeem te activeren."
