@@ -7,14 +7,14 @@ in the morning. This is realised by asking cron to wake up every Sunday with
 /etc/cron.d/mdadm, but then only running the script when the day of the month
 is less than or equal to 7. See #380425.
 
-'check' is a read-only operation, even though the kernel logs may suggest
+'check' is q read-only operation, even though the kernel logs may suggest
 otherwise.
 
-If while reading, a read error occurs, the check will trigger the normal
-response to read errors which is to generate the 'correct' data and try to
-write that out - so it is possible that a 'check' will trigger a write.
+If, however, while reading, a read error occurs, the check will trigger the
+normal response to read errors which is to generate the 'correct' data and try
+to write that out - so it is possible that a 'check' will trigger a write.
 However in the absence of read errors it is read-only.
 
- -- martin f. krafft <madduck@debian.org>  Tue, 01 Aug 2006 12:08:05 +0100
+ -- martin f. krafft <madduck@debian.org>  Tue, 20 Aug 2006 14:08:05 +0100
 
 $Id$
