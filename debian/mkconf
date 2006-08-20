@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh
 #
 # mkconf -- outputs valid mdadm.conf contents for the local system
 #
@@ -7,6 +7,8 @@
 #
 # $Id$
 #
+
+set -eu
 
 MDADM=/sbin/mdadm
 DEBIANCONFIG=/etc/default/mdadm

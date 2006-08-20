@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh
 #
 # mdadm-name-generator.sh -- determines the md node name to be used by udev
 #
@@ -22,6 +22,8 @@
 #
 # $Id: mkconf 89 2006-08-08 09:33:05Z madduck $
 #
+
+set -eu
 
 case "$1" in
   md*) :;;

@@ -1,10 +1,12 @@
-#!/bin/sh -eu
+#!/bin/sh
 # Copyright © 2001-2005 Mario Jou/3en <joussen@debian.org>
 # Copyright © 2005-2006 Martin F. Krafft <madduck@debian.org>
 # Distributable under the terms of the GNU GPL version 2.
 #
 # $Id$
 #
+
+set -eu
 
 if [ "${1:-}" = "configure" ]; then
 

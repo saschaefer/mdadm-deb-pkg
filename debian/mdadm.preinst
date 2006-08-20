@@ -1,9 +1,11 @@
-#!/bin/sh -eu
+#!/bin/sh
 # Copyright © martin f. krafft <madduck@debian.org>
 # Distributed under the terms of the Artistic Licence 2.0
 #
 # $Id$
 #
+
+set -eu
 
 case "$1" in
 

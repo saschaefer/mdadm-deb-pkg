@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh
 #
 # Start all arrays specified in the configuration file.
 #
@@ -8,6 +8,8 @@
 #
 # $Id$
 #
+
+set -eu
 
 MDADM=/sbin/mdadm
 CONFIG=/etc/mdadm/mdadm.conf

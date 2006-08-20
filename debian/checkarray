@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh
 #
 # checkarray -- initiates a check run of an array's redundancy information.
 #
@@ -7,6 +7,8 @@
 #
 # $Id$
 #
+
+set -eu
 
 PROGNAME=${0##*/}
 

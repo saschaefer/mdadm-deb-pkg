@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh
 #
 # mdadm bug submission control script
 #
@@ -9,6 +9,8 @@
 #
 # $Id$
 #
+
+set -eu
 
 if [ ! -r /proc/mdstat ]; then
   echo "The local system does not have RAID support (no drivers loaded)."

@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh
 #
 # Start the RAID monitor daemon for all active md arrays if desired.
 #
@@ -8,6 +8,8 @@
 #
 # $Id$
 #
+
+set -eu
 
 MDADM=/sbin/mdadm
 RUNDIR=/var/run/mdadm
