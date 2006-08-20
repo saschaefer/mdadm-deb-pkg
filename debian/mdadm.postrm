@@ -22,7 +22,7 @@ case "${1:-}" in
     if [ -f /var/lib/mdadm/mdadm.conf-generated ]; then
       rm -f /etc/mdadm/mdadm.conf
     fi
-    rm -rf /var/lib/mdadm
+    rm -rf /var/lib/mdadm/CONF-UNCHECKED
     ;;
 
   *) :;;
