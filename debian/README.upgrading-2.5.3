@@ -13,7 +13,7 @@ randomly assembling devices (see #354705).
 Systems without a mdadm.conf file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If your system does not have an mdadm.conf file, the package creates one for
-your during the installation phase. Furthermore, a configuration file is
+you during the installation phase. Furthermore, a configuration file is
 created during the updating of the initramfs (initial ramdisk), if no file is
 found at the time. In both cases, the running system is used as a reference,
 meaning that the file is generated automatically in such a way as to reflect
@@ -84,7 +84,7 @@ a rescue disk, such as the debian-installer CD/DVD, or a live system, such as
 Knoppix.
 
 With initramfs, specify 'break=mount' as a kernel boot command line option,
-and comnmence the boot process. Eventually, you will be dumped into a shell.
+and commence the boot process. Eventually, you will be dumped into a shell.
 From here, you can execute
 
   ./scripts/local-top/mdadm
