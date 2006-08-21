@@ -8,6 +8,12 @@ debian mdadm TODO list
   /dev/md/<arrayname>.
 - figure out something about device names.
 
+- add code to compare existing and expected configuration, after standardising
+  the files. In most cases, we'll have to answer DUNNO as to whether the
+  existing configuration file is okay, but I guess in some cases we can
+  determine that the configuration is okay. A conservative approach would be
+  beneficial to the user. Not sure if it's worth the effort though.
+
 - VERIFY SARGE UPGRADE
 - verify operation without udev
   - udev removed before mdadm installed
