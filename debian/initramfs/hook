@@ -31,9 +31,9 @@ fi
 
 if [ -e /etc/initramfs-tools/hooks/md ]; then
   echo "W: mdadm: I found /etc/initramfs-tools/hooks/md, which may conflict" >&2
-  echo "with this version of mdadm. Please see /usr/share/doc/mdadm/README.mdrun" >&2
-  echo "and /usr/share/initramfs-tools/hooks/mdadm for reference and update" >&2
-  echo "(or remove) the file." >&2
+  echo "W: with this version of mdadm. Please see /usr/share/doc/mdadm/README.mdrun" >&2
+  echo "W: and /usr/share/initramfs-tools/hooks/mdadm for reference and update" >&2
+  echo "W: (or remove) the file." >&2
   exit 0
 fi
 
