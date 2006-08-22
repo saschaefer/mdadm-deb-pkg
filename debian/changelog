@@ -1,3 +1,10 @@
+mdadm (2.5.3.git200608202239-2) unstable; urgency=low
+
+  * Allow ARRAY lines in configuration file to break across lines
+    (closes: #384222).
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 22 Aug 2006 21:14:55 +0100
+
 mdadm (2.5.3.git200608202239-1) unstable; urgency=low
 
   * Tracking upstream git releases.
