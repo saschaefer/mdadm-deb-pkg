@@ -2,8 +2,23 @@ mdadm (2.5.3.git200608202239-2) unstable; urgency=low
 
   * Allow ARRAY lines in configuration file to break across lines
     (closes: #384222).
+  * Improved initramfs hook; now does not rely on initramfs to provide RAID
+    assembly:
+    - if a checked mdadm.conf file is present, use that.
+    - if an unchecked mdadm.conf is present, create a temporary one
+      - if that fails, use the unchecked one iff it contains at least one
+        ARRAY statement. Otherwise rely on auto-generation from the initramfs
+        during the book (and hope for the best).
+    - if no mdadm.conf is found, create one on the fly
+      - if that fails, hope that the auto-generation will work during boot
+  * Improved the messages printed by the initramfs script.
+  * Do not store the debconf answer for whether arrays not listed in the
+    configuration file should be used.
+  * Now asks again for the devices to start (preseeded with 'all') if the user
+    does not want to proceed with devices not listed in the configuration
+    file.
 
- -- martin f. krafft <madduck@debian.org>  Tue, 22 Aug 2006 21:14:55 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed, 23 Aug 2006 15:14:59 +0100
 
 mdadm (2.5.3.git200608202239-1) unstable; urgency=low
 

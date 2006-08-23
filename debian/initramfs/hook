@@ -43,51 +43,7 @@ MDADM=$(command -v mdadm 2>/dev/null) || :
 [ -r /usr/share/initramfs-tools/hook-functions ] || exit 0
 . /usr/share/initramfs-tools/hook-functions
 
-CONFIG=/etc/mdadm/mdadm.conf
-ALTCONFIG=/etc/mdadm.conf
-
-[ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG
-if [ -f $CONFIG ]; then
-  if [ -e /var/lib/mdadm/CONF-UNCHECKED ]; then
-    # the file comes from an old installation and hence is not guaranteed to
-    # work. We thus refuse to work.
-
-    echo "E: mdadm: unchecked mdadm.conf file found." >&2
-    echo "I: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
-    echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun) for now." >&2
-    exit 0
-  fi
-
-else
-  # there is no configuration file, so let's create one
-  if /usr/share/mdadm/mkconf generate $CONFIG; then
-    echo "I: mdadm: auto-generated the mdadm.conf configuration file." >&2
-  else
-    echo "E: mdadm: failed to autogenerate the mdadm.conf file." >&2
-    echo "I: mdadm: leaving RAID initialisation to initramfs (mdrun) for now." >&2
-    rm -f $CONFIG
-    exit 0
-  fi
-fi
-
-# install the configuration file
-mkdir -p $DESTDIR/etc/mdadm
-sed -e :a -re '$!N;s/\n[[:space:]]+/ /;ta' -ne '/^(ARRAY|DEVICE)/P;D' \
-  < $CONFIG > $DESTDIR/etc/mdadm/mdadm.conf
-
-# obtain dev:level pairs from config file, honouring multiline entries
-devpairs="$(
-  while read line; do
-    for atom in $line; do
-      case "$atom" in
-        (/dev*) dev=$atom;;
-        (level=*) level=${atom#level=};;
-        (*) :;;
-      esac
-    done
-    [ -n "${dev:-}" ] && echo -n "${dev}:${level} "
-  done < $DESTDIR/etc/mdadm/mdadm.conf)"
-
+# copy the binary as early as possible
 copy_exec $MDADM /sbin
 
 # copy all modules into the initramfs, just for safety.
@@ -96,25 +52,114 @@ copy_exec $MDADM /sbin
 modules="linear multipath raid0 raid1 raid456 raid5 raid6 raid10"
 for mod in $modules; do manual_add_modules $mod; done
 
+# read in the configuration
+CONFIG=/etc/mdadm/mdadm.conf
+ALTCONFIG=/etc/mdadm.conf
+[ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG || :
+
+DEBIANCONFIG=/etc/default/mdadm
+INITRDSTART=all
+[ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
+[ -z "$INITRDSTART" ] && INITRDSTART=none
+
+DESTMDADMCONF=$DESTDIR/etc/mdadm/mdadm.conf
+DESTCONFIG=$DESTDIR/conf/md.conf
+
+# save the homehost for now, even if we don't use it yet
+if [ -f $CONFIG ]; then
+  homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
+fi
+if [ -z "${homehost:-}" ] || [ "${homehost:-}" = '<system>' ]; then
+  homehost="$(hostname)"
+fi
+echo "MD_HOMEHOST='$homehost'" > $DESTCONFIG
+
+install_config()
+{
+  # install the configuration file
+  mkdir -p ${2%/*}
+  # only copy ARRAY and DEVICE lines, and merge continuation lines into one
+  sed -e :a -re '$!N;s/\n[[:space:]]+/ /;ta' -ne '/^(ARRAY|DEVICE)/P;D' $1 > $2
+}
+
+if [ ! -f $CONFIG ]; then
+  # there is no configuration file, so let's create one
+  
+  if /usr/share/mdadm/mkconf generate $CONFIG; then
+    # all is well
+    install_config $CONFIG $DESTMDADMCONF
+    echo "I: mdadm: auto-generated the mdadm.conf configuration file." >&2
+  else
+    # we failed to auto-generate, so remove the file and let the emergency
+    # procedure take over
+    rm -f $CONFIG
+    echo "W: mdadm: failed to auto-generate the mdadm.conf file." >&2
+    echo "W: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
+  fi
+  
+else 
+  
+  if [ -e /var/lib/mdadm/CONF-UNCHECKED ]; then
+    # the file comes from an old installation and hence is not guaranteed to
+    # work. We thus better create one and start all arrays to be sure.
+
+    echo "W: mdadm: unchecked configuration file: $CONFIG" >&2
+    echo "W: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
+
+    tmpfile="${DESTMDADMCONF}.tmp"
+    if /usr/share/mdadm/mkconf generate $tmpfile; then
+      # all is well, we now have a temporary configuration file
+      echo "I: mdadm: auto-generated temporary mdadm.conf configuration file." >&2
+      install_config $tmpfile $DESTMDADMCONF
+    else
+      # stuff's really broke, as we failed to generate a temporary file.
+      # let's hope the unchecked file works, provided it contains at least one
+      # ARRAY statement...
+      echo "W: mdadm: failed to auto-generate temporary mdadm.conf file." >&2
+      if grep -q '^ARRAY' $CONFIG; then
+        echo "W: mdadm: using the unchecked file and hoping for the best..." >&2
+        install_config $CONFIG $DESTMDADMCONF
+      else
+        echo "W: mdadm: no ARRAYs defined in unchecked mdadm.conf, cannot use..." >&2
+      fi
+    fi
+    rm -f $tmpfile
+
+  else
+    # this is the ideal case
+    install_config $CONFIG $DESTMDADMCONF
+    echo "I: mdadm: using configuration file: $CONFIG" >&2
+  fi
+
+fi
+
+# if at this point, $DESTMDADMCONF does not exist, we must let the initramfs
+# handle stuff.
+if [ ! -f $DESTMDADMCONF ]; then
+  echo "W: mdadm: falling back to emergency procedure in initramfs." >&2
+  exit 0
+else
+  # obtain dev:level pairs from config file, honouring multiline entries
+  devpairs="$(
+    while read line; do
+      for atom in $line; do
+        case "$atom" in
+          (/dev*) dev=$atom;;
+          (level=*) level=${atom#level=};;
+          (*) :;;
+        esac
+      done
+      [ -n "${dev:-}" ] && echo -n "${dev}:${level} "
+    done < $DESTMDADMCONF)"
+fi
+
 uniquify()
 {
   for i in $@; do echo "$i"; done | sort -u
 }
 
-DEBIANCONFIG=/etc/default/mdadm
-INITRDSTART=all
-[ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
-
-# save the homehost for now, even if we don't use it yet
-homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
-if [ -z "$homehost" ] || [ "$homehost" = '<system>' ]; then
-  homehost="$(hostname)"
-fi
-echo "MD_HOMEHOST='$homehost'" > $DESTDIR/conf/md.conf
-
-[ -z "$INITRDSTART" ] && INITRDSTART=none
 if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
-  echo "MD_DEVPAIRS='${devpairs% }'" >> $DESTDIR/conf/md.conf
+  echo "MD_DEVPAIRS='${devpairs% }'" >> $DESTCONFIG
 
   devs=''; levels=''
   for i in $devpairs; do
@@ -143,11 +188,11 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
     break
   done
 
-  echo "MD_LEVELS='$levels'" >> $DESTDIR/conf/md.conf
+  echo "MD_LEVELS='$levels'" >> $DESTCONFIG
   if [ "$INITRDSTART" = all ]; then
-    echo "MD_DEVS=all" >> $DESTDIR/conf/md.conf
+    echo "MD_DEVS=all" >> $DESTCONFIG
   else
-    echo "MD_DEVS='$devs'" >> $DESTDIR/conf/md.conf
+    echo "MD_DEVS='$devs'" >> $DESTCONFIG
   fi
 
   # raid4 is handled by raid5
@@ -158,7 +203,7 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
     && modules="$(echo $modules | sed -e 's,raid[456],raid456,g')"
 
   modules="$(uniquify $modules | tr '\n' ' ')"
-  echo "MD_MODULES='${modules% }'" >> $DESTDIR/conf/md.conf
+  echo "MD_MODULES='${modules% }'" >> $DESTCONFIG
 
   if [ "$INITRDSTART" = all ]; then
     echo "I: mdadm: will start all available MD arrays from the initial ramdisk." >&2
@@ -169,7 +214,7 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   fi
 
 else
-  echo "MD_DEVS=none" >> $DESTDIR/conf/md.conf
+  echo "MD_DEVS=none" >> $DESTCONFIG
   echo "I: mdadm: no MD arrays will be started from the initial ramdisk." >&2
 fi
 
