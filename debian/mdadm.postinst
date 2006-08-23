@@ -54,7 +54,7 @@ case "${1:-}" in
       fi
     elif dpkg --compare-versions "${2:-2.5.3-1}" le 2.5.3-1; then
       # we're upgrading from before 2.5.3-1 and there's apparently already
-      # a connfiguration file which we cannot verify. We'll use the sentinel
+      # a configuration file which we cannot verify. We'll use the sentinel
       # during initramfs creation.
       md5sum $CONFIG > /var/lib/mdadm/CONF-UNCHECKED
     fi
