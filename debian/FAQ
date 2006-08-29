@@ -3,6 +3,29 @@ Frequently asked questions -- Debian mdadm
 
 Also see /usr/share/doc/mdadm/README.recipes.gz
 
+0. How do I overwrite ("zero") the superblock?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  mdadm --zero-superblock /dev/mdX
+
+  Note that this is a destructive operation. It does not actually delete any
+  data, but the device will have lost its "authority". You cannot assemble the
+  array with it anymore, and if you add the device to another array, the
+  synchronisation process *will* *overwrite* all data on the device.
+
+  Nevertheless, sometimes it is necessary to zero the superblock:
+
+  - If you are reusing a disk that has been part of an array with an different
+    superblock version and/or location. In this case you zero the superblock
+    before you assemble the array, or add the device to an array.
+
+  - If you are trying to prevent a device from being recognised as part of an
+    array. Say for instance you are trying to change an array spanning sd[ab]1
+    to sd[bc]1 (maybe because sda is failing or too slow), then automatic
+    (scan) assembly will still recognise sda1 as a valid device. You can limit
+    the devices to scan with the DEVICE keyword in the configuration file, but
+    this may not be what you want. Instead, zeroing the superblock will
+    (permanently) prevent a device from being considered as part of an array.
+
 1. How do I change the preferred minor of a MD array?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   See item 12 in /usr/share/doc/mdadm/README.recipes.gz and read the mdadm
