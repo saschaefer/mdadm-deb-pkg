@@ -18,8 +18,11 @@ _Description:
  If you know exactly which arrays are needed to bring up the root filesystem,
  and you want to postpone starting all other arrays to a later point in the
  boot sequence, enter the arrays to start here. Alternatively, enter 'all' to
- simply start all available arrays. If you do not need or want to start any
- arrays for the root filesystem, leave the answer blank (or enter 'none').
+ simply start all available arrays.
+ .
+ If you do not need or want to start any arrays for the root filesystem, leave
+ the answer blank (or enter 'none'). This may be the case if you are using
+ kernel autostart or do not need any arrays to boot.
 
 Template: mdadm/initrdstart_msg_errexist
 Type: text
@@ -51,6 +54,12 @@ _Description: Proceed with starting arrays not listed in mdadm.conf?
  .
  Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend
  to continue.
+ .
+ This warning is only relevant if you need arrays to be started from the
+ initial ramdisk to be able to boot. If you use kernel autostarting, or do not
+ need any arrays to be started as early as the initial ramdisk is loaded, you
+ can simply continue. Alternatively, choose not to continue and enter 'none'
+ when prompted which arrays to start from the initial ramdisk.
 
 Template: mdadm/autostart
 Type: boolean

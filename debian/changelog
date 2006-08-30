@@ -2,10 +2,13 @@ mdadm (2.5.3.git200608202239-3) unstable; urgency=low
 
   * Do not override the superblock default version in mdadm.conf to prevent
     creation of superblocks that the kernel can't handle (closes: #384614).
+  * Added a note to alert people that the warning about arrays not listed in
+    the configuration file is only relevant if the arrays are needed to be
+    brought up by mdadm from initramfs during boot (closes: #385017).
   * Updated debconf translations:
     - Czech by Miroslav Kure (closes: #384754).
 
- -- martin f. krafft <madduck@debian.org>  Wed, 30 Aug 2006 16:42:09 +0200
+ -- martin f. krafft <madduck@debian.org>  Wed, 30 Aug 2006 17:41:13 +0200
 
 mdadm (2.5.3.git200608202239-2) unstable; urgency=low
 
