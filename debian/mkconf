@@ -57,8 +57,8 @@ else
 fi
 
 cat <<_eof
-# auto-create devices with Debian standard permissions and v1 superblocks
-CREATE owner=root group=disk mode=0660 auto=yes metadata=1
+# auto-create devices with Debian standard permissions
+CREATE owner=root group=disk mode=0660 auto=yes
 
 # automatically tag new arrays as belonging to the local system
 HOMEHOST <system>
