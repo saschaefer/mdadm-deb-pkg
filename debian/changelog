@@ -17,8 +17,10 @@ mdadm (2.5.3.git200608202239-2) unstable; urgency=low
   * Now asks again for the devices to start (preseeded with 'all') if the user
     does not want to proceed with devices not listed in the configuration
     file.
+  * Updated debconf translations:
+    - Czech by Miroslav Kure (closes: #384754).
 
- -- martin f. krafft <madduck@debian.org>  Wed, 23 Aug 2006 15:14:59 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed, 30 Aug 2006 16:29:07 +0200
 
 mdadm (2.5.3.git200608202239-1) unstable; urgency=low
 
