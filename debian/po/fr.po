@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: mdadm\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
 "POT-Creation-Date: 2006-08-21 00:28+0100\n"
-"PO-Revision-Date: 2006-08-09 22:03+0200\n"
+"PO-Revision-Date: 2006-08-29 17:47+0200\n"
 "Last-Translator: Florentin Duneau <f.baced@wanadoo.fr>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
@@ -30,47 +30,43 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../mdadm.templates:1001
-#, fuzzy
 msgid "MD arrays needed for the root filesystem:"
-msgstr "Ensembles RAID requis par le système de fichiers racine :"
+msgstr "Ensembles MD requis par le système de fichiers racine :"
 
 #. Type: string
 #. Description
 #: ../mdadm.templates:1001
 msgid "${msg}"
-msgstr ""
+msgstr "${msg}"
 
 #. Type: string
 #. Description
 #: ../mdadm.templates:1001
-#, fuzzy
 msgid ""
 "Please enter a space-separated list of devices, 'all', or 'none'. You may "
 "omit the leading '/dev/' and just enter e.g. \"md0 md1\", or \"md/1 md/d0\"."
 msgstr ""
-"Veuillez indiquer une liste de périphériques, séparés par des espaces ou "
-"« all ». Vous pouvez omettre « /dev/ » et simplement indiquer (par exemple) "
-"« md0 md1 »."
+"Veuillez indiquer une liste de périphériques, séparés par des espaces, "
+"« all » ou « none ». Vous pouvez omettre « /dev/ » et simplement indiquer "
+"par exemple, « md0 md1 » ou « md/1 md/d0 »."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
 msgid ""
 "If your system has its root filesystem on a MD volume, it needs to be "
 "started early during the boot sequence. If your root filesystem is on a "
 "logical volume (LVM), which is on MD, all constituent arrays need to be "
 "started."
 msgstr ""
-"Si le système de fichiers racine se trouve sur un volume RAID, il doit être "
+"Si le système de fichiers racine se trouve sur un volume MD, il doit être "
 "lancé au début de la procédure de démarrage. Si le système de fichiers "
 "racine se trouve sur un volume logique (« LVM »), qui est aussi un volume "
-"RAID, toutes les ensembles RAID doivent être démarrés."
+"MD, toutes les ensembles MD doivent être démarrés."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
 msgid ""
 "If you know exactly which arrays are needed to bring up the root filesystem, "
 "and you want to postpone starting all other arrays to a later point in the "
@@ -78,8 +74,9 @@ msgid ""
 "simply start all available arrays. If you do not need or want to start any "
 "arrays for the root filesystem, leave the answer blank (or enter 'none')."
 msgstr ""
-"Si vous savez exactement quels sont les ensembles RAID nécessaires au "
-"démarrage du système de fichiers racine, veuillez les indiquer ici. Vous "
+"Si vous savez exactement quels sont les ensembles MD nécessaires au "
+"démarrage du système de fichiers racine et si vous souhaitez différer le "
+"démarrage de tous les autres ensembles, veuillez les indiquer ici. Vous "
 "pouvez aussi indiquer « all » pour démarrer tous les ensembles. Si vous "
 "n'avez besoin ou ne souhaitez pas démarrer d'ensemble pour le système de "
 "fichiers racine, veuillez laissez l'entrée vide (ou indiquez « none »)."
@@ -88,31 +85,32 @@ msgstr ""
 #. Description
 #: ../mdadm.templates:3001
 msgid "An error occurred: device node does not exist"
-msgstr ""
+msgstr "Erreur : périphérique inconnu"
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:4001
 msgid "An error occurred: not a block device"
-msgstr ""
+msgstr "Erreur : ce n'est pas périphérique en mode bloc"
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:5001
 msgid "An error occurred: not a MD array"
-msgstr ""
+msgstr "Erreur : ce n'est pas un ensemble MD"
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:6001
 msgid "An error occurred: array not listed in mdadm.conf file"
-msgstr ""
+msgstr "Erreur : ensemble non mentionné dans le fichier mdadm.conf"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:7001
 msgid "Proceed with starting arrays not listed in mdadm.conf?"
 msgstr ""
+"Faut-il continuer et démarrer les ensembles non mentionnés dans mdadm.conf ?"
 
 #. Type: boolean
 #. Description
@@ -122,6 +120,10 @@ msgid ""
 "file ${config}. Therefore it cannot be started during boot, unless you "
 "correct the configuration file and recreate the initial ramdisk."
 msgstr ""
+"L'ensemble (${array}) que vous avez spécifié n'est pas mentionné dans le "
+"fichier de configuration ${config}. Il ne sera donc pas démarré à moins que "
+"vous corrigiez le fichier de configuration et que vous génériez de nouveau "
+"le disque mémoire initial (« ramdisk »)."
 
 #. Type: boolean
 #. Description
@@ -130,18 +132,18 @@ msgid ""
 "Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend "
 "to continue."
 msgstr ""
+"Veuillez consulter /usr/share/doc/mdadm/README.upgrading-2.5.3.gz si vous "
+"souhaitez continuer."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
 msgid "Do you want to start MD devices automatically?"
-msgstr "Faut-il démarrer automatiquement les périphériques RAID ?"
+msgstr "Faut-il démarrer automatiquement les périphériques MD ?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
 msgid ""
 "Once the base system has come up, mdadm can start all MD devices specified "
 "in /etc/mdadm/mdadm.conf, which have not yet been started. Unless you have "
@@ -150,22 +152,20 @@ msgid ""
 "this is probably what you want."
 msgstr ""
 "Lorsque le système de base a démarré, mdadm peut démarrer tous les "
-"périphériques RAID spécifiés dans /etc/mdadm/mdadm.conf qui n'ont pas été "
-"démarrés. Cela est recommandé, à moins que la gestion RAID soit compilée "
-"dans le noyau (dans ce cas tous les ensembles RAID sont toujours démarrés "
-"automatiquement)."
+"périphériques MD spécifiés dans /etc/mdadm/mdadm.conf qui n'ont pas été "
+"démarrés. Cela est recommandé, à moins que la gestion MD soit compilée dans "
+"le noyau (dans ce cas, tous les ensembles MD dont le type de partition est "
+"0xfd sont démarrés automatiquement)."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
-#, fuzzy
 msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
-msgstr "Faut-il vérifier tous les mois la redondance des ensembles RAID ?"
+msgstr "Faut-il vérifier tous les mois la redondance des ensembles MD ?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
-#, fuzzy
 msgid ""
 "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
 "redundancy of your MD devices. This may be a resource-intensive process, "
@@ -175,7 +175,7 @@ msgid ""
 "the media."
 msgstr ""
 "Si le noyau le gère (à partir de Linux 2.6.14), mdadm peut vérifier "
-"périodiquement la redondance des périphériques RAID. Cette action peut "
+"périodiquement la redondance des périphériques MD. Cette action peut "
 "demander beaucoup de ressources selon la configuration, mais cela aide à "
 "prévenir les rares cas de pertes de données. Notez que ce test est réalisé "
 "en lecture seule à moins que des erreurs soient rencontrées. Si des erreurs "
@@ -195,20 +195,18 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
 msgid "Do you want to start the MD monitoring daemon?"
-msgstr "Faut-il démarrer le démon de surveillance RAID ?"
+msgstr "Faut-il démarrer le démon de surveillance MD ?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
 msgid ""
 "The MD monitor daemon sends email notifications in response to important MD "
 "events (such as a disk failure). You probably want to enable it."
 msgstr ""
-"Le démon de surveillance RAID envoie des notifications par courriel lors "
-"d'importants événements RAID (comme une panne de disque dur). Il est "
+"Le démon de surveillance MD envoie des notifications par courriel lors "
+"d'importants événements MD (comme une panne de disque dur). Il est "
 "recommandé de l'activer."
 
 #. Type: string
@@ -220,54 +218,9 @@ msgstr "Destinataire des notifications par courriel :"
 #. Type: string
 #. Description
 #: ../mdadm.templates:11001
-#, fuzzy
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notification for these important MD events."
 msgstr ""
 "Veuillez indiquer l'adresse électronique qui doit recevoir les notifications "
-"lors d'importants événements RAID."
-
-#~ msgid "Initialise the superblock if you reuse hard disks"
-#~ msgstr "Initialisation du superbloc pour réutiliser des disques durs"
-
-#~ msgid ""
-#~ "WARNING! If you are using hard disks which have RAID superblocks from "
-#~ "earlier installations in different RAID arrays, you MUST zero each "
-#~ "superblock *before* activating the autostart feature."
-#~ msgstr ""
-#~ "Si vous utilisez des disques durs dont des superblocs RAID proviennent "
-#~ "d'une installation antérieure dans différents ensembles RAID, vous DEVEZ "
-#~ "effacer tous ces superblocs AVANT d'activer le démarrage automatique."
-
-#~ msgid ""
-#~ "To do this, do not start the RAID devices automatically. First, zero the "
-#~ "superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-"
-#~ "reconfigure mdadm` to reactivate the autostart feature."
-#~ msgstr ""
-#~ "Pour cela, vous ne devez pas démarrer automatiquement les périphériques "
-#~ "RAID. Veuillez commencer par effacer le superbloc (mdadm --zero-"
-#~ "superblock /dev/xxx) et activer ensuite le démarrage automatique avec la "
-#~ "commande « dpkg-reconfigure mdadm »."
-
-#~ msgid ""
-#~ "If you manage your RAIDs otherwise (e.g. EVMS), either disable autostart, "
-#~ "or ensure that /etc/mdadm/mdadm.conf only lists those arrays you want to "
-#~ "start by mdadm."
-#~ msgstr ""
-#~ "Si vous gérez les périphériques RAID différemment (par exemple, avec "
-#~ "EVMS), veuillez soit désactiver le démarrage automatique (« autostart »), "
-#~ "soit vous assurer que tous les ensembles que vous voulez démarrer avec "
-#~ "mdadm sont listés dans /etc/mdadm/mdadm.conf."
-
-#~ msgid ""
-#~ "You have the option to start all other arrays (those not needed for the "
-#~ "root filesystem) later in the boot sequence. Doing so will give you "
-#~ "greater control over the arrays with the mdadm configuration file. "
-#~ "Starting all arrays at boot-time may be safer though."
-#~ msgstr ""
-#~ "Vous avez la possibilité de démarrer tous les autres ensembles (ceux non "
-#~ "nécessaires au système de fichiers racine) après la procédure de "
-#~ "démarrage. Cela permet un meilleur contrôle sur les ensembles avec les "
-#~ "fichiers de configuration de mdadm. Cependant, démarrer tous les "
-#~ "ensembles au démarrage peut être plus sûr."
+"lors d'importants événements MD."

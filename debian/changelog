@@ -7,8 +7,9 @@ mdadm (2.5.3.git200608202239-3) unstable; urgency=low
     brought up by mdadm from initramfs during boot (closes: #385017).
   * Updated debconf translations:
     - Czech by Miroslav Kure (closes: #384754).
+    - French by Florentin Duneau (closes: #385690).
 
- -- martin f. krafft <madduck@debian.org>  Wed, 30 Aug 2006 17:41:13 +0200
+ -- martin f. krafft <madduck@debian.org>  Sat,  2 Sep 2006 16:10:47 +0200
 
 mdadm (2.5.3.git200608202239-2) unstable; urgency=low
 
