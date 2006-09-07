@@ -11,9 +11,9 @@
 ### BEGIN INIT INFO
 # Provides:          mdadm-raid
 # Required-Start:    mountkernfs
-# Should-Start:      udev
+# Should-Start:      udev devfsd
 # Required-Stop:     mountkernfs
-# Should-Stop:       udev
+# Should-Stop:       udev devfsd
 # Default-Start:     S
 # Default-Stop:      0 6
 # Short-Description: MD array assembly
