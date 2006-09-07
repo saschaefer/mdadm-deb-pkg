@@ -5,11 +5,12 @@ mdadm (2.5.3.git200608202239-3) unstable; urgency=low
   * Added a note to alert people that the warning about arrays not listed in
     the configuration file is only relevant if the arrays are needed to be
     brought up by mdadm from initramfs during boot (closes: #385017).
+  * Added LSB headers to init scripts.
   * Updated debconf translations:
     - Czech by Miroslav Kure (closes: #384754).
     - French by Florentin Duneau (closes: #385690).
 
- -- martin f. krafft <madduck@debian.org>  Sat,  2 Sep 2006 16:10:47 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu,  7 Sep 2006 14:32:04 +0200
 
 mdadm (2.5.3.git200608202239-2) unstable; urgency=low
 

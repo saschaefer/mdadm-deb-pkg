@@ -8,6 +8,19 @@
 #
 # $Id$
 #
+### BEGIN INIT INFO
+# Provides:          mdadm-raid
+# Required-Start:    mountkernfs
+# Should-Start:      udev
+# Required-Stop:     mountkernfs
+# Should-Stop:       udev
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: MD array assembly
+# Description:       This script assembles a system's MD arrays, according to
+#                    the settings in /etc/mdadm/mdadm.conf and the preferences
+#                    in /etc/default/mdadm.
+### END INIT INFO
 
 set -eu
 
