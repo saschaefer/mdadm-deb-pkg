@@ -1,10 +1,16 @@
-mdadm (2.5.3.git200608202239-3) unstable; urgency=low
+mdadm (2.5.3.git200608202239-3) UNRELEASED; urgency=high
 
+  * Urgency high because an RC bug is being fixed:
+    Add versioned dependency to debconf. #385994
+    TODO still!
   * Do not override the superblock default version in mdadm.conf to prevent
     creation of superblocks that the kernel can't handle (closes: #384614).
   * Added a note to alert people that the warning about arrays not listed in
     the configuration file is only relevant if the arrays are needed to be
     brought up by mdadm from initramfs during boot (closes: #385017).
+  * Added bootloader/cmdline info to bugscript so that future bug reports via
+    bug/reportbug include information on how the system is booted with respect
+    to RAID (the root partition).
   * Added LSB headers to init scripts.
   * Updated debconf translations:
     - Czech by Miroslav Kure (closes: #384754).
