@@ -125,8 +125,8 @@ Enjoy. Submissions welcome.
     mount /dev/md0 /home    # also change /etc/fstab
     mdadm --add /dev/md0 /dev/sda1
 
-12. change the preferred minor of an MD array
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+12. change the preferred minor of a MD array (RAID)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # you need to manually assemble the array to change the preferred minor
     # if you manually assemble, the superblock will be updated to reflect
     # the preferred minor as you indicate with the assembly.

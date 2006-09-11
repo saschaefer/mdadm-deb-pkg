@@ -38,8 +38,8 @@ present) and ensure that all arrays are properly identified. Here are a number
 of recommended checks:
 
   - Verify that all arrays referenced by /etc/fstab, /etc/crypttab, your LVM
-    metadata, and whatever other subsystem uses MD arrays on your machine
-    have a corresponding line in the configuration file.
+    metadata, and whatever other subsystem uses MD arrays (RAIDs) on your
+    machine have a corresponding line in the configuration file.
 
     Make sure to verify that your bootloader refers to the proper device name,
     in case your root filesystem is on an MD array.
@@ -74,8 +74,8 @@ an mdadm upgrade, it is *very* unlikely that you lost any data.
 
 Having said that, it is important that you exercise great care and understand
 what you are doing. If you do not know how to revive a system that does not
-boot because it fails to assemble MD arrays, consider asking someone who does
-for help.
+boot because it fails to assemble MD arrays (RAIDs), consider asking someone
+who does for help.
 
 If you are using initramfs (which is the default since Debian "etch"), it will
 probably be easy to revive the system. If you are experiencing problems with

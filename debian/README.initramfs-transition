@@ -8,9 +8,9 @@ If you are using yaird or initrd-tools/mkinitrd, please see README.mdrun. The
 following information is irrelevant to you.
 
 The following information is about #367567. The gist is that the hooks and
-scripts to take care of MD arrays during boot with an initramfs have been
-improved and moved into the mdadm package. mdrun has been deprecated on the
-way.
+scripts to take care of MD arrays (RAIDs) during boot with an initramfs have
+been improved and moved into the mdadm package. mdrun has been deprecated on
+the way.
 
 initramfs-tools does *not* conflict with older mdadm but instead provides
 fallback code in case mdadm << 2.5-1 is installed (which does not provide the

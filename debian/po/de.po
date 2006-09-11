@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mdadm\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2006-08-21 00:28+0100\n"
+"POT-Creation-Date: 2006-09-11 18:15+0200\n"
 "PO-Revision-Date: 2006-07-10 21:12+0200\n"
 "Last-Translator: Mario Joussen <joussen@debian.org>\n"
 "Language-Team: German <debian-l10n-german@lists.debian.org>\n"
@@ -27,7 +27,7 @@ msgstr ""
 #. Description
 #: ../mdadm.templates:1001
 #, fuzzy
-msgid "MD arrays needed for the root filesystem:"
+msgid "MD arrays (RAIDs) needed for the root filesystem:"
 msgstr "Für das Wurzeldateisystem benötigte RAID Verbünde:"
 
 #. Type: string
@@ -52,7 +52,7 @@ msgstr ""
 #: ../mdadm.templates:2001
 #, fuzzy
 msgid ""
-"If your system has its root filesystem on a MD volume, it needs to be "
+"If your system has its root filesystem on a MD array (RAID), it needs to be "
 "started early during the boot sequence. If your root filesystem is on a "
 "logical volume (LVM), which is on MD, all constituent arrays need to be "
 "started."
@@ -95,7 +95,7 @@ msgstr ""
 #. Type: text
 #. Description
 #: ../mdadm.templates:5001
-msgid "An error occurred: not a MD array"
+msgid "An error occurred: not a MD array (RAID)"
 msgstr ""
 
 #. Type: text
@@ -131,7 +131,7 @@ msgstr ""
 #. Description
 #: ../mdadm.templates:8001
 #, fuzzy
-msgid "Do you want to start MD devices automatically?"
+msgid "Do you want to start MD arrays (RAIDs) automatically?"
 msgstr "Möchten Sie die RAID Laufwerke automatisch starten?"
 
 #. Type: boolean
@@ -139,11 +139,11 @@ msgstr "Möchten Sie die RAID Laufwerke automatisch starten?"
 #: ../mdadm.templates:8001
 #, fuzzy
 msgid ""
-"Once the base system has come up, mdadm can start all MD devices specified "
-"in /etc/mdadm/mdadm.conf, which have not yet been started. Unless you have "
-"compiled MD support into the kernel (in which case all MD arrays with "
-"partitions of type 0xfd (and only those) are started automatically anyway), "
-"this is probably what you want."
+"Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
+"specified in /etc/mdadm/mdadm.conf, which have not yet been started. Unless "
+"you have compiled MD support into the kernel (in which case all MD arrays "
+"with partitions of type 0xfd (and only those) are started automatically "
+"anyway), this is probably what you want."
 msgstr ""
 "Sobald das Grundsystem hochgefahren ist, kann mdadm alle RAID Verbünde "
 "starten, die es findet und die noch nicht gestartet sind. Falls Sie keine "
@@ -154,7 +154,7 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
-msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
+msgid "Should mdadm run monthly redundancy checks of the MD arrays (RAIDs)?"
 msgstr ""
 
 #. Type: boolean
@@ -162,11 +162,11 @@ msgstr ""
 #: ../mdadm.templates:9001
 msgid ""
 "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
-"redundancy of your MD devices. This may be a resource-intensive process, "
-"depending on your setup, but it could help prevent rare cases of data loss. "
-"Note that this is a read-only check unless errors are found; if errors are "
-"found, mdadm will try to correct them, which may result in write access to "
-"the media."
+"redundancy of your MD arrays (RAIDs). This may be a resource-intensive "
+"process, depending on your setup, but it could help prevent rare cases of "
+"data loss. Note that this is a read-only check unless errors are found; if "
+"errors are found, mdadm will try to correct them, which may result in write "
+"access to the media."
 msgstr ""
 
 #. Type: boolean
@@ -181,7 +181,7 @@ msgstr ""
 #. Description
 #: ../mdadm.templates:10001
 #, fuzzy
-msgid "Do you want to start the MD monitoring daemon?"
+msgid "Do you want to start the MD (RAID) monitoring daemon?"
 msgstr "Möchten Sie den RAID Überwachungsdämon starten?"
 
 #. Type: boolean
@@ -189,8 +189,8 @@ msgstr "Möchten Sie den RAID Überwachungsdämon starten?"
 #: ../mdadm.templates:10001
 #, fuzzy
 msgid ""
-"The MD monitor daemon sends email notifications in response to important MD "
-"events (such as a disk failure). You probably want to enable it."
+"The MD (RAID) monitor daemon sends email notifications in response to "
+"important MD events (such as a disk failure). You probably want to enable it."
 msgstr ""
 "Der RAID Überwachungsdämon verschickt Benachrichtigungen als Reaktion auf "
 "wichtige RAID Ereignisse (wie zum Beispiel Festplattenausfälle). Sie werden "
@@ -208,7 +208,7 @@ msgstr "Empfänger der Emailbenachrichtungen:"
 #, fuzzy
 msgid ""
 "Please enter the email address of the user who should get the email "
-"notification for these important MD events."
+"notification for important MD (RAID) events."
 msgstr ""
 "Geben Sie bitte die Emailadresse des Benutzers an, der die "
 "Emailbenachrichtigung für diese wichtigen RAID Ereignisse erhalten soll."

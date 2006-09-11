@@ -3,7 +3,7 @@ Frequently asked questions -- Debian mdadm
 
 Also see /usr/share/doc/mdadm/README.recipes.gz
 
-0. How do I overwrite ("zero") the superblock?
+1. How do I overwrite ("zero") the superblock?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   mdadm --zero-superblock /dev/mdX
 
@@ -26,12 +26,12 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
     this may not be what you want. Instead, zeroing the superblock will
     (permanently) prevent a device from being considered as part of an array.
 
-1. How do I change the preferred minor of a MD array?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2. How do I change the preferred minor of a MD array (RAID)?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   See item 12 in /usr/share/doc/mdadm/README.recipes.gz and read the mdadm
   manpage (search for 'preferred').
 
-2. How does mdadm determine which /dev/mdX or /dev/md/X to use?
+3. How does mdadm determine which /dev/mdX or /dev/md/X to use?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   The logic used by mdadm to determine the device node name in the mdadm
   --examine output (which is used to generate mdadm.conf) depends on several
