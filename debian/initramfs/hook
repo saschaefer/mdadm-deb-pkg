@@ -149,7 +149,14 @@ else
           (*) :;;
         esac
       done
-      [ -n "${dev:-}" ] && echo -n "${dev}:${level} "
+      [ -n "${dev:-}" ] || continue
+      echo -n "${dev}:"
+      if [ -n "${level:-}" ]; then
+        echo -n "$level"
+      else
+        echo -n "$($MDADM --detail $dev | sed -rne 's,[[:space:]]+Raid Level : ,,p')"
+      fi
+      echo -n ' '
     done < $DESTMDADMCONF)"
 fi
 
