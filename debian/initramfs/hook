@@ -24,8 +24,8 @@ case ${1:-} in
 esac
 
 if [ -e /usr/share/initramfs-tools/hooks/md ]; then
-  echo "I: mdadm: initramfs md hook still present, stepping out of its way." >&2
-  echo "I: Please see /usr/share/doc/mdadm/README.initramfs-transition ." >&2
+  echo "W: mdadm: initramfs md hook still present, stepping out of its way." >&2
+  echo "W: Please see /usr/share/doc/mdadm/README.initramfs-transition ." >&2
   exit 0
 fi
 
