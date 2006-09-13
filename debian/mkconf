@@ -73,10 +73,10 @@ if [ ! -r /proc/mdstat ]; then
 else
   echo "# definitions of existing MD arrays"
   $MDADM --examine --scan --config=partitions
+  echo
 fi
 
 cat <<_eof
-
 # This file was auto-generated on $(date -R)
 # by mkconf \$Id$
 _eof
