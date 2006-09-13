@@ -1,7 +1,8 @@
 mdadm (2.5.3.git200608202239-3) unstable; urgency=medium
 
   * Urgency medium because of RC bugs.
-  * Add versioned dependency to debconf (closes: #385994).
+  * Add versioned dependency to debconf (closes: #385994); temporary fix until
+    we find a proper fix for #386439.
   * Add patch by Steinar H. Gunderson to ensure mdadm does not interpret
     a superblock as belonging to a device when it's actually part of
     a partition on that device (closes: #385951).
@@ -20,6 +21,7 @@ mdadm (2.5.3.git200608202239-3) unstable; urgency=medium
   * Updated debconf translations:
     - Czech by Miroslav Kure (closes: #384754).
     - French by Florentin Duneau (closes: #385690).
+    - Russian by Yuri Kozlov (closes: #387017).
 
  -- martin f. krafft <madduck@debian.org>  Thu,  7 Sep 2006 14:32:04 +0200
 
