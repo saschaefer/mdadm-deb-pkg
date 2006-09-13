@@ -14,6 +14,10 @@ mdadm (2.5.3.git200608202239-3) unstable; urgency=medium
   * Added bootloader/cmdline info to bugscript so that future bug reports via
     bug/reportbug include information on how the system is booted with respect
     to RAID (the root partition).
+  * If mdadm is being configured in a chroot, it now defaults to starting all
+    arrays from the initial ramdisk, rather than trying to figure out the root
+    MD array (we're using /proc information, so it would be the one of the
+    host, not the one of the chroot) (closes: #386468).
   * Added LSB headers to init scripts.
   * Reworked the documentation with respect to the use of "MD" and "RAID", and
     added a FAQ entry on the meaning of "MD". Thanks to Frans Pop for his
