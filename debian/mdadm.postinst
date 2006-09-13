@@ -38,7 +38,7 @@ case "${1:-}" in
     ALTCONFIG=/etc/mdadm.conf
     MDADM=/sbin/mdadm
 
-    if [ -z "$2" ] && [ -s /etc/mdctl/mdctl.conf ] \
+    if [ -z "${2:-}" ] && [ -s /etc/mdctl/mdctl.conf ] \
         && [ ! -f /etc/mdadm/mdadm.conf ]; then
       cp -a /etc/mdctl/mdctl.conf /etc/mdadm/mdadm.conf
     fi
@@ -124,7 +124,7 @@ _eof
     # changelog). Do this before update-initramfs, which copies udev into
     # initrd.
     V=2.5.3.git200608202239-1~
-    if [ "$1" = "configure" ] && [ -n "${2:-}" ] \
+    if [ "${1:-}" = "configure" ] && [ -n "${2:-}" ] \
         && dpkg --compare-versions $2 ge 2.5.2-10 \
         && dpkg --compare-versions $2 lt $V; then
 

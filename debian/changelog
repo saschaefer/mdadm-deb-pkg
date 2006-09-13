@@ -1,3 +1,10 @@
+mdadm (2.5.3.git200608202239-4) unstable; urgency=medium
+
+  * Correct error related to an unbound variable in postinst.
+  * Keeping medium urgency.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 13 Sep 2006 20:49:33 +0200
+
 mdadm (2.5.3.git200608202239-3) unstable; urgency=medium
 
   * Urgency medium because of RC bugs.
