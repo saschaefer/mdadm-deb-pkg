@@ -14,7 +14,7 @@ Replaces: mdctl
 Conflicts: mdctl (<< 0.7.2), raidtools2 (<< 1.00.3-12.1), initramfs-tools (<< 0.65)
 Description: tool to administer Linux MD arrays (software RAID)
  mdadm is a program that can be used to create, manage, and monitor MD
- devices (software RAID), as well as multipath devices.
+ arrays (e.g. software RAID, multipath devices).
  .
  This package automatically configures mdadm to assemble arrays during the
  system startup process. If not needed, this functionally can be disabled.
@@ -26,6 +26,6 @@ Architecture: any
 Depends: ${shlibs:Depends}
 Description: tool to administer Linux MD arrays (software RAID)
  mdadm is a program that can be used to create, manage, and monitor MD
- devices (software RAID), as well as multipath devices.
+ arrays (e.g. software RAID, multipath devices).
  .
  mdadm-udeb is a minimal package used by the debian-installer.
