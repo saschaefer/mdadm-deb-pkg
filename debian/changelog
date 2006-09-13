@@ -1,8 +1,10 @@
 mdadm (2.5.3.git200608202239-3) unstable; urgency=medium
 
-  * Urgency medium because an RC bug is being fixed:
-    Add versioned dependency to debconf. #385994
-    TODO still!
+  * Urgency medium because of RC bugs.
+  * Add versioned dependency to debconf (closes: #385994).
+  * Add patch by Steinar H. Gunderson to ensure mdadm does not interpret
+    a superblock as belonging to a device when it's actually part of
+    a partition on that device (closes: #385951).
   * Do not override the superblock default version in mdadm.conf to prevent
     creation of superblocks that the kernel can't handle (closes: #384614).
   * Added a note to alert people that the warning about arrays not listed in

@@ -1,0 +1,76 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 50-superblock-partition-limit.dpatch by martin f. krafft <madduck@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad mdadm.git~/config.c mdadm.git/config.c
+--- mdadm.git~/config.c	2006-08-11 10:53:20.000000000 +0200
++++ mdadm.git/config.c	2006-09-13 10:38:55.000000000 +0200
+@@ -222,7 +222,8 @@
+ mddev_dev_t load_partitions(void)
+ {
+ 	FILE *f = fopen("/proc/partitions", "r");
+-	char buf[1024];
++	char buf[1024], last_device_name[1024];
++	int last_major = -1;
+ 	mddev_dev_t rv = NULL;
+ 	if (f == NULL) {
+ 		fprintf(stderr, Name ": cannot open /proc/partitions\n");
+@@ -230,7 +231,7 @@
+ 	}
+ 	while (fgets(buf, 1024, f)) {
+ 		int major, minor;
+-		char *name, *mp;
++		char *name, *kernel_name, *mp, *ptr;
+ 		mddev_dev_t d;
+ 
+ 		buf[1023] = '\0';
+@@ -244,6 +245,46 @@
+ 		name = map_dev(major, minor, 1);
+ 		if (!name)
+ 			continue;
++
++		/*
++		 * We want the name exactly as it comes from
++		 * /proc/partitions; this makes sure we do not get
++		 * confused by weird LVM names and the like.
++		 */
++		kernel_name = buf + 22;       /* will be safe until we reach 10TB */
++		while (isdigit(*kernel_name) || isspace(*kernel_name)) { /* just to be sure */
++			++kernel_name;
++		}
++
++		/* Chop the trailing newline. */
++		ptr = strchr(kernel_name, '\n');
++		if (ptr)
++			*ptr = '\0';
++
++		/* 
++		 * Check if this could be a partition of the previous device
++		 * (the disk _always_ comes just before the first partition, cf.
++		 * /usr/src/linux/fs/partitions/check.c)
++		 */
++		if (major == last_major && strlen(kernel_name) > strlen(last_device_name) &&
++		    strncmp(kernel_name, last_device_name, strlen(last_device_name)) == 0 &&
++		    isdigit(kernel_name[strlen(kernel_name) - 1])) {
++			/* 
++			 * The previous device has a partition table, so delete
++			 * it so it isn't scanned for a superblock. This makes
++			 * sure we don't get confused when a partition with an
++			 * md superblock lives very close to the end of a
++			 * disk.
++			 */
++			d = rv->next;
++			free(rv->devname);
++			free(rv);
++			rv = d;
++		}
++
++		last_major = major;
++		strcpy(last_device_name, kernel_name);
++
+ 		d = malloc(sizeof(*d));
+ 		d->devname = strdup(name);
+ 		d->next = rv;
