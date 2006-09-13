@@ -16,7 +16,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mdadm_2.5.2-2\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
-"POT-Creation-Date: 2006-09-11 18:15+0200\n"
+"POT-Creation-Date: 2006-09-13 10:30+0200\n"
 "PO-Revision-Date: 2006-07-05 17:30+0200\n"
 "Last-Translator: Frans Pop <aragorn@tiscali.nl>\n"
 "Language-Team: Dutch <debian-l10n-dutch@lists.debian.org>\n"
@@ -29,7 +29,7 @@ msgstr ""
 #. Description
 #: ../mdadm.templates:1001
 #, fuzzy
-msgid "MD arrays (RAIDs) needed for the root filesystem:"
+msgid "MD arrays needed for the root filesystem:"
 msgstr "Voor het basisbestandssysteem benodigde RAID-reeksen:"
 
 #. Type: string
@@ -53,9 +53,15 @@ msgstr ""
 #. Type: text
 #. Description
 #: ../mdadm.templates:2001
+msgid "for internal use - only the long description is needed."
+msgstr ""
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
 #, fuzzy
 msgid ""
-"If your system has its root filesystem on a MD array (RAID), it needs to be "
+"If your system has its root filesystem on an MD array (RAID), it needs to be "
 "started early during the boot sequence. If your root filesystem is on a "
 "logical volume (LVM), which is on MD, all constituent arrays need to be "
 "started."
@@ -73,14 +79,22 @@ msgid ""
 "If you know exactly which arrays are needed to bring up the root filesystem, "
 "and you want to postpone starting all other arrays to a later point in the "
 "boot sequence, enter the arrays to start here. Alternatively, enter 'all' to "
-"simply start all available arrays. If you do not need or want to start any "
-"arrays for the root filesystem, leave the answer blank (or enter 'none')."
+"simply start all available arrays."
 msgstr ""
 "Als u exact weet welke reeksen nodig zijn om het basisbestandssysteem te "
 "activeren, geef deze dan hier in. Als alternatief kunt u 'all' opgeven wat "
 "als resultaat heeft dat alle reeksen geactiveerd zullen worden. Als u geen "
 "reeksen hoeft of wenst te activeren voor het basisbestandssysteem, laat dan "
 "het antwoord leeg (of geef 'none' in)."
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid ""
+"If you do not need or want to start any arrays for the root filesystem, "
+"leave the answer blank (or enter 'none'). This may be the case if you are "
+"using kernel autostart or do not need any arrays to boot."
+msgstr ""
 
 #. Type: text
 #. Description
@@ -97,7 +111,7 @@ msgstr ""
 #. Type: text
 #. Description
 #: ../mdadm.templates:5001
-msgid "An error occurred: not a MD array (RAID)"
+msgid "An error occurred: not an MD array"
 msgstr ""
 
 #. Type: text
@@ -131,9 +145,20 @@ msgstr ""
 
 #. Type: boolean
 #. Description
+#: ../mdadm.templates:7001
+msgid ""
+"This warning is only relevant if you need arrays to be started from the "
+"initial ramdisk to be able to boot. If you use kernel autostarting, or do "
+"not need any arrays to be started as early as the initial ramdisk is loaded, "
+"you can simply continue. Alternatively, choose not to continue and enter "
+"'none' when prompted which arrays to start from the initial ramdisk."
+msgstr ""
+
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:8001
 #, fuzzy
-msgid "Do you want to start MD arrays (RAIDs) automatically?"
+msgid "Do you want to start MD arrays automatically?"
 msgstr "RAID-apparaten automatisch starten?"
 
 #. Type: boolean
@@ -143,9 +168,9 @@ msgstr "RAID-apparaten automatisch starten?"
 msgid ""
 "Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
 "specified in /etc/mdadm/mdadm.conf, which have not yet been started. Unless "
-"you have compiled MD support into the kernel (in which case all MD arrays "
-"with partitions of type 0xfd (and only those) are started automatically "
-"anyway), this is probably what you want."
+"you have compiled multi-device (MD) support into the kernel and marked all "
+"partitions part of MD arrays with type 0xfd (as those and only those will be "
+"started automatically by the kernel), this is probably what you want."
 msgstr ""
 "Nadat het basissysteem eenmaal is opgestart, kan mdadm zorg dragen voor het "
 "activeren van alle RAID-apparaten die nog niet zijn gestart. "
@@ -156,7 +181,7 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
-msgid "Should mdadm run monthly redundancy checks of the MD arrays (RAIDs)?"
+msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
 msgstr ""
 
 #. Type: boolean
@@ -183,7 +208,7 @@ msgstr ""
 #. Description
 #: ../mdadm.templates:10001
 #, fuzzy
-msgid "Do you want to start the MD (RAID) monitoring daemon?"
+msgid "Do you want to start the MD monitoring daemon?"
 msgstr "Wilt u de achtergronddienst voor de RAID-monitor starten?"
 
 #. Type: boolean
@@ -210,7 +235,7 @@ msgstr "Adres voor mailberichten:"
 #, fuzzy
 msgid ""
 "Please enter the email address of the user who should get the email "
-"notification for important MD (RAID) events."
+"notification for important MD events."
 msgstr ""
 "Geef het mailadres in van de gebruiker die een mailbericht dient te "
 "ontvangen voor belangrijke gebeurtenissen met betrekking tot RAID."

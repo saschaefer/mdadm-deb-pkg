@@ -3,6 +3,18 @@ Frequently asked questions -- Debian mdadm
 
 Also see /usr/share/doc/mdadm/README.recipes.gz
 
+0. What does MD stand for?
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+MD is an abbreviation for "multi device". The Linux MD implementation
+implements various strategies for combining multiple physical devices into
+single logical ones. The most common use case is commonly known as "Software
+RAID". Linux supports RAID levels 1, 5, 6, and 10, as well as the
+"pseudo-redundant" RAID level 0. In addition, the MD implementation covers
+linear and multipath configurations.
+
+Most people refer to MD as RAID. Since the original name of the RAID
+configuration software is "md"adm, I chose to use MD consistently instead.
+
 1. How do I overwrite ("zero") the superblock?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   mdadm --zero-superblock /dev/mdX
@@ -26,7 +38,7 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
     this may not be what you want. Instead, zeroing the superblock will
     (permanently) prevent a device from being considered as part of an array.
 
-2. How do I change the preferred minor of a MD array (RAID)?
+2. How do I change the preferred minor of an MD array (RAID)?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   See item 12 in /usr/share/doc/mdadm/README.recipes.gz and read the mdadm
   manpage (search for 'preferred').

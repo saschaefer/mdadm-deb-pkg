@@ -1,7 +1,7 @@
 Template: mdadm/initrdstart
 Type: string
 Default: all
-_Description: MD arrays (RAIDs) needed for the root filesystem:
+_Description: MD arrays needed for the root filesystem:
  ${msg}
  .
  Please enter a space-separated list of devices, 'all', or 'none'. You may
@@ -9,8 +9,8 @@ _Description: MD arrays (RAIDs) needed for the root filesystem:
 
 Template: mdadm/initrdstart_msg_intro
 Type: text
-_Description: 
- If your system has its root filesystem on a MD array (RAID), it needs to be
+_Description: for internal use - only the long description is needed.
+ If your system has its root filesystem on an MD array (RAID), it needs to be
  started early during the boot sequence. If your root filesystem is on
  a logical volume (LVM), which is on MD, all constituent arrays need to be
  started.
@@ -37,7 +37,7 @@ _Description:
 Template: mdadm/initrdstart_msg_errmd
 Type: text
 _Description:
- An error occurred: not a MD array (RAID)
+ An error occurred: not an MD array
 
 Template: mdadm/initrdstart_msg_errconf
 Type: text
@@ -64,18 +64,17 @@ _Description: Proceed with starting arrays not listed in mdadm.conf?
 Template: mdadm/autostart
 Type: boolean
 Default: true
-_Description: Do you want to start MD arrays (RAIDs) automatically?
+_Description: Do you want to start MD arrays automatically?
  Once the base system has come up, mdadm can start all MD arrays (RAIDs)
  specified in /etc/mdadm/mdadm.conf, which have not yet been started. Unless
- you have compiled MD support into the kernel (in which case all MD arrays
- with partitions of type 0xfd (and only those) are started automatically
- anyway),
- this is probably what you want.
+ you have compiled multi-device (MD) support into the kernel and marked all
+ partitions part of MD arrays with type 0xfd (as those and only those will be
+ started automatically by the kernel), this is probably what you want.
 
 Template: mdadm/autocheck
 Type: boolean
 Default: true
-_Description: Should mdadm run monthly redundancy checks of the MD arrays (RAIDs)?
+_Description: Should mdadm run monthly redundancy checks of the MD arrays?
  If your kernel supports it (>> 2.6.14), mdadm can periodically check the
  redundancy of your MD arrays (RAIDs). This may be a resource-intensive process,
  depending on your setup, but it could help prevent rare cases of data loss.
@@ -89,7 +88,7 @@ _Description: Should mdadm run monthly redundancy checks of the MD arrays (RAIDs
 Template: mdadm/start_daemon
 Type: boolean
 Default: true
-_Description: Do you want to start the MD (RAID) monitoring daemon?
+_Description: Do you want to start the MD monitoring daemon?
  The MD (RAID) monitor daemon sends email notifications in response to
  important MD events (such as a disk failure). You probably want to enable it.
 
@@ -98,4 +97,4 @@ Type: string
 Default: root
 _Description: Recipient for email notifications:
  Please enter the email address of the user who should get the email
- notification for important MD (RAID) events.
+ notification for important MD events.

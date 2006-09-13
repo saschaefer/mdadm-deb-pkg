@@ -99,7 +99,7 @@ if [ $cron = 1 ] && ! is_true ${AUTOCHECK:-false}; then
 fi
 
 if [ ! -f /proc/mdstat ]; then
-  [ $quiet -lt 2 ] && echo "$PROGNAME: E: MD (RAID) subsystem not loaded, or /proc unavailable." >&2
+  [ $quiet -lt 2 ] && echo "$PROGNAME: E: MD subsystem not loaded, or /proc unavailable." >&2
   exit 2
 fi
 
@@ -109,7 +109,7 @@ if [ ! -d /sys/block ]; then
 fi
 
 if [ -z "$(ls /sys/block/md* 2>/dev/null)" ]; then
-  [ $quiet -lt 2 ] && echo "$PROGNAME: W: no active MD arrays (RAIDs) found." >&2
+  [ $quiet -lt 2 ] && echo "$PROGNAME: W: no active MD arrays found." >&2
   [ $quiet -lt 2 ] && echo "$PROGNAME: W: (maybe uninstall the mdadm package?)" >&2
   exit 5
 fi
