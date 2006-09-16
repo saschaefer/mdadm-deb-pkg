@@ -5,15 +5,16 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
 0. What does MD stand for?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-MD is an abbreviation for "multiple device". The Linux MD implementation
-implements various strategies for combining multiple physical devices into
-single logical ones. The most common use case is commonly known as "Software
-RAID". Linux supports RAID levels 1, 5, 6, and 10, as well as the
-"pseudo-redundant" RAID level 0. In addition, the MD implementation covers
-linear and multipath configurations.
+  MD is an abbreviation for "multiple device" (also often called "multi-
+  disk"). The Linux MD implementation implements various strategies for
+  combining multiple physical devices into single logical ones. The most
+  common use case is commonly known as "Software RAID". Linux supports RAID
+  levels 1, 4, 5, 6, and 10, as well as the "pseudo-redundant" RAID level 0.
+  In addition, the MD implementation covers linear and multipath
+  configurations.
 
-Most people refer to MD as RAID. Since the original name of the RAID
-configuration software is "md"adm, I chose to use MD consistently instead.
+  Most people refer to MD as RAID. Since the original name of the RAID
+  configuration software is "md"adm, I chose to use MD consistently instead.
 
 1. How do I overwrite ("zero") the superblock?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -97,6 +98,60 @@ configuration software is "md"adm, I chose to use MD consistently instead.
 
     I know this all sounds inconsistent and upstream has some work to do.
     We're on it.
+
+4. Which RAID level should I use?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Please read /usr/share/doc/mdadm/RAID5_versus_RAID10.txt.gz .
+
+  Many people seem to prefer RAID4/5/6 because it makes more efficient use of
+  space. If you have disks of size X, then in order to get 2X of usable space,
+  you need e.g. 3 disks with RAID5, but 4 if you use RAID10 or RAID1+0.
+  
+  This gain in usable space comes at a price: performance; RAID1/10 can be up
+  to four times faster than RAID4/5/6.
+
+  At the same time, however, RAID4/5/6 provide somewhat better redundancy in
+  the event of two failing disks. In a RAID10 configuration, if one disk is
+  already dead, the RAID can only survive if any of the two disks in the other
+  RAID1 array fails, but not if the second disk in the degraded RADI1 array
+  fails. A RAID6 across four disks can cope with any two disks failing.
+
+  If you can afford the extra disks (storage *is* cheap these days), I suggest
+  RAID1/10 over RAID4/5/6. If you don't care about performance but need as
+  much space as possible, go with RAID4/5/6, but make sure to have backups.
+  Heck, make sure to have backups whatever you do.
+
+5. What is the difference between RAID1+0 and RAID10?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  RAID1+0 is a form of RAID in which a RAID0 is striped across two RAID1
+  arrays. To assemble it, you create two RAID1 arrays and then create a RAID0
+  array with the two md arrays.
+
+  The Linux kernel provides the RAID10 level to do pretty much exactly the
+  same for you, but with greater flexibility (and somewhat improved
+  performance). While RAID1+0 makes sense with 4 disks, RAID10 can be
+  configured to work with only 3 disks. Also, RAID10 has a little less
+  overhead than RAID1+0, which has data pass the md layer twice.
+
+  I prefer RAID10 over RAID1+0.
+
+6. (One of) my RAID arrays is busy and cannot be stopped. What gives?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  It is perfectly normal for mdadm to report the array with the root
+  filesystem to be busy on shutdown. The reason for this is that the root
+  filesystem must be mounted to be able to stop the array (or otherwise
+  /sbin/mdadm does not exist), but to stop the array, the root filesystem
+  cannot be mounted. Catch 22. The kernel actually stops the array just before
+  halting, so it's all well.
+
+  If mdadm cannot stop other arrays on your system, check that these arrays
+  aren't used anymore. Common causes for busy/locked arrays are:
+
+    * LVM
+    * dm-crypt
+    * EVMS
+  
+  Check that none of these are using the md arrays before trying to stop them.
 
  -- martin f. krafft <madduck@debian.org>  Wed, 02 Aug 2006 16:38:29 +0100
 
