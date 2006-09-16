@@ -1,3 +1,10 @@
+mdadm (2.5.3.git200608202239-5~unreleased.3) UNRELEASED; urgency=low
+
+  * Added stripped implementation of debconf-escape to .config file to cater
+    for upgrades from systems with older debconf versions.
+
+ -- martin f. krafft <madduck@debian.org>  Sat, 16 Sep 2006 13:01:26 +0200
+
 mdadm (2.5.3.git200608202239-5~unreleased.2) UNRELEASED; urgency=medium
 
   * Modified the patch responsible for pruning parent devices so that
