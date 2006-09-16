@@ -67,7 +67,7 @@ Default: true
 _Description: Do you want to start MD arrays automatically?
  Once the base system has come up, mdadm can start all MD arrays (RAIDs)
  specified in /etc/mdadm/mdadm.conf, which have not yet been started. Unless
- you have compiled multi-device (MD) support into the kernel and marked all
+ you have compiled multiple device (MD) support into the kernel and marked all
  partitions part of MD arrays with type 0xfd (as those and only those will be
  started automatically by the kernel), this is probably what you want.
 

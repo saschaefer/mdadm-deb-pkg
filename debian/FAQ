@@ -5,7 +5,7 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
 0. What does MD stand for?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-MD is an abbreviation for "multi device". The Linux MD implementation
+MD is an abbreviation for "multiple device". The Linux MD implementation
 implements various strategies for combining multiple physical devices into
 single logical ones. The most common use case is commonly known as "Software
 RAID". Linux supports RAID levels 1, 5, 6, and 10, as well as the
