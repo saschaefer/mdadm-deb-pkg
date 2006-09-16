@@ -155,6 +155,20 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
       * EVMS
     * The array is used by a process (check with `lsof')
   
+7. Should I use RAID0?
+~~~~~~~~~~~~~~~~~~~~~~
+  No.
+
+7b. Why not?
+~~~~~~~~~~~~
+  RAID0 has zero redundancy. If you stripe a RAID0 across X disks, you
+  increase the likelyhood of complete loss of the filesystem by a factor of X.
+
+  The same applies to LVM by the way.
+
+  If you want/must used LVM or RAID0, put it on RAID1 arrays (RAID10/RAID1+0,
+  or LVM on RAID1).
+
  -- martin f. krafft <madduck@debian.org>  Wed, 02 Aug 2006 16:38:29 +0100
 
 $Id$
