@@ -147,12 +147,14 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   If mdadm cannot stop other arrays on your system, check that these arrays
   aren't used anymore. Common causes for busy/locked arrays are:
 
-    * LVM
-    * dm-crypt
-    * EVMS
+    * The array contains a mounted filesystem (check the `mount' output)
+    * The array is used as a swap backend (check /proc/swaps)
+    * The array is used by the device-mapper (check with `dmsetup')
+      * LVM
+      * dm-crypt
+      * EVMS
+    * The array is used by a process (check with `lsof')
   
-  Check that none of these are using the md arrays before trying to stop them.
-
  -- martin f. krafft <madduck@debian.org>  Wed, 02 Aug 2006 16:38:29 +0100
 
 $Id$
