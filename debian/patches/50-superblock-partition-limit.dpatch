@@ -6,9 +6,9 @@
 
 @DPATCH@
 diff -urNad mdadm.git~/config.c mdadm.git/config.c
---- mdadm.git~/config.c	2006-08-11 10:53:20.000000000 +0200
-+++ mdadm.git/config.c	2006-09-13 10:38:55.000000000 +0200
-@@ -222,7 +222,8 @@
+--- mdadm.git~/config.c	2006-09-14 20:10:13.000000000 +0200
++++ mdadm.git/config.c	2006-09-14 20:10:24.000000000 +0200
+@@ -222,28 +222,87 @@
  mddev_dev_t load_partitions(void)
  {
  	FILE *f = fopen("/proc/partitions", "r");
@@ -18,34 +18,67 @@ diff -urNad mdadm.git~/config.c mdadm.git/config.c
  	mddev_dev_t rv = NULL;
  	if (f == NULL) {
  		fprintf(stderr, Name ": cannot open /proc/partitions\n");
-@@ -230,7 +231,7 @@
+ 		return NULL;
  	}
- 	while (fgets(buf, 1024, f)) {
- 		int major, minor;
+-	while (fgets(buf, 1024, f)) {
+-		int major, minor;
 -		char *name, *mp;
++	while (!feof(f) && fgets(buf, 1024, f)) {
++		unsigned long major, minor, iter;
 +		char *name, *kernel_name, *mp, *ptr;
  		mddev_dev_t d;
  
- 		buf[1023] = '\0';
-@@ -244,6 +245,46 @@
- 		name = map_dev(major, minor, 1);
- 		if (!name)
- 			continue;
-+
+-		buf[1023] = '\0';
+-		if (buf[0] != ' ')
+-			continue;
++    /*
++     * All partition lines start with a space.
++     */
++		if (buf[0] != ' ') continue;
++		
 +		/*
-+		 * We want the name exactly as it comes from
-+		 * /proc/partitions; this makes sure we do not get
-+		 * confused by weird LVM names and the like.
-+		 */
-+		kernel_name = buf + 22;       /* will be safe until we reach 10TB */
-+		while (isdigit(*kernel_name) || isspace(*kernel_name)) { /* just to be sure */
-+			++kernel_name;
-+		}
++     * Chop at the end of each line.
++     */
++		ptr = strchr(buf, '\n');
++		if (ptr) *ptr = '\0';
 +
-+		/* Chop the trailing newline. */
-+		ptr = strchr(kernel_name, '\n');
-+		if (ptr)
-+			*ptr = '\0';
++    fprintf(stderr, "Read line: %s\n", buf);
++
++    /*
++     * Extract the major and minor numbers and obtain the device node name.
++     * 10 is the max number of digits expected in a major/minor number
++     * (32bit).
++     */
+ 		major = strtoul(buf, &mp, 10);
+-		if (mp == buf || *mp != ' ') 
+-			continue;
++		if (mp == buf || *mp != ' ') continue;
+ 		minor = strtoul(mp, NULL, 10);
+ 
+ 		name = map_dev(major, minor, 1);
+-		if (!name)
+-			continue;
++		if (!name) continue;
++
++    /* 
++     * Get the kernel name, which is the forth of the space-separated fields.
++     */
++    mp = buf;
++    while (isspace(*(++mp)));
++    for (iter = 0; iter < 3; ++iter) {
++      while (!isspace(*(++mp)));
++      while (isspace(*(++mp)));
++    }
++
++    /* 
++     * Now the cursor is at the beginning to the kernel name, so we point
++     * there and terminate the string on the first space character.
++     */
++    kernel_name = mp;
++    while (!isspace(*(++mp)));
++    *mp = '\0';
++
++    fprintf(stderr, "Parsed: mj=%lu, mn=%lu, n=%s, k=%s\n", major, minor, name, kernel_name);
 +
 +		/* 
 +		 * Check if this could be a partition of the previous device
@@ -56,12 +89,12 @@ diff -urNad mdadm.git~/config.c mdadm.git/config.c
 +		    strncmp(kernel_name, last_device_name, strlen(last_device_name)) == 0 &&
 +		    isdigit(kernel_name[strlen(kernel_name) - 1])) {
 +			/* 
-+			 * The previous device has a partition table, so delete
-+			 * it so it isn't scanned for a superblock. This makes
-+			 * sure we don't get confused when a partition with an
-+			 * md superblock lives very close to the end of a
-+			 * disk.
++       * The previous device appears to have a partition table, so delete it
++       * so it isn't scanned for a superblock. This makes sure we don't get
++       * confused when a partition with an md superblock lives very close to
++       * the end of a disk.
 +			 */
++      fprintf(stderr, "Pruning: %s\n", last_device_name);
 +			d = rv->next;
 +			free(rv->devname);
 +			free(rv);
