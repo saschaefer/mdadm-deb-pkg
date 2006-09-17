@@ -1,3 +1,11 @@
+mdadm (2.5.3.git200608202239-5~unreleased.4) UNRELEASED; urgency=low
+
+  * Removed debconf-escape implementation and added code that defers mdadm
+    preconfiguration when the debconf backend is too old (and does not provide
+    debconf-escape). Now configuration is postponed until the postinst is run.
+
+ -- martin f. krafft <madduck@debian.org>  Sun, 17 Sep 2006 13:04:07 +0200
+
 mdadm (2.5.3.git200608202239-5~unreleased.3) UNRELEASED; urgency=low
 
   * Added stripped implementation of debconf-escape to .config file to cater
