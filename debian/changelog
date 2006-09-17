@@ -1,26 +1,13 @@
-mdadm (2.5.3.git200608202239-5~unreleased.4) UNRELEASED; urgency=low
+mdadm (2.5.3.git200608202239-5) unstable; urgency=medium
 
-  * Removed debconf-escape implementation and added code that defers mdadm
-    preconfiguration when the debconf backend is too old (and does not provide
-    debconf-escape). Now configuration is postponed until the postinst is run.
-
- -- martin f. krafft <madduck@debian.org>  Sun, 17 Sep 2006 13:04:07 +0200
-
-mdadm (2.5.3.git200608202239-5~unreleased.3) UNRELEASED; urgency=low
-
-  * Added stripped implementation of debconf-escape to .config file to cater
-    for upgrades from systems with older debconf versions.
-
- -- martin f. krafft <madduck@debian.org>  Sat, 16 Sep 2006 13:01:26 +0200
-
-mdadm (2.5.3.git200608202239-5~unreleased.2) UNRELEASED; urgency=medium
-
+  * Keeping medium urgency due to RC bug.
   * Modified the patch responsible for pruning parent devices so that
     superblocks at the end of a disk do not get interpreted twice. It now
     makes less assumptions about the exact output of /proc/partitions and
     should thus be more robust (now closes: #385951).
-  * Added debugging output.
-  * Keeping medium urgency.
+  * Added code that defers mdadm preconfiguration when the debconf backend is
+    too old (and does not provide debconf-escape). Now configuration is
+    postponed until the postinst is run in this case.
 
  -- martin f. krafft <madduck@debian.org>  Thu, 14 Sep 2006 11:16:39 +0200
 

@@ -6,9 +6,9 @@
 
 @DPATCH@
 diff -urNad mdadm.git~/config.c mdadm.git/config.c
---- mdadm.git~/config.c	2006-09-14 20:10:13.000000000 +0200
-+++ mdadm.git/config.c	2006-09-14 20:10:24.000000000 +0200
-@@ -222,28 +222,87 @@
+--- mdadm.git~/config.c	2006-09-17 19:06:01.000000000 +0200
++++ mdadm.git/config.c	2006-09-17 19:06:36.000000000 +0200
+@@ -222,28 +222,82 @@
  mddev_dev_t load_partitions(void)
  {
  	FILE *f = fopen("/proc/partitions", "r");
@@ -41,8 +41,6 @@ diff -urNad mdadm.git~/config.c mdadm.git/config.c
 +     */
 +		ptr = strchr(buf, '\n');
 +		if (ptr) *ptr = '\0';
-+
-+    fprintf(stderr, "Read line: %s\n", buf);
 +
 +    /*
 +     * Extract the major and minor numbers and obtain the device node name.
@@ -78,8 +76,6 @@ diff -urNad mdadm.git~/config.c mdadm.git/config.c
 +    while (!isspace(*(++mp)));
 +    *mp = '\0';
 +
-+    fprintf(stderr, "Parsed: mj=%lu, mn=%lu, n=%s, k=%s\n", major, minor, name, kernel_name);
-+
 +		/* 
 +		 * Check if this could be a partition of the previous device
 +		 * (the disk _always_ comes just before the first partition, cf.
@@ -94,7 +90,6 @@ diff -urNad mdadm.git~/config.c mdadm.git/config.c
 +       * confused when a partition with an md superblock lives very close to
 +       * the end of a disk.
 +			 */
-+      fprintf(stderr, "Pruning: %s\n", last_device_name);
 +			d = rv->next;
 +			free(rv->devname);
 +			free(rv);
