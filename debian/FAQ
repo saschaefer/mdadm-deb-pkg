@@ -121,6 +121,10 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   much space as possible, go with RAID4/5/6, but make sure to have backups.
   Heck, make sure to have backups whatever you do.
 
+  Let it be said, however, that I thoroughly regret putting my primary
+  workstation on RAID5. Anything disk-intensive brings the system to its
+  knees; I will have to migrate to RAID10 at one point.
+
 5. What is the difference between RAID1+0 and RAID10?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   RAID1+0 is a form of RAID in which a RAID0 is striped across two RAID1
