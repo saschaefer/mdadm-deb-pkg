@@ -1,3 +1,12 @@
+mdadm (2.5.3.git200608202239-6) unstable; urgency=high
+
+  * Bumping urgency to high because previous version has been in unstable for
+    three days and this one really only fixes a stupid segfault:
+  * Reworked the parsing of /proc/partitions and spotted a mean segfault
+    (closes: #388355).
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 21 Sep 2006 15:25:21 +0200
+
 mdadm (2.5.3.git200608202239-5) unstable; urgency=medium
 
   * Keeping medium urgency due to RC bug.
