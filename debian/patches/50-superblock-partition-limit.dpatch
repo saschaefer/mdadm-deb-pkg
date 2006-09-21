@@ -6,31 +6,31 @@
 
 @DPATCH@
 diff -urNad mdadm.git~/config.c mdadm.git/config.c
---- mdadm.git~/config.c	2006-09-20 17:44:25.892724113 +0200
-+++ mdadm.git/config.c	2006-09-20 17:46:43.775794421 +0200
-@@ -219,35 +219,116 @@
+--- mdadm.git~/config.c	2006-09-20 17:53:00.863178469 +0200
++++ mdadm.git/config.c	2006-09-21 15:35:17.513157034 +0200
+@@ -219,31 +219,105 @@
      char *name;
  } *cdevlist = NULL;
  
 +char* skipblanks(char* buf)
 +{
-+  if (!buf) return buf;
-+  while (*buf != '\0' && isblank(*buf)) ++buf;
-+  return buf;
++	if (!buf) return buf;
++	while (*buf != '\0' && isblank(*buf)) ++buf;
++	return buf;
 +}
 +
 +char* skipnonblanks(char* buf)
 +{
-+  if (!buf) return buf;
-+  while (*buf != '\0' && !isblank(*buf)) ++buf;
-+  return buf;
++	if (!buf) return buf;
++	while (*buf != '\0' && !isblank(*buf)) ++buf;
++	return buf;
 +}
 +
 +char* skipdigits(char* buf)
 +{
-+  if (!buf) return buf;
-+  while (*buf != '\0' && isdigit(*buf)) ++buf;
-+  return buf;
++	if (!buf) return buf;
++	while (*buf != '\0' && isdigit(*buf)) ++buf;
++	return buf;
 +}
 +
  mddev_dev_t load_partitions(void)
@@ -55,70 +55,64 @@ diff -urNad mdadm.git~/config.c mdadm.git/config.c
 -		buf[1023] = '\0';
 -		if (buf[0] != ' ')
 -			continue;
-+    /*
-+     * All partition lines start with a space.
-+     */
-+		if (buf[0] != ' ') continue;
-+		
 +		/*
-+     * Chop at the end of each line.
-+     */
++		 * All partition lines start with a space.
++		 */
++		if (buf[0] != ' ') continue;
++
++		/*
++		 * Chop at the end of each line.
++		 */
 +		ptr = strchr(buf, '\n');
 +		if (ptr) *ptr = '\0';
-+    fprintf(stderr, "Line: %s\n", buf);
 +
-+    /*
-+     * Extract the major and minor numbers and obtain the device node name.
-+     * 10 is the max number of digits expected in a major/minor number
-+     * (32bit).
-+     */
++		/*
++		 * Extract the major and minor numbers and obtain the device node name.
++		 * 10 is the max number of digits expected in a major/minor number
++		 * (32bit).
++		 */
  		major = strtoul(buf, &mp, 10);
 -		if (mp == buf || *mp != ' ') 
 -			continue;
 -		minor = strtoul(mp, NULL, 10);
 +		if (mp == buf || *mp != ' ') continue;
-+    mp = skipblanks(mp);
-+    fprintf(stderr, "mp1='%c'\n", (unsigned char)*mp);
++		mp = skipblanks(mp);
 +		minor = strtoul(mp, &mp, 10);
-+    mp = skipblanks(mp);
-+    fprintf(stderr, "mp2='%c'\n", (unsigned char)*mp);
++		mp = skipblanks(mp);
  
  		name = map_dev(major, minor, 1);
 -		if (!name)
 -			continue;
 +		if (!name) continue;
 +
-+    /* 
-+     * mp now points at the third field, which is digits only. We thus skip
-+     * all spaces and digits to reach the forth field.
-+     */
-+    mp = skipdigits(mp);
-+    fprintf(stderr, "mp3='%c'\n", (unsigned char)*mp);
-+    mp = skipblanks(mp);
-+    fprintf(stderr, "mp4='%c'\n", (unsigned char)*mp);
++		/*
++		 * mp now points at the third field, which is digits only. We thus skip
++		 * all spaces and digits to reach the forth field.
++		 */
++		mp = skipdigits(mp);
++		mp = skipblanks(mp);
 +
-+    /* 
-+     * Now the cursor is at the beginning to the kernel name, so we point
-+     * there and terminate the string on the first space character.
-+     */
-+    kernel_name = mp;
-+    mp = skipnonblanks(mp);
-+    *mp = '\0';
-+    fprintf(stderr, "kernel_name: %s\n", kernel_name);
++		/*
++		 * Now the cursor is at the beginning to the kernel name, so we point
++		 * there and terminate the string on the first space character.
++		 */
++		kernel_name = mp;
++		mp = skipnonblanks(mp);
++		*mp = '\0';
 +
-+		/* 
++		/*
 +		 * Check if this could be a partition of the previous device
 +		 * (the disk _always_ comes just before the first partition, cf.
 +		 * /usr/src/linux/fs/partitions/check.c)
 +		 */
 +		if (major == last_major && strlen(kernel_name) > strlen(last_device_name) &&
-+		    strncmp(kernel_name, last_device_name, strlen(last_device_name)) == 0 &&
-+		    isdigit(kernel_name[strlen(kernel_name) - 1])) {
-+			/* 
-+       * The previous device appears to have a partition table, so delete it
-+       * so it isn't scanned for a superblock. This makes sure we don't get
-+       * confused when a partition with an md superblock lives very close to
-+       * the end of a disk.
++				strncmp(kernel_name, last_device_name, strlen(last_device_name)) == 0 &&
++				isdigit(kernel_name[strlen(kernel_name) - 1])) {
++			/*
++			 * The previous device appears to have a partition table, so delete it
++			 * so it isn't scanned for a superblock. This makes sure we don't get
++			 * confused when a partition with an md superblock lives very close to
++			 * the end of a disk.
 +			 */
 +			d = rv->next;
 +			free(rv->devname);
@@ -132,8 +126,3 @@ diff -urNad mdadm.git~/config.c mdadm.git/config.c
  		d = malloc(sizeof(*d));
  		d->devname = strdup(name);
  		d->next = rv;
- 		d->used = 0;
-+    fprintf(stderr, "rv=%p, d=%p, d->next=%p, d->devname=%s\n", rv, d, d->next, d->devname);
- 		rv = d;
- 	}
- 	fclose(f);
