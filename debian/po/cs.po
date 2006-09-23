@@ -16,7 +16,7 @@ msgstr ""
 "Project-Id-Version: mdadm\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
 "POT-Creation-Date: 2006-09-16 13:03+0200\n"
-"PO-Revision-Date: 2006-08-26 13:58+0200\n"
+"PO-Revision-Date: 2006-09-23 20:45+0200\n"
 "Last-Translator: Miroslav Kure <kurem@debian.cz>\n"
 "Language-Team: Czech <debian-l10n-czech@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
@@ -26,7 +26,6 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../mdadm.templates:1001
-#, fuzzy
 msgid "MD arrays needed for the root filesystem:"
 msgstr "MD pole vyžadovaná pro kořenový souborový systém:"
 
@@ -51,27 +50,25 @@ msgstr ""
 #. Description
 #: ../mdadm.templates:2001
 msgid "for internal use - only the long description is needed."
-msgstr ""
+msgstr "pro vnitřní použití - pouze kvůli zobrazení dlouhého popisu."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
 msgid ""
 "If your system has its root filesystem on an MD array (RAID), it needs to be "
 "started early during the boot sequence. If your root filesystem is on a "
 "logical volume (LVM), which is on MD, all constituent arrays need to be "
 "started."
 msgstr ""
-"Pokud má váš systém svůj kořenový souborový systém umístěn na MD svazku, "
-"musí být tento spuštěn během zavádění systému co nejdříve. Pokud se váš "
-"kořenový souborový systém nachází na logickém svazku LVM, který je vytvořen "
-"nad MD polem, musí se spustit všechna související pole."
+"Pokud má váš systém svůj kořenový souborový systém umístěn na MD (RAID) "
+"svazku, musí být tento spuštěn během zavádění systému co nejdříve. Pokud se "
+"váš kořenový souborový systém nachází na logickém svazku LVM, který je "
+"vytvořen nad MD polem, musí se spustit všechna související pole."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
 msgid ""
 "If you know exactly which arrays are needed to bring up the root filesystem, "
 "and you want to postpone starting all other arrays to a later point in the "
@@ -80,10 +77,8 @@ msgid ""
 msgstr ""
 "Jestliže přesně víte, která pole jsou potřeba pro připojení kořenového "
 "souborového systému a zároveň chcete pozdržet spuštění ostatních polí na "
-"pozdější dobu, zadejte zde prosím pole, která se mají spustit. Alternativně "
-"můžete spustit všechna dostupná pole zadáním 'all'. Nepotřebujete-li nebo "
-"nechcete-li spouštět pole pro kořenový souborový systém, ponechte odpověď "
-"prázdnou, případně zadejte 'none'."
+"pozdější dobu, zadejte zde prosím pole, která se mají spustit. Chcete-li "
+"spustit všechna dostupná pole, můžete zadat 'all'."
 
 #. Type: text
 #. Description
@@ -93,6 +88,10 @@ msgid ""
 "leave the answer blank (or enter 'none'). This may be the case if you are "
 "using kernel autostart or do not need any arrays to boot."
 msgstr ""
+"Nepotřebujete-li nebo nechcete-li spouštět pole pro kořenový souborový "
+"systém, ponechte odpověď prázdnou, případně zadejte 'none'. To může nastat "
+"třeba v případě, že používáte automatický start přímo v jádře, nebo pokud k "
+"zavedení systému žádná pole nepotřebujete."
 
 #. Type: text
 #. Description
@@ -109,7 +108,6 @@ msgstr "Vyskytla se chyba: není blokovým zařízením"
 #. Type: text
 #. Description
 #: ../mdadm.templates:5001
-#, fuzzy
 msgid "An error occurred: not an MD array"
 msgstr "Vyskytla se chyba: není MD polem"
 
@@ -157,18 +155,22 @@ msgid ""
 "you can simply continue. Alternatively, choose not to continue and enter "
 "'none' when prompted which arrays to start from the initial ramdisk."
 msgstr ""
+"Toto varování je relevantní pouze pokud k zavedení systému potřebujete, aby "
+"se pole spustila z počátečního ramdisku. Používáte-li automatické spouštění "
+"přímo v jádře, nebo pokud nepotřebujete pouštět žádná pole ještě z "
+"počátečního ramdisku, můžete jednoduše pokračovat. Jinou možností je "
+"nepokračovat dále a při dotazu na seznam polí, která se mají spouštět z "
+"počátečního ramdisku, zadat 'none'."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
 msgid "Do you want to start MD arrays automatically?"
-msgstr "Chcete spouštět MD zařízení automaticky?"
+msgstr "Chcete spouštět MD pole automaticky?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
 msgid ""
 "Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
 "specified in /etc/mdadm/mdadm.conf, which have not yet been started. Unless "
@@ -177,22 +179,20 @@ msgid ""
 "will be started automatically by the kernel), this is probably what you want."
 msgstr ""
 "Po zavedení základního systému může mdadm spustit všechna dosud nespuštěná "
-"MD zařízení uvedená v souboru /etc/mdadm/mdadm.conf. Pokud nemáte "
-"zakompilovanou podporu MD přímo v jádře (kdy se všechna MD pole označená "
-"typem oblasti 0xfd spustí zcela automaticky), pravděpodobně budete chtít "
-"tuto možnost povolit."
+"MD (RAID) pole uvedená v souboru /etc/mdadm/mdadm.conf. Pokud nemáte "
+"zakompilovanou podporu multiple device (MD) přímo v jádře (kdy se všechna "
+"MD pole označená typem oblasti 0xfd spustí zcela automaticky), pravděpodobně "
+"budete chtít tuto možnost povolit."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
-#, fuzzy
 msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
-msgstr "Má mdadm spouštět měsíční kontroly MD polí?"
+msgstr "Má mdadm spouštět měsíční kontroly redundance MD polí?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
-#, fuzzy
 msgid ""
 "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
 "redundancy of your MD arrays (RAIDs). This may be a resource-intensive "
@@ -202,8 +202,8 @@ msgid ""
 "access to the media."
 msgstr ""
 "Pokud to vaše jádro podporuje (>> 2.6.14), může mdadm pravidelně kontrolovat "
-"redundanci MD zařízení. Podle konfigurace počítače to může být proces velmi "
-"náročný na prostředky, ovšem může předejít vzácným případům ztráty dat. "
+"redundanci MD polí (RAIDů). Podle konfigurace počítače to může být proces "
+"velmi náročný na prostředky, ovšem může předejít vzácným případům ztráty dat. "
 "Pokud nejsou nalezeny chyby, používá tato kontrola v zásadě jen čtecí "
 "operace. Při nalezení chyb se je mdadm pokusí opravit, což může znamenat "
 "zápis na médium."
@@ -221,19 +221,17 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
 msgid "Do you want to start the MD monitoring daemon?"
 msgstr "Chcete spustit daemon pro monitorování MD?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
 msgid ""
 "The MD (RAID) monitor daemon sends email notifications in response to "
 "important MD events (such as a disk failure). You probably want to enable it."
 msgstr ""
-"Daemon pro monitorování MD zasílá emailová upozornění na významné MD "
+"Daemon pro monitorování MD (RAIDu) zasílá emailová upozornění na významné MD "
 "události, jako je selhání disku. Je rozumné tuto možnost povolit."
 
 #. Type: string
@@ -245,13 +243,12 @@ msgstr "Příjemce emailových upozornění:"
 #. Type: string
 #. Description
 #: ../mdadm.templates:11001
-#, fuzzy
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notification for important MD events."
 msgstr ""
-"Zadejte emailovou adresu uživatele, který má dostávat emailová upozornění "
-"při výskytu významných MD událostí."
+"Zadejte prosím emailovou adresu uživatele, který má dostávat emailová "
+"upozornění při výskytu významných MD událostí."
 
 #~ msgid "Initialise the superblock if you reuse hard disks"
 #~ msgstr "Při znovupoužití starších disků inicializujte superblok"
