@@ -159,8 +159,8 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
       * EVMS
     * The array is used by a process (check with `lsof')
   
-7. Should I use RAID0?
-~~~~~~~~~~~~~~~~~~~~~~
+7. Should I use RAID0 (or linear)?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   No.
 
 7b. Why not?
