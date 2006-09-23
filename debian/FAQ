@@ -173,6 +173,6 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   If you want/must used LVM or RAID0, put it on RAID1 arrays (RAID10/RAID1+0,
   or LVM on RAID1).
 
- -- martin f. krafft <madduck@debian.org>  Wed, 02 Aug 2006 16:38:29 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed, 23 Sep 2006 10:28:29 +0100
 
 $Id$
