@@ -10,6 +10,8 @@ to come up with robust heuristics to replace the previously used mdrun, while
 addressing its primary deficiency of not honouring the super-minor field and
 randomly assembling devices (see #354705).
 
+Also see /usr/share/doc/mdadm/README.mdrun
+
 Systems without a mdadm.conf file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If your system does not have an mdadm.conf file, the package creates one for
@@ -29,8 +31,8 @@ Systems with a mdadm.conf file
 If an existing configuration file is found, it is *ignored* until you checked
 it and gave mdadm permission to use it. Even though this is a nuisance to some
 users, it is a necessary measure: previous versions of mdadm did not
-necessarily use the information in this file, and thus there is no guarantee
-that it is accurate.
+necessarily use the information in this file, even if it existed; thus there
+is no guarantee that the file properly describes the system's configuration.
 
 Therefore, you are required to inspect /etc/mdadm/mdadm.conf or
 /etc/mdadm.conf (whichever one is present, the first gets priority if both are
@@ -52,8 +54,9 @@ of recommended checks:
   - Compare your file with the output of /usr/share/mdadm/mkconf . In
     particular, make sure that the UUID matches for each array, whenever
     a UUID is specified. Also compare the values of super-minor, name, and
-    devices. Only one identifier is needed for each array, but if multiple
-    identifiers are specified, all must match. See mdadm.conf(5).
+    devices. Only one match identifier (UUID, super-minor, name, devices) is
+    needed for each array, but if multiple identifiers are specified, all must
+    match. See mdadm.conf(5).
 
     Identifying arrays by UUID is the preferred method.
 
@@ -79,9 +82,8 @@ who does for help.
 
 If you are using initramfs (which is the default since Debian "etch"), it will
 probably be easy to revive the system. If you are experiencing problems with
-another initial ramdisk alternative, you probably have to resort to using
-a rescue disk, such as the debian-installer CD/DVD, or a live system, such as
-Knoppix.
+another initial ramdisk alternative, you will have to resort to using a rescue
+disk, such as the debian-installer CD/DVD, or a live system, such as Knoppix.
 
 With initramfs, specify 'break=mount' as a kernel boot command line option,
 and commence the boot process. Eventually, you will be dumped into a shell.
@@ -113,6 +115,18 @@ When you are done, hit ctrl-d and watch the system boot.
 
 When it is back up, carefully inspect your mdadm.conf file and ensure that
 INITRDSTART is properly set in /etc/default/mdadm; set it to 'all' to be safe.
+
+In case you are not using initramfs, you need to find out what's going wrong
+during the boot process. Both yaird and initrd use a single mdadm --assemble
+call to bring up the device holding the root filesystem. If that command
+fails, you may need to recreate the image and make sure it gets the right
+parameters.
+
+If you rely on the kernel to assemble the arrays (MD support built-in, not
+modular, and partitions of type 0xfd) and the process fails, the superblock
+information is probably not accurate. In such a case, try to assemble the
+arrays from a rescue disc or live system just as you would expect the kernel
+to do it. Afterwards, verify the superblock information (mdadm --examine).
 
 If you continue to experience problems, please file a bug report with all the
 relevant information. The reportbug tool will automatically include the most
