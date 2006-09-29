@@ -1,12 +1,16 @@
-mdadm (2.5.3.git200608202239-7) unstable; urgency=low
+mdadm (2.5.3.git200608202239-7) unstable; urgency=medium
 
+  * Fixed a serious bug in the debconf script which would cause the
+    configuration to exit prematurely in cases when the root could not be
+    determined. Since this is RC, the urgency is set to medium.
   * Updated the documentation a bit.
   * Updated debconf translations:
     - Swedish by Daniel Nylander (closes: #389040).
     - Czech by Miroslav Kure (closes: #389083).
     - Russian by Yuri Kozlov (closes: #389086).
+    - Brazilian Portuguese by Felipe Augusto.
 
- -- martin f. krafft <madduck@debian.org>  Sat, 23 Sep 2006 23:50:44 +0200
+ -- martin f. krafft <madduck@debian.org>  Fri, 29 Sep 2006 16:31:44 +0200
 
 mdadm (2.5.3.git200608202239-6) unstable; urgency=high
 
