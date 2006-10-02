@@ -16,17 +16,16 @@ msgstr ""
 "Project-Id-Version: mdadm\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
 "POT-Creation-Date: 2006-09-16 13:03+0200\n"
-"PO-Revision-Date: 2006-07-10 21:12+0200\n"
+"PO-Revision-Date: 2006-10-01 15:47+0200\n"
 "Last-Translator: Mario Joussen <joussen@debian.org>\n"
 "Language-Team: German <debian-l10n-german@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ISO-8859-15\n"
+"Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #. Type: string
 #. Description
 #: ../mdadm.templates:1001
-#, fuzzy
 msgid "MD arrays needed for the root filesystem:"
 msgstr "Für das Wurzeldateisystem benötigte RAID Verbünde:"
 
@@ -34,29 +33,25 @@ msgstr "Für das Wurzeldateisystem benötigte RAID Verbünde:"
 #. Description
 #: ../mdadm.templates:1001
 msgid "${msg}"
-msgstr ""
+msgstr "${msg}"
 
 #. Type: string
 #. Description
 #: ../mdadm.templates:1001
-#, fuzzy
 msgid ""
 "Please enter a space-separated list of devices, 'all', or 'none'. You may "
 "omit the leading '/dev/' and just enter e.g. \"md0 md1\", or \"md/1 md/d0\"."
-msgstr ""
-"Bitte geben Sie eine leerzeichenseparierte Geräteliste oder \"all\" ein. Sie "
-"können das führende \"/dev/\" weglassen und nur z.B. \"md0 md1\" eingeben."
+msgstr "Bitte geben Sie eine leerzeichenseparierte Geräteliste oder \"all\" ein. Sie können das führende \"/dev/\" weglassen und z.B. nur \"md0 md1\" oder \"md/1 md/d0\" eingeben."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:2001
 msgid "for internal use - only the long description is needed."
-msgstr ""
+msgstr "für internen Gebrauch - es wird nur die ausführliche Beschreibung benötigt."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
 msgid ""
 "If your system has its root filesystem on an MD array (RAID), it needs to be "
 "started early during the boot sequence. If your root filesystem is on a "
@@ -72,18 +67,12 @@ msgstr ""
 #. Type: text
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
 msgid ""
 "If you know exactly which arrays are needed to bring up the root filesystem, "
 "and you want to postpone starting all other arrays to a later point in the "
 "boot sequence, enter the arrays to start here. Alternatively, enter 'all' to "
 "simply start all available arrays."
-msgstr ""
-"Wenn Sie genau wissen welche Verbünde benötigt werden, um das "
-"Wurzeldateisystem zu starten, geben Sie diese hier ein. Alternativ geben Sie "
-"\"all\" ein, um alle verfügbaren Verbünde zu starten. Falls Sie keine "
-"Verbünde für das Wurzeldateisystem starten müssen oder wollen, lassen Sie "
-"die Antwort leer (oder geben \"none\" ein)."
+msgstr "Wenn Sie genau wissen welche Verbünde benötigt werden, um das Wurzeldateisystem zu starten, und Sie den Start der anderen Verbünde auf einen späteren Zeitpunkt in der Bootreihenfolge verschieben wollen, geben Sie die zu startenden Verbünde hier ein. Alternativ geben Sie \"all\" ein, um alle verfügbaren Verbünde zu starten."
 
 #. Type: text
 #. Description
@@ -92,37 +81,37 @@ msgid ""
 "If you do not need or want to start any arrays for the root filesystem, "
 "leave the answer blank (or enter 'none'). This may be the case if you are "
 "using kernel autostart or do not need any arrays to boot."
-msgstr ""
+msgstr "Falls Sie keine RAID Verbünde für das Wurzeldateisystem benötigen oder starten wollen, lassen Sie die Antwort leer (oder geben 'none' ein). Dies könnte der Fall sein, wenn Sie entweder die Autostartfunktion des Kernels verwenden oder keine RAID Verbünde zum Booten benötigen."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:3001
 msgid "An error occurred: device node does not exist"
-msgstr ""
+msgstr "Ein Fehler ist aufgetreten: Geräteknoten existiert nicht"
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:4001
 msgid "An error occurred: not a block device"
-msgstr ""
+msgstr "Ein Fehler ist aufgetreten: kein Blockgerät"
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:5001
 msgid "An error occurred: not an MD array"
-msgstr ""
+msgstr "Ein Fehler ist aufgetreten: kein RAID Verbund"
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:6001
 msgid "An error occurred: array not listed in mdadm.conf file"
-msgstr ""
+msgstr "Ein Fehler ist aufgetreten: Verbund nicht in der Datei mdadm.conf aufgeführt"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:7001
 msgid "Proceed with starting arrays not listed in mdadm.conf?"
-msgstr ""
+msgstr "Mit dem Starten der nicht in mdadm.conf aufgeführten Verbünde fortfahren?"
 
 #. Type: boolean
 #. Description
@@ -131,7 +120,7 @@ msgid ""
 "The array you have specified (${array}) is not listed in the configuration "
 "file ${config}. Therefore it cannot be started during boot, unless you "
 "correct the configuration file and recreate the initial ramdisk."
-msgstr ""
+msgstr "Der von Ihnen angegebene Verbund (${array}) ist in der Konfigurationsdatei ${config} nicht aufgeführt. Deshalb kann er während des Bootvorgangs nicht gestartet werden, es sei denn Sie korrigieren die Konfigurationsdatei und erzeugen die initiale Ramdisk neu."
 
 #. Type: boolean
 #. Description
@@ -139,7 +128,7 @@ msgstr ""
 msgid ""
 "Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend "
 "to continue."
-msgstr ""
+msgstr "Bitte lesen Sie /usr/share/doc/mdadm/README.upgrading-2.5.3.gz falls Sie beabsichtigen fortzufahren."
 
 #. Type: boolean
 #. Description
@@ -150,37 +139,30 @@ msgid ""
 "not need any arrays to be started as early as the initial ramdisk is loaded, "
 "you can simply continue. Alternatively, choose not to continue and enter "
 "'none' when prompted which arrays to start from the initial ramdisk."
-msgstr ""
+msgstr "Diese Warnung ist nur von Bedeutung wenn Sie RAID Verbünde, die von der initialen Ramdisk gestartet werden, benötigen, um booten zu können. Falls Sie die Autostartfunktion des Kernels verwenden oder kein RAID Verbund zum frühen Zeitpunkt des Ladens der initialen Ramdisk gestartet werden muß, können Sie einfach fortfahren. Alternativ wählen Sie nicht fortfahren und geben 'none' ein, wenn Sie gefragt werden, welche RAID Verbünde von der initialen Ramdisk gestartet werden sollen."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
 msgid "Do you want to start MD arrays automatically?"
-msgstr "Möchten Sie die RAID Laufwerke automatisch starten?"
+msgstr "Möchten Sie die RAID Verbünde automatisch starten?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
 msgid ""
 "Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
 "specified in /etc/mdadm/mdadm.conf, which have not yet been started. Unless "
 "you have compiled multiple device (MD) support into the kernel and marked "
 "all partitions part of MD arrays with type 0xfd (as those and only those "
 "will be started automatically by the kernel), this is probably what you want."
-msgstr ""
-"Sobald das Grundsystem hochgefahren ist, kann mdadm alle RAID Verbünde "
-"starten, die es findet und die noch nicht gestartet sind. Falls Sie keine "
-"RAID Unterstützung in den Kernel einkompiliert haben (in diesem Fall werden "
-"alle RAID Verbünde ohnehin automatisch gestartet), ist dies wahrscheinlich "
-"das, was Sie wollen."
+msgstr "Sobald das Grundsystem hochgefahren ist, kann mdadm alle in /etc/mdadm/mdadm.conf angegebenen RAID Verbünde starten, die noch nicht gestartet worden sind. Falls Sie nicht die RAID Unterstützung in den Kernel einkompiliert haben und alle Partitionen, die zu einem RAID Verbund gehören, mit dem Typ 0xfd markiert haben (weil diese und nur diese automatisch vom Kernel gestartet werden), ist dies wahrscheinlich das, was Sie wollen."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
 msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
-msgstr ""
+msgstr "Soll mdadm monatlich die Redundanzüberprüfung auf den RAID Verbünden ausführen?"
 
 #. Type: boolean
 #. Description
@@ -192,7 +174,7 @@ msgid ""
 "data loss. Note that this is a read-only check unless errors are found; if "
 "errors are found, mdadm will try to correct them, which may result in write "
 "access to the media."
-msgstr ""
+msgstr "Falls Ihr Kernel es unterstützt (>> 2.6.14) kann mdadm regelmäßig die Redundanz Ihrer RAID Verbünde überprüfen. Dies kann abhängig von Ihrer Installation ein resourcenintensiver Vorgang sein, der aber helfen kann, seltene Fälle von Datenverlust zu vermeiden. Bemerken Sie bitte, daß diese Überprüfung nur lesend erfolgt, solange keine Fehler gefunden werden. Falls Fehler gefunden werden, wird mdadm versuchen diese zu beheben, was zu schreibendem Zugriff auf das Medium führen kann."
 
 #. Type: boolean
 #. Description
@@ -200,19 +182,17 @@ msgstr ""
 msgid ""
 "The default, if turned on, is to run the checks on the first Sunday of every "
 "month at 01:06 o'clock."
-msgstr ""
+msgstr "Die Voreinstellung ist, falls eingeschaltet, die Überprüfung am ersten Sonntag jedes Monats um 01:06 Uhr durchzuführen."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
 msgid "Do you want to start the MD monitoring daemon?"
 msgstr "Möchten Sie den RAID Überwachungsdämon starten?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
 msgid ""
 "The MD (RAID) monitor daemon sends email notifications in response to "
 "important MD events (such as a disk failure). You probably want to enable it."
@@ -230,13 +210,10 @@ msgstr "Empfänger der Emailbenachrichtungen:"
 #. Type: string
 #. Description
 #: ../mdadm.templates:11001
-#, fuzzy
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notification for important MD events."
-msgstr ""
-"Geben Sie bitte die Emailadresse des Benutzers an, der die "
-"Emailbenachrichtigung für diese wichtigen RAID Ereignisse erhalten soll."
+msgstr "Geben Sie bitte die Emailadresse des Benutzers an, der die Emailbenachrichtigung für wichtige RAID Ereignisse erhalten soll."
 
 #~ msgid "Initialise the superblock if you reuse hard disks"
 #~ msgstr ""
