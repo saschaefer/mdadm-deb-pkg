@@ -3,6 +3,7 @@ mdadm (2.5.3.git200608202239-8) unstable; urgency=low
   * Updated debconf translations:
     - German by Mario Joußen.
     - Vietnamese by Clytie Siddall (closes: #390311).
+    - Dutch by Frans Pop (closes: #390955).
 
  -- martin f. krafft <madduck@debian.org>  Mon,  2 Oct 2006 08:17:06 +0200
 

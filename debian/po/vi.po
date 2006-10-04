@@ -3,8 +3,8 @@
 # Clytie Siddall <clytie@riverland.net.au>, 2005-2006.
 # 
 msgid ""
-""
-msgstr "Project-Id-Version: mdadm 2.5.3.git200608202239-6\n"
+msgstr ""
+"Project-Id-Version: mdadm 2.5.3.git200608202239-6\n"
 "Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
 "POT-Creation-Date: 2006-09-16 13:03+0200\n"
 "PO-Revision-Date: 2006-09-30 20:40+0930\n"
@@ -16,112 +16,133 @@ msgstr "Project-Id-Version: mdadm 2.5.3.git200608202239-6\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: LocFactoryEditor 1.6fc1\n"
 
-#.Type: string
-#.Description
+#. Type: string
+#. Description
 #: ../mdadm.templates:1001
 msgid "MD arrays needed for the root filesystem:"
 msgstr "Các mảng MD cần thiết cho hệ thống tập tin gốc:"
 
-#.Type: string
-#.Description
 # Variable: don't translate/Biến: đừng dịch
+#. Type: string
+#. Description
 #: ../mdadm.templates:1001
 msgid "${msg}"
 msgstr "${msg}"
 
-#.Type: string
-#.Description
+#. Type: string
+#. Description
 #: ../mdadm.templates:1001
 msgid ""
 "Please enter a space-separated list of devices, 'all', or 'none'. You may "
 "omit the leading '/dev/' and just enter e.g. \"md0 md1\", or \"md/1 md/d0\"."
-msgstr "Hãy nhập danh sách các thiết bị (định giới bằng dấu cách) hay « all » (tất "
-"cả) hay « none » (không có gì). Có thể bỏ phần « /dev/ » đi trước, chỉ nhập (v.d.) « md0 md1 » hay « md/1 md/d0 »."
+msgstr ""
+"Hãy nhập danh sách các thiết bị (định giới bằng dấu cách) hay « all » (tất "
+"cả) hay « none » (không có gì). Có thể bỏ phần « /dev/ » đi trước, chỉ nhập "
+"(v.d.) « md0 md1 » hay « md/1 md/d0 »."
 
-#.Type: text
-#.Description
+#. Type: text
+#. Description
 #: ../mdadm.templates:2001
 msgid "for internal use - only the long description is needed."
 msgstr "để sử dụng nội bộ — chỉ cần thiết mô tả dài."
 
-#.Type: text
-#.Description
+#. Type: text
+#. Description
 #: ../mdadm.templates:2001
 msgid ""
 "If your system has its root filesystem on an MD array (RAID), it needs to be "
 "started early during the boot sequence. If your root filesystem is on a "
 "logical volume (LVM), which is on MD, all constituent arrays need to be "
 "started."
-msgstr "Nếu hệ thống này có hệ thống tập tin gốc nằm trên mảng MD (RAID), nó cần phải được khởi chạy sớm trong dãy khởi động. Còn nếu hệ thống tập tin gốc nằm trên khối tin hợp lý (LVM) lần lượt nằm trên MD, mọi mảng hợp thành cần phải được khởi chạy."
+msgstr ""
+"Nếu hệ thống này có hệ thống tập tin gốc nằm trên mảng MD (RAID), nó cần "
+"phải được khởi chạy sớm trong dãy khởi động. Còn nếu hệ thống tập tin gốc "
+"nằm trên khối tin hợp lý (LVM) lần lượt nằm trên MD, mọi mảng hợp thành cần "
+"phải được khởi chạy."
 
-#.Type: text
-#.Description
+#. Type: text
+#. Description
 #: ../mdadm.templates:2001
 msgid ""
 "If you know exactly which arrays are needed to bring up the root filesystem, "
 "and you want to postpone starting all other arrays to a later point in the "
 "boot sequence, enter the arrays to start here. Alternatively, enter 'all' to "
 "simply start all available arrays."
-msgstr "Nếu bạn biết chính xác những mảng nào cần thiết để kích hoạt hệ thống tập tin gốc, và bạn muốn hoãn việc khởi chạy các mảng khác tới một điểm sau trong dãy khởi động, hãy nhập vào đây các mảng cần khởi chạy. Hoặc nhập « all » (tất cả) để khởi chạy đơn giản tất cả các mảng. "
+msgstr ""
+"Nếu bạn biết chính xác những mảng nào cần thiết để kích hoạt hệ thống tập "
+"tin gốc, và bạn muốn hoãn việc khởi chạy các mảng khác tới một điểm sau "
+"trong dãy khởi động, hãy nhập vào đây các mảng cần khởi chạy. Hoặc nhập « "
+"all » (tất cả) để khởi chạy đơn giản tất cả các mảng. "
 
-#.Type: text
-#.Description
+#. Type: text
+#. Description
 #: ../mdadm.templates:2001
 msgid ""
 "If you do not need or want to start any arrays for the root filesystem, "
 "leave the answer blank (or enter 'none'). This may be the case if you are "
 "using kernel autostart or do not need any arrays to boot."
-msgstr "Nếu bạn không cần hoặc muốn khởi chạy mảng nào cho hệ thống tập tin gốc, hãy bỏ trống câu trả lời này (hoặc nhập « none » [không có]). Trường hợp này có thể xảy ra nếu bạn ử dụng khả năng khởi động tự động hạt nhân (kernel autostart), hoặc không cần mảng nào để khởi động máy tính."
+msgstr ""
+"Nếu bạn không cần hoặc muốn khởi chạy mảng nào cho hệ thống tập tin gốc, hãy "
+"bỏ trống câu trả lời này (hoặc nhập « none » [không có]). Trường hợp này có "
+"thể xảy ra nếu bạn ử dụng khả năng khởi động tự động hạt nhân (kernel "
+"autostart), hoặc không cần mảng nào để khởi động máy tính."
 
-#.Type: text
-#.Description
+#. Type: text
+#. Description
 #: ../mdadm.templates:3001
 msgid "An error occurred: device node does not exist"
 msgstr "Gặp lỗi: nút thiết bị không tồn tại"
 
-#.Type: text
-#.Description
+#. Type: text
+#. Description
 #: ../mdadm.templates:4001
 msgid "An error occurred: not a block device"
 msgstr "Gặp lỗi: không phải là một thiết bị khối"
 
-#.Type: text
-#.Description
+#. Type: text
+#. Description
 #: ../mdadm.templates:5001
 msgid "An error occurred: not an MD array"
 msgstr "Gặp lỗi: không phải là một mảng MD"
 
-#.Type: text
-#.Description
+#. Type: text
+#. Description
 #: ../mdadm.templates:6001
 msgid "An error occurred: array not listed in mdadm.conf file"
 msgstr "Gặp lỗi: mảng không được liệt kê trong tập tin cấu hình « mdadm.conf »"
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:7001
 msgid "Proceed with starting arrays not listed in mdadm.conf?"
-msgstr "Tiếp tục với việc khởi chạy các mảng không được liệt kê trong tập tin cấu hình « mdadm.conf » không?"
+msgstr ""
+"Tiếp tục với việc khởi chạy các mảng không được liệt kê trong tập tin cấu "
+"hình « mdadm.conf » không?"
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:7001
 msgid ""
 "The array you have specified (${array}) is not listed in the configuration "
 "file ${config}. Therefore it cannot be started during boot, unless you "
 "correct the configuration file and recreate the initial ramdisk."
-msgstr "Mảng bạn đã xác định (${array}) không được liệt kê trong tập tin cấu hình ${config}. Vì vậy nó không thể được khởi chạy trong khi khởi động, nếu bạn không sửa tập tin cấu hình và tạo lại đĩa RAM đầu tiên."
+msgstr ""
+"Mảng bạn đã xác định (${array}) không được liệt kê trong tập tin cấu hình "
+"${config}. Vì vậy nó không thể được khởi chạy trong khi khởi động, nếu bạn "
+"không sửa tập tin cấu hình và tạo lại đĩa RAM đầu tiên."
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:7001
 msgid ""
 "Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend "
 "to continue."
-msgstr "Hãy tham chiếu đến tài liệu Đọc Đi « /usr/share/doc/mdadm/README.upgrading-2.5.3.gz » nếu bạn định tiếp tục."
+msgstr ""
+"Hãy tham chiếu đến tài liệu Đọc Đi « /usr/share/doc/mdadm/README.upgrading-"
+"2.5.3.gz » nếu bạn định tiếp tục."
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:7001
 msgid ""
 "This warning is only relevant if you need arrays to be started from the "
@@ -129,16 +150,22 @@ msgid ""
 "not need any arrays to be started as early as the initial ramdisk is loaded, "
 "you can simply continue. Alternatively, choose not to continue and enter "
 "'none' when prompted which arrays to start from the initial ramdisk."
-msgstr "Cảnh báo này chỉ là thích hợp nếu bạn cần thiết mảng được khởi chạy từ đĩa RAM đầu tiên, để có thể khởi động được. Nếu bạn sử dụng khả năng khởi chạy tự động hạt nhân (kernel autostart), hoặc không cần mảng nào được khởi chạy càng sớm khi nạp đĩa RAM đầu tiên, bạn đơn giản có thể tiếp tục lại. Hoặc chọn không tiếp tục, và nhập « none » (không có) khi được nhắc nhập những mảng nào cần khởi chạy từ đĩa RAM đầu tiên."
+msgstr ""
+"Cảnh báo này chỉ là thích hợp nếu bạn cần thiết mảng được khởi chạy từ đĩa "
+"RAM đầu tiên, để có thể khởi động được. Nếu bạn sử dụng khả năng khởi chạy "
+"tự động hạt nhân (kernel autostart), hoặc không cần mảng nào được khởi chạy "
+"càng sớm khi nạp đĩa RAM đầu tiên, bạn đơn giản có thể tiếp tục lại. Hoặc "
+"chọn không tiếp tục, và nhập « none » (không có) khi được nhắc nhập những "
+"mảng nào cần khởi chạy từ đĩa RAM đầu tiên."
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:8001
 msgid "Do you want to start MD arrays automatically?"
 msgstr "Bạn có muốn khởi chạy tự động các mảng MD không?"
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:8001
 msgid ""
 "Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
@@ -146,17 +173,23 @@ msgid ""
 "you have compiled multiple device (MD) support into the kernel and marked "
 "all partitions part of MD arrays with type 0xfd (as those and only those "
 "will be started automatically by the kernel), this is probably what you want."
-msgstr "Một khi hệ thống cơ bản được kích hoạt, mdadm có khả năng khởi chạy mọi "
-"mảng MD (RAID) được xác định trong tập tin cấu hinh « /etc/mdadm/mdadm.conf », mà chưa được khởi chạy. Nếu bạn đã không biên dịch khả năng hỗ trợ đa thiết bị (MD) vào hạt nhân và nhãn mọi phân vùng là phần của mảng MD với kiểu « 0xfd » (vì chúng và chỉ chúng sẽ được khởi chạy tự động bởi hạt nhân), trường hợp này rất có thể là điều bạn muốn."
+msgstr ""
+"Một khi hệ thống cơ bản được kích hoạt, mdadm có khả năng khởi chạy mọi mảng "
+"MD (RAID) được xác định trong tập tin cấu hinh « /etc/mdadm/mdadm.conf », mà "
+"chưa được khởi chạy. Nếu bạn đã không biên dịch khả năng hỗ trợ đa thiết bị "
+"(MD) vào hạt nhân và nhãn mọi phân vùng là phần của mảng MD với kiểu « 0xfd "
+"» (vì chúng và chỉ chúng sẽ được khởi chạy tự động bởi hạt nhân), trường hợp "
+"này rất có thể là điều bạn muốn."
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:9001
 msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
-msgstr "mdadm có nên chạy việc kiểm tra thừa hàng tháng trên những mảng MD không?"
+msgstr ""
+"mdadm có nên chạy việc kiểm tra thừa hàng tháng trên những mảng MD không?"
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:9001
 msgid ""
 "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
@@ -165,44 +198,54 @@ msgid ""
 "data loss. Note that this is a read-only check unless errors are found; if "
 "errors are found, mdadm will try to correct them, which may result in write "
 "access to the media."
-msgstr "Nếu hạt nhân hỗ trợ (≥2.6.14), mdadm có thể kiểm tra theo chu kỳ tình thừa của các mảng MD (RAID). Tiến trình này có thể chiếm nhiều tài nguyên hệ thống, phụ thuộc vào thiết lập, nhưng nó có thể giúp đỡ ngăn cản trường hợp mất dữ liệu (ít có). Ghi chú rằng việc kiểm tra này là chỉ đọc, nếu không gặp lỗi; còn nếu gặp lỗi, mdadm sẽ thử sửa chữa, mà có thể gây ra truy cập ghi vào vật chứa."
+msgstr ""
+"Nếu hạt nhân hỗ trợ (≥2.6.14), mdadm có thể kiểm tra theo chu kỳ tình thừa "
+"của các mảng MD (RAID). Tiến trình này có thể chiếm nhiều tài nguyên hệ "
+"thống, phụ thuộc vào thiết lập, nhưng nó có thể giúp đỡ ngăn cản trường hợp "
+"mất dữ liệu (ít có). Ghi chú rằng việc kiểm tra này là chỉ đọc, nếu không "
+"gặp lỗi; còn nếu gặp lỗi, mdadm sẽ thử sửa chữa, mà có thể gây ra truy cập "
+"ghi vào vật chứa."
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:9001
 msgid ""
 "The default, if turned on, is to run the checks on the first Sunday of every "
 "month at 01:06 o'clock."
-msgstr "Giá trị mặc định, nếu được bật, là chạy những việc kiểm tra vào ngày hôm Chủ Nhật thứ nhất của mỗi tháng, vào lúc 01:06 giờ (giờ ti)."
+msgstr ""
+"Giá trị mặc định, nếu được bật, là chạy những việc kiểm tra vào ngày hôm Chủ "
+"Nhật thứ nhất của mỗi tháng, vào lúc 01:06 giờ (giờ ti)."
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:10001
 msgid "Do you want to start the MD monitoring daemon?"
 msgstr "Bạn có muốn khởi chạy trình nền theo dõi MD không?"
 
-#.Type: boolean
-#.Description
+#. Type: boolean
+#. Description
 #: ../mdadm.templates:10001
 msgid ""
 "The MD (RAID) monitor daemon sends email notifications in response to "
 "important MD events (such as a disk failure). You probably want to enable it."
-msgstr "Trình nền theo dõi MD (RAID) gởi thư thông báo hưởng ứng sự kiện MD quan trọng "
-"(v.d. đĩa bị hỏng). Rất có thể là bạn nên bật chạy nó."
+msgstr ""
+"Trình nền theo dõi MD (RAID) gởi thư thông báo hưởng ứng sự kiện MD quan "
+"trọng (v.d. đĩa bị hỏng). Rất có thể là bạn nên bật chạy nó."
 
-#.Type: string
-#.Description
+#. Type: string
+#. Description
 #: ../mdadm.templates:11001
 msgid "Recipient for email notifications:"
 msgstr "Người nhận thư thông báo :"
 
-#.Type: string
-#.Description
+#. Type: string
+#. Description
 #: ../mdadm.templates:11001
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notification for important MD events."
-msgstr "Hãy nhập địa chỉ thư của người dùng nên nhận thư thông báo về sự kiện MD "
+msgstr ""
+"Hãy nhập địa chỉ thư của người dùng nên nhận thư thông báo về sự kiện MD "
 "quan trọng như vậy."
 
 #~ msgid "Initialise the superblock if you reuse hard disks"
@@ -212,7 +255,8 @@ msgstr "Hãy nhập địa chỉ thư của người dùng nên nhận thư thô
 #~ "WARNING! If you are using hard disks which have RAID superblocks from "
 #~ "earlier installations in different RAID arrays, you MUST zero each "
 #~ "superblock *before* activating the autostart feature."
-#~ msgstr "CẢNH BÁO : nếu bạn đang sử dụng đĩa cứng nào chứa siêu khối RAID từ bản "
+#~ msgstr ""
+#~ "CẢNH BÁO : nếu bạn đang sử dụng đĩa cứng nào chứa siêu khối RAID từ bản "
 #~ "cài đặt trước nằm trong  mảng RAID khác nhau, bạn CẦN PHẢI làm số không "
 #~ "mỗi siêu khối _trước_ khi kích hoạt tính năng khởi chạy tự động."
 
@@ -220,7 +264,8 @@ msgstr "Hãy nhập địa chỉ thư của người dùng nên nhận thư thô
 #~ "To do this, do not start the RAID devices automatically. First, zero the "
 #~ "superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-"
 #~ "reconfigure mdadm` to reactivate the autostart feature."
-#~ msgstr "Để làm như thế, đừng khởi chạy tự động những thiết bị RAID. Trước tiên, "
+#~ msgstr ""
+#~ "Để làm như thế, đừng khởi chạy tự động những thiết bị RAID. Trước tiên, "
 #~ "hãy làm số không siêu khối (« mdadm --zero-superblock /dev/mdX »). Sau "
 #~ "đó, chạy lệnh « dpkg-reconfigure mdadm » để kích hoạt tính năng khởi chạy "
 #~ "tự động."
@@ -230,7 +275,8 @@ msgstr "Hãy nhập địa chỉ thư của người dùng nên nhận thư thô
 #~ "root filesystem) later in the boot sequence. Doing so will give you "
 #~ "greater control over the arrays with the mdadm configuration file. "
 #~ "Starting all arrays at boot-time may be safer though."
-#~ msgstr "Tùy chọn bạn có khả năng khởi chạy các mảng khác (những mảng không phải "
+#~ msgstr ""
+#~ "Tùy chọn bạn có khả năng khởi chạy các mảng khác (những mảng không phải "
 #~ "cần thiết cho hệ thống tập tin gốc) vào lúc sau trong dãy khởi động. Làm "
 #~ "như thế sẽ cho bạn độ điều khiển hơn với các mảng bằng tập tin cấu hình "
 #~ "mdadm. Tuy nhiên, có thể là an toàn hơn để khởi chạy mọi mảng vào lúc "
@@ -242,7 +288,8 @@ msgstr "Hãy nhập địa chỉ thư của người dùng nên nhận thư thô
 #~ "should only be used if the md driver is compiled as a module. If it is "
 #~ "compiled into your kernel, the automatic startup will be performed at "
 #~ "boot time by the kernel and therefore you should not choose this option."
-#~ msgstr "Nếu bạn chọn tự động khởi động thiết bị RAID, khi hệ thống khởi động, nó "
+#~ msgstr ""
+#~ "Nếu bạn chọn tự động khởi động thiết bị RAID, khi hệ thống khởi động, nó "
 #~ "tự động phát hiện và tập hợp các thiết bị RAID. Bạn chỉ nên sử dụng tùy "
 #~ "chọn này nếu đã biên dịch trình hỗ trợ thiết bị md là một mô-đun. Nếu đã "
 #~ "biên dịch nó vào hạt nhân bạn, thì hạt nhân sẽ tự động khởi động, vì vậy "
@@ -252,6 +299,7 @@ msgstr "Hãy nhập địa chỉ thư của người dùng nên nhận thư thô
 #~ "When the RAID monitor daemon runs, email notifications are sent when a "
 #~ "disk belonging to a RAID array fails or changes its status for some "
 #~ "reason."
-#~ msgstr "Khi trình nền (dæmon) theo dõi RAID chạy thì nó gửi thông báo qua thư mỗi "
+#~ msgstr ""
+#~ "Khi trình nền (dæmon) theo dõi RAID chạy thì nó gửi thông báo qua thư mỗi "
 #~ "lúc một đĩa thuộc về một mảng RAID có hỏng hóc hoặc thay đổi trạng thái "
 #~ "vì một lý do nào đó,"
