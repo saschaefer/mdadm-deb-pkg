@@ -1,11 +1,14 @@
 mdadm (2.5.3.git200608202239-8) unstable; urgency=low
 
+  * This revision is dedicated to Peter Samuelson for his RAID10 expertise^W
+    educated guess^W^W pure luck. (:
+  * Documentation updates.
   * Updated debconf translations:
     - German by Mario Joußen.
     - Vietnamese by Clytie Siddall (closes: #390311).
     - Dutch by Frans Pop (closes: #390955).
 
- -- martin f. krafft <madduck@debian.org>  Mon,  2 Oct 2006 08:17:06 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu,  5 Oct 2006 12:23:05 +0200
 
 mdadm (2.5.3.git200608202239-7) unstable; urgency=medium
 
