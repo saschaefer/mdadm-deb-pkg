@@ -1,9 +1,8 @@
 mdadm for Debian
 ================
 
-Please make sure you read into /usr/share/doc/mdadm/NEWS.Debian.gz . Also, the
-documentation for the kernel md driver is included in
-/usr/share/doc/mdadm/md.txt.gz as well as the md(4) manpage. *Do* read those!
+Please make sure you read into /usr/share/doc/mdadm/NEWS.Debian.gz and the
+documents listed under "further reading" a little later in this file.
 
 Upgrading and the configuration file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,6 +39,20 @@ See http://www.miracleas.com/BAARF/BAARF2.html . The package maintainer could
 not possibly come up with so much emotion over such a technical topic.
 
 See also the RAID5_versus_RAID10.txt.gz document included with this package.
+
+Further reading
+~~~~~~~~~~~~~~~
+The documentation for the kernel md driver is included in
+/usr/share/doc/mdadm/md.txt.gz. In addition, the md(4) manpage provides
+valuable information about the applicable concepts. Do read those!
+
+Further documents of interest:
+  - Linux software RAID HOWTO:
+      http://tldp.org/HOWTO/Software-RAID-HOWTO.html
+  - linux-raid mailing list info:
+      http://vger.kernel.org/vger-lists.html#linux-raid
+  - linux-raid mailing list FAQ:
+      http://www.faqs.org/contrib/linux-raid/
 
 Upstream
 ~~~~~~~~

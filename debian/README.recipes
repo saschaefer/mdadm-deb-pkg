@@ -3,7 +3,8 @@ mdadm recipes
 
 The following examples/recipes may help you with your mdadm experience. I'll
 leave it as an exercise to use the correct device names and parameters in each
-case.
+case. You can find pointers to additional documentation in the README.Debian
+file.
 
 Enjoy. Submissions welcome.
 
