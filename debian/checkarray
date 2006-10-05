@@ -92,7 +92,7 @@ is_true()
 }
 
 DEBIANCONFIG=/etc/default/mdadm
-[ -f $DEBIANCONFIG ] && . $DEBIANCONFIG
+[ -r $DEBIANCONFIG ] && . $DEBIANCONFIG
 if [ $cron = 1 ] && ! is_true ${AUTOCHECK:-false}; then
   [ $quiet -lt 1 ] && echo "$PROGNAME: I: disabled in $DEBIANCONFIG ." >&2
   exit 0
