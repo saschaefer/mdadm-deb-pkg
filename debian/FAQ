@@ -125,7 +125,25 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   workstation on RAID5. Anything disk-intensive brings the system to its
   knees; I will have to migrate to RAID10 at one point.
 
-5. What is the difference between RAID1+0 and RAID10?
+5. How to convert RAID5 to RAID10?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  You have me convinced, I want to convert my RAID5 to a RAID10. I have three
+  disks in the RAID and a spare, so I thought I'd just remove the spare and
+  one of the three disks, create a degraded RAID10 on these two, copy data,
+  then add the other two disks to the new RAID10. However, mdadm cannot
+  assemble a RAID10 with 50% missing devices when I ask it to:
+
+    mdadm --create -l 10 -n4 -pn2 /dev/md1 /dev/sd[cd] missing missing
+
+  For some reason, mdadm actually cares about the order of devices you give
+  it. If you intersperse the missing keywords with the physical drives, it
+  should work:
+
+    mdadm --create -l 10 -n4 -pn2 /dev/md1 /dev/sdc missing /dev/sdd missing
+
+  See: http://marc.theaimsgroup.com/?l=linux-raid&m=116004333406395&w=2
+
+6. What is the difference between RAID1+0 and RAID10?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   RAID1+0 is a form of RAID in which a RAID0 is striped across two RAID1
   arrays. To assemble it, you create two RAID1 arrays and then create a RAID0
@@ -139,7 +157,7 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
   I prefer RAID10 over RAID1+0.
 
-6. (One of) my RAID arrays is busy and cannot be stopped. What gives?
+7. (One of) my RAID arrays is busy and cannot be stopped. What gives?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   It is perfectly normal for mdadm to report the array with the root
   filesystem to be busy on shutdown. The reason for this is that the root
@@ -159,11 +177,11 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
       * EVMS
     * The array is used by a process (check with `lsof')
   
-7. Should I use RAID0 (or linear)?
+8. Should I use RAID0 (or linear)?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   No.
 
-7b. Why not?
+8b. Why not?
 ~~~~~~~~~~~~
   RAID0 has zero redundancy. If you stripe a RAID0 across X disks, you
   increase the likelyhood of complete loss of the filesystem by a factor of X.
