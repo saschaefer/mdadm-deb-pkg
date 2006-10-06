@@ -10,13 +10,14 @@
 
 set -eu
 
+ME="${0##*/}"
 MDADM=/sbin/mdadm
 DEBIANCONFIG=/etc/default/mdadm
 CONFIG=/etc/mdadm/mdadm.conf
 
-test -f $DEBIANCONFIG && . $DEBIANCONFIG
+test -r $DEBIANCONFIG && . $DEBIANCONFIG
 
-if [ -n "$MDADM_MAILADDR__" ]; then
+if [ -n "${MDADM_MAILADDR__:-}" ]; then
   # honour MAILADDR from the environment (from postinst)
   MAILADDR="$MDADM_MAILADDR__"
 else
@@ -32,7 +33,7 @@ case "${1:-}" in
     # only barf if the config file specifies anything else than MAILADDR
     if egrep -qv '^(MAILADDR.*|#.*|)$' $CONFIG 2>/dev/null; then
       echo "E: ${##*/}: $CONFIG already exists." >&2
-      exit 3
+      exit -1
     fi
     
     mkdir --parent ${CONFIG%/*}
@@ -62,24 +63,32 @@ MAILADDR $MAILADDR
 
 _eof
 
+error=0
 if [ ! -r /proc/mdstat ]; then
-  echo W: MD subsystem is not loaded, thus I cannot scan for arrays. >&2
+  echo W: $ME: MD subsystem is not loaded, thus I cannot scan for arrays. >&2
+  error=1
 elif [ ! -r /proc/partitions ]; then
-  echo W: /proc/partitions cannot be read, thus I cannot scan for arrays. >&2
+  echo W: $ME: /proc/partitions cannot be read, thus I cannot scan for arrays. >&2
+  error=2
 else
   echo "# definitions of existing MD arrays"
-  $MDADM --examine --scan --config=partitions
-  echo
+  if ! $MDADM --examine --scan --config=partitions; then
+    error=$(($? + 128))
+    echo W: $ME: failed to scan for partitions. >&2
+    echo "### WARNING: scan failed."
+  else
+    echo
+  fi
 fi
 
-cat <<_eof
+if [ $generate -eq 1 ]; then
+  cat <<_eof
 # This file was auto-generated on $(date -R)
 # by mkconf \$Id$
 _eof
 
-if [ $generate -eq 1 ]; then
   mkdir -p /var/lib/mdadm
   md5sum $CONFIG > /var/lib/mdadm/mdadm.conf-generated
 fi
 
-exit 0
+exit $error
