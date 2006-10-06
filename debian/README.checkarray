@@ -15,6 +15,8 @@ normal response to read errors which is to generate the 'correct' data and try
 to write that out - so it is possible that a 'check' will trigger a write.
 However in the absence of read errors it is read-only.
 
- -- martin f. krafft <madduck@debian.org>  Tue, 20 Aug 2006 14:08:05 +0100
+You can cancel a running array check with the -x option to checkarray.
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 06 Oct 2006 15:39:58 +0200
 
 $Id$

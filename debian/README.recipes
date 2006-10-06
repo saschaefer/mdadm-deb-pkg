@@ -137,6 +137,6 @@ Enjoy. Submissions welcome.
     # if this does not work (you need a 2.6 kernel), try:
     mdadm --assemble --update super-minor /dev/md4 /dev/sd[abc]1
 
- -- martin f. krafft <madduck@debian.org>  Tue, 01 Aug 2006 12:08:22 +0100
+ -- martin f. krafft <madduck@debian.org>  Fri, 06 Oct 2006 15:39:58 +0200
 
 $Id$
