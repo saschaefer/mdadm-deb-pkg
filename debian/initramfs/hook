@@ -97,6 +97,7 @@ if [ ! -f $CONFIG ]; then
   
 else 
   
+  use_temp=0
   if [ -e /var/lib/mdadm/CONF-UNCHECKED ]; then
     # the file comes from an old installation and hence is not guaranteed to
     # work. We thus better create one and start all arrays to be sure.
@@ -104,6 +105,21 @@ else
     echo "W: mdadm: unchecked configuration file: $CONFIG" >&2
     echo "W: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
 
+    use_temp=1
+  elif ! grep -q '^ARRAY' $CONFIG; then
+    # the file defines no ARRAYs. We better create a temporary file to be
+    # sure.
+
+    echo "W: mdadm: $CONFIG defines no arrays." >&2
+    use_temp=1
+
+  else
+    # this is the ideal case
+    install_config $CONFIG $DESTMDADMCONF
+    echo "I: mdadm: using configuration file: $CONFIG" >&2
+  fi
+
+  if [ $use_temp -eq 1 ]; then
     tmpfile="${DESTMDADMCONF}.tmp"
     if /usr/share/mdadm/mkconf generate $tmpfile; then
       # all is well, we now have a temporary configuration file
@@ -120,11 +136,6 @@ else
       fi
     fi
     rm -f $tmpfile
-
-  else
-    # this is the ideal case
-    install_config $CONFIG $DESTMDADMCONF
-    echo "I: mdadm: using configuration file: $CONFIG" >&2
   fi
 
 fi
