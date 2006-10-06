@@ -54,8 +54,7 @@ case "${1:-}" in
       if /usr/share/mdadm/mkconf generate $CONFIG 2>/dev/null; then
         echo done. >&2
       else
-        echo "failed (/proc probably not mounted)." >&2
-        rm -f $CONFIG
+        echo "done (failed to scan arrays; /proc probably not mounted)." >&2
       fi
     elif dpkg --compare-versions "${2:-2.5.3-1}" le 2.5.3-1; then
       # we're upgrading from before 2.5.3-1 and there's apparently already
