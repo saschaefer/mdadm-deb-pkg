@@ -1,12 +1,14 @@
-mdadm (2.5.3.git200608202239-8) unstable; urgency=medium
+mdadm (2.5.3.git200608202239-8) unstable; urgency=low
 
   * This revision is dedicated to Peter Samuelson for his RAID10 expertise^W
     educated guess^W^W pure luck. (:
   * Documentation updates.
+  * Now writes minimal mdadm.conf file even if the MD subsystem has not been
+    loaded and the scan for arrays thus failed.
+  * Now tries to ensure that the configuration file used for the initramfs
+    actually defines arrays.
   * Now preserves MAILADDR from an existing mdadm.conf when generating a new
     one.
-  * Now writes minimal mdadm.conf file even if the MD subsystem has not been
-    loaded.
   * Updated debconf translations:
     - German by Mario Joußen.
     - Vietnamese by Clytie Siddall (closes: #390311).
