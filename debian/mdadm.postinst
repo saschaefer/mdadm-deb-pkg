@@ -43,9 +43,14 @@ case "${1:-}" in
       cp -a /etc/mdctl/mdctl.conf /etc/mdadm/mdadm.conf
     fi
 
+    db_get mdadm/mail_to
+    MAILADDR="${RET:-root}"
+
     [ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG
     if [ ! -f $CONFIG ]; then
       echo -n 'Generating mdadm.conf... ' >&2
+      # pass the MAILADDR variable into the script
+      MDADM_MAILADDR__="$MAILADDR"; export MDADM_MAILADDR__
       if /usr/share/mdadm/mkconf generate $CONFIG 2>/dev/null; then
         echo done. >&2
       else
@@ -59,6 +64,17 @@ case "${1:-}" in
       md5sum $CONFIG > /var/lib/mdadm/CONF-UNCHECKED
     fi
 
+    if [ -w $CONFIG ] && [ -z "${MDADM_MAILADDR__:-}" ]; then
+      # if the configuration is writeable but has not been written just
+      # before, then edit it to reflect the MAILADDR preference
+      if grep -q '^MAILADDR' $CONFIG; then
+        sed -i -e "s,^MAILADDR.*,MAILADDR $MAILADDR," $CONFIG
+      else
+        echo "MAILADDR $MAILADDR" >> $CONFIG
+      fi
+    fi
+    unset MDADM_MAILADDR__
+
     db_get mdadm/initrdstart
     INITRDSTART="${RET:-all}"
     db_get mdadm/autostart
@@ -67,8 +83,6 @@ case "${1:-}" in
     AUTOCHECK="${RET:-true}"
     db_get mdadm/start_daemon
     START_DAEMON="${RET:-true}"
-    db_get mdadm/mail_to
-    MAILADDR="${RET:-root}"
 
     cat <<_eof > $DEBIANCONFIG
 # mdadm Debian configuration
@@ -111,12 +125,6 @@ START_DAEMON=$START_DAEMON
 #
 USE_DEPRECATED_MDRUN=false
 _eof
-
-    if grep -q '^MAILADDR' $CONFIG; then
-      sed -i -e "s,^MAILADDR.*,MAILADDR $MAILADDR," $CONFIG
-    else
-      echo "MAILADDR $MAILADDR" >> $CONFIG
-    fi
 
     db_stop
 

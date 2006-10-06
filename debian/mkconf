@@ -12,21 +12,25 @@ set -eu
 
 MDADM=/sbin/mdadm
 DEBIANCONFIG=/etc/default/mdadm
-
-if [ ! -d /proc/$$ ]; then
-  echo E: /proc not available. Exiting... >&2
-  exit 2
-fi
+CONFIG=/etc/mdadm/mdadm.conf
 
 test -f $DEBIANCONFIG && . $DEBIANCONFIG
 
+if [ -n "$MDADM_MAILADDR__" ]; then
+  # honour MAILADDR from the environment (from postinst)
+  MAILADDR="$MDADM_MAILADDR__"
+else
+  # preserve existing MAILADDR
+  MAILADDR="$(sed -ne 's,MAILADDR ,,p' $CONFIG 2>/dev/null || echo root)"
+fi
+
 generate=0
-CONFIG=/etc/mdadm/mdadm.conf
 [ "${1:-}" = force-generate ] && rm -f $CONFIG
 case "${1:-}" in
   generate|force-generate)
     [ -n "${2:-}" ] && CONFIG=$2
-    if [ -e $CONFIG ]; then
+    # only barf if the config file specifies anything else than MAILADDR
+    if egrep -qv '^(MAILADDR.*|#.*|)$' $CONFIG 2>/dev/null; then
       echo "E: ${##*/}: $CONFIG already exists." >&2
       exit 3
     fi
@@ -43,33 +47,25 @@ cat <<_eof
 # Please refer to mdadm.conf(5) for information about this file.
 #
 
-_eof
-
-if [ -r /proc/partitions ]; then
-  cat <<_eof
-# scan all partitions (/proc/partitions) for MD superblocks"
+# by default, scan all partitions (/proc/partitions) for MD superblocks.
+# alternatively, specify devices to scan, using wildcards if desired.
 DEVICE partitions
 
-_eof
-else
-  echo E: cannot read /proc/partitions and thus cannot do my magic. >&2
-  exit 1
-fi
-
-cat <<_eof
 # auto-create devices with Debian standard permissions
 CREATE owner=root group=disk mode=0660 auto=yes
 
 # automatically tag new arrays as belonging to the local system
 HOMEHOST <system>
 
-# instruct the monitoring daemon to send mail alerts to root
-MAILADDR root
+# instruct the monitoring daemon where to send mail alerts
+MAILADDR $MAILADDR
 
 _eof
 
 if [ ! -r /proc/mdstat ]; then
   echo W: MD subsystem is not loaded, thus I cannot scan for arrays. >&2
+elif [ ! -r /proc/partitions ]; then
+  echo W: /proc/partitions cannot be read, thus I cannot scan for arrays. >&2
 else
   echo "# definitions of existing MD arrays"
   $MDADM --examine --scan --config=partitions
