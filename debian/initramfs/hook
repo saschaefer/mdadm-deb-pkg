@@ -90,9 +90,7 @@ if [ ! -f $CONFIG ]; then
     install_config $CONFIG $DESTMDADMCONF
     echo "I: mdadm: auto-generated the mdadm.conf configuration file." >&2
   else
-    # we failed to auto-generate, so remove the file and let the emergency
-    # procedure take over
-    rm -f $CONFIG
+    # we failed to auto-generate, so let the emergency procedure take over
     echo "W: mdadm: failed to auto-generate the mdadm.conf file." >&2
     echo "W: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
   fi
@@ -119,8 +117,6 @@ else
       if grep -q '^ARRAY' $CONFIG; then
         echo "W: mdadm: using the unchecked file and hoping for the best..." >&2
         install_config $CONFIG $DESTMDADMCONF
-      else
-        echo "W: mdadm: no ARRAYs defined in unchecked mdadm.conf, cannot use..." >&2
       fi
     fi
     rm -f $tmpfile
@@ -133,9 +129,14 @@ else
 
 fi
 
-# if at this point, $DESTMDADMCONF does not exist, we must let the initramfs
-# handle stuff.
+# if at this point, $DESTMDADMCONF does not exist or it does not contain any
+# ARRAY statements, we must let the initramfs handle stuff.
 if [ ! -f $DESTMDADMCONF ]; then
+  echo "W: mdadm: no configuration file available." >&2
+  echo "W: mdadm: falling back to emergency procedure in initramfs." >&2
+  exit 0
+elif ! grep -q '^ARRAY' $DESTMDADMCONF; then
+  echo "W: mdadm: no arrays defined in configuration file." >&2
   echo "W: mdadm: falling back to emergency procedure in initramfs." >&2
   exit 0
 else
