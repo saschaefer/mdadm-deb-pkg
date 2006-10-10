@@ -157,7 +157,45 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
   I prefer RAID10 over RAID1+0.
 
-7. (One of) my RAID arrays is busy and cannot be stopped. What gives?
+7. Which RAID10 layout scheme should I use
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  RAID10 gives you the choice between three ways of laying out the blocks on
+  the disk. Assuming a simple 4 drive setup with 2 copies of each block, then
+  if A,B,C are data blocks, a,b their parts, and 1,2 denote their copies, the
+  following would be a classic RAID1+0 where 1,2 and 3,4 are RAID0 pairs
+  combined into a RAID1:
+
+  near=2 would be (this is the classic RAID1+0)
+
+    hdd1  Aa1 Ba1 Ca1
+    hdd2  Aa2 Ba2 Ca2
+    hdd3  Ab1 Bb1 Cb1
+    hdd4  Ab2 Bb2 Cb2
+
+  offset=2 would be
+
+    hdd1  Aa1 Bb2 Ca1 Db2
+    hdd2  Ab1 Aa2 Cb1 Ca2
+    hdd3  Ba1 Ab2 Da1 Cb2
+    hdd4  Bb1 Ba2 Db1 Da2
+
+  far=2 would be
+
+    hdd1  Aa1 Ca1  .... Bb2 Db2
+    hdd2  Ab1 Cb1  .... Aa2 Ca2
+    hdd3  Ba1 Da1  .... Ab2 Cb2
+    hdd4  Bb1 Db1  .... Ba2 Da2
+
+  Where the second set start half-way through the drives.
+  
+  The advantage of far= is that you can easily spread a long sequential read
+  across the drives.  The cost is more seeking for writes. offset= can
+  possibly get similar benefits with large enough chunk size. Neither upstream
+  nor the upstream maintainer have tried to understand all the implications of
+  that layout. It was added simply because it is a supported layout in DDF and
+  DDF support is a goal.
+
+8. (One of) my RAID arrays is busy and cannot be stopped. What gives?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   It is perfectly normal for mdadm to report the array with the root
   filesystem to be busy on shutdown. The reason for this is that the root
@@ -177,11 +215,11 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
       * EVMS
     * The array is used by a process (check with `lsof')
   
-8. Should I use RAID0 (or linear)?
+9. Should I use RAID0 (or linear)?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   No.
 
-8b. Why not?
+9b. Why not?
 ~~~~~~~~~~~~
   RAID0 has zero redundancy. If you stripe a RAID0 across X disks, you
   increase the likelyhood of complete loss of the filesystem by a factor of X.
@@ -193,8 +231,30 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
  -- martin f. krafft <madduck@debian.org>  Fri, 06 Oct 2006 15:39:58 +0200
 
-9. Can I cancel a running array check (checkarray)?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+10. Can I cancel a running array check (checkarray)?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   See the -x option in the `checkarray --help` output.
+
+11. mdadm warns about duplicate/similar superblocks; what gives?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  In certain configurations, especially if your last partition extends all the
+  way to the end of the disk, mdadm may display a warning like:
+   
+    mdadm: WARNING /dev/hdc3 and /dev/hdc appear to have very similar
+    superblocks. If they are really different, please --zero the superblock on
+    one. If they are the same or overlap, please remove one from the DEVICE
+    list in mdadm.conf.
+
+  There are two ways to solve this:
+
+  (a) recreate the arrays with version-1 superblocks, which is not always an
+      option -- you cannot yet upgrade version-0 to version-1 superblocks for
+      existing arrays.
+
+  (b) instead of 'DEVICE partitions', list exactly those devices that are
+      components of MD arrays on your system. So in the above example:
+
+        - DEVICE partitions
+        + DEVICE /dev/hd[ab]* /dev/hdc[123]
 
 $Id$
