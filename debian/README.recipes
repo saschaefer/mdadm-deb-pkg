@@ -134,8 +134,11 @@ Enjoy. Submissions welcome.
     # for example, to set the preferred minor to 4:
     mdadm --assemble /dev/md4 /dev/sd[abc]1
 
-    # if this does not work (you need a 2.6 kernel), try:
-    mdadm --assemble --update super-minor /dev/md4 /dev/sd[abc]1
+    # this only works on 2.6 kernels, and only for RAID levels of 1 and above.
+    # for other MD arrays, you need to specify --update explicitly:
+    mdadm --assemble --update=super-minor /dev/md4 /dev/sd[abc]1
+
+    # see also item 12 in the FAQ contained with the Debian package.
 
  -- martin f. krafft <madduck@debian.org>  Fri, 06 Oct 2006 15:39:58 +0200
 

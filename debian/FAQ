@@ -229,8 +229,6 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   If you want/must used LVM or RAID0, put it on RAID1 arrays (RAID10/RAID1+0,
   or LVM on RAID1).
 
- -- martin f. krafft <madduck@debian.org>  Fri, 06 Oct 2006 15:39:58 +0200
-
 10. Can I cancel a running array check (checkarray)?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   See the -x option in the `checkarray --help` output.
@@ -256,5 +254,29 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
         - DEVICE partitions
         + DEVICE /dev/hd[ab]* /dev/hdc[123]
+
+12. mdadm -E / mkconf report different arrays with the same device
+    name / minor number. What gives?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  In almost all cases, mdadm updates the super-minor field in an array's
+  superblock when assembling the array. It does *not* do this for RAID0
+  arrays. Thus, you may end up seeing something like this when you run 
+  mdadm -E or mkconf:
+
+    ARRAY /dev/md0 level=raid0 num-devices=2 UUID=abcd...
+    ARRAY /dev/md0 level=raid1 num-devices=2 UUID=dcba...
+
+  Note how the two arrays have different UUIDs but both appear as /dev/md0.
+
+  The solution in this case is to explicitly tell mdadm to update the
+  superblock of the RAID0 array. Assuming that the RAID0 array in the above
+  example should really be /dev/md1:
+
+    mdadm --stop /dev/md1
+    mdadm --assemble --update=super-minor --uuid=abcd... /dev/md1
+
+  See also http://bugs.debian.org/386315 and recipe #12 in README.recipes .
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 06 Oct 2006 15:39:58 +0200
 
 $Id$

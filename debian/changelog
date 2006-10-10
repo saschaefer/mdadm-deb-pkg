@@ -4,12 +4,16 @@ mdadm (2.5.3.git200610100838-1) unstable; urgency=low
     - --examine now reports chunk size also for RAID6 and RAID10
     - fix endianness issues with v1 superblocks (closes: #385726) and bitmap
       metadata.
-    - improved the message when mdadm detects similar superblocks
+    - improved message when mdadm detects similar superblocks
       (closes: #385951).
+    - Documents that the automatic update of the super-minor field in the
+      superblock when using a 2.6 kernel only applies to RAID levels 1 and
+      higher. RAID0 array superblocks must be manually updated
+      (closes: #386315, #388172).
   * Removed patch previously used to fix #385951 because it's not adequate.
     See the bug log for reasons.
 
- -- martin f. krafft <madduck@debian.org>  Tue, 10 Oct 2006 08:38:50 +0200
+ -- martin f. krafft <madduck@debian.org>  Tue, 10 Oct 2006 18:26:11 +0200
 
 mdadm (2.5.3.git200608202239-8) unstable; urgency=low
 
