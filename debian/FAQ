@@ -277,6 +277,61 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
   See also http://bugs.debian.org/386315 and recipe #12 in README.recipes .
 
- -- martin f. krafft <madduck@debian.org>  Fri, 06 Oct 2006 15:39:58 +0200
+13. Can a MD array be partitioned?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  For a MD array to be able to hold partitions, it must be created as
+  a "partitionable array", using the configuration auto=part on the command
+  line or in the configuration file, or by using the standard naming scheme
+  (md_d* or md/d*) for partitionable arrays:
+
+    mdadm --create --auto=yes ... /dev/md_d0 ...
+    # see mdadm(8) manpage about the values of the --auto keyword
+
+14. When would I use partitionable arrays?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  This answer by Doug Ledford is shamelessly adapted from [0] (with
+  permission):
+
+    First, not all MD types make sense to be split up, e.g. multipath. For
+    those types, when a disk fails, the *entire* disk is considered to have
+    failed, but with different arrays you won't switch over to the next path
+    until each MD array has attempted to access the bad path. This can have
+    obvious bad consequences for certain array types that do automatic
+    failover from one port to another (you can end up getting the array in
+    a loop of switching ports repeatedly to satisfy the fact that one array
+    failed over during a path down, then the path came back up, and another
+    array stayed on the old path because it didn't send any commands during
+    the path down time period).
+
+    Second, convenience. Assume you have a 6 disk RAID5 array. If a disk
+    fails and you are using a partitioned MD array, then all the partitions on
+    the disk will already be handled without using that disk. No need to
+    manually fail any still active array members from other arrays.
+
+    Third, safety. Again with the raid5 array. If you use multiple arrays on
+    a single disk, and that disk fails, but it only failed on one array, then
+    you now need to manually fail that disk from the other arrays before
+    shutting down or hot swapping the disk. Generally speaking, that's not
+    a big deal, but people do occasionally have fat finger syndrome and this
+    is a good opportunity for someone to accidentally fail the wrong disk, and
+    when you then go to remove the disk you create a two disk failure instead
+    of one and now you are in real trouble.
+
+    Forth, to respond to what you wrote about independent of each other --
+    part of the reason why you partition. I would argue that's not true. If
+    your goal is to salvage as much use from a failing disk as possible, then
+    OK. But, generally speaking, people that have something of value on their
+    disks don't want to salvage any part of a failing disk, they want that
+    disk gone and replaced immediately. There simply is little to no value in
+    an already malfunctioning disk. They're too cheap and the data stored on
+    them too valuable to risk loosing something in an effort to further
+    utilize broken hardware. This of course is written with the understanding
+    that the latest MD RAID code will do read error rewrites to compensate for
+    minor disk issues, so anything that will throw a disk out of an array is
+    more than just a minor sector glitch.
+
+  0. http://marc.theaimsgroup.com/?l=linux-raid&m=116117813315590&w=2
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 18 Oct 2006 15:56:32 +0200
 
 $Id$
