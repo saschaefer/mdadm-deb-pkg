@@ -47,6 +47,8 @@ The documentation for the kernel md driver is included in
 valuable information about the applicable concepts. Do read those!
 
 Further documents of interest:
+  - Linux-RAID reference Wiki:
+      http://linux-raid.osdl.org
   - Linux software RAID HOWTO:
       http://tldp.org/HOWTO/Software-RAID-HOWTO.html
   - linux-raid mailing list info:
