@@ -13,7 +13,7 @@ set -eu
 case "${1:-}" in
   configure|reconfigure)
 
-    if [ ! -f /proc/mdstat ] && [ -x $(command -v modprobe) ]; then
+    if [ ! -f /proc/mdstat ] && [ -x $(command -v modprobe 2>/dev/null) ]; then
       modprobe -k md >/dev/null 2>&1 || :
     fi
     if [ ! -f /proc/mdstat ]; then
@@ -149,7 +149,7 @@ _eof
       fi
     fi
 
-    command -v update-initramfs >/dev/null && update-initramfs -u -k all
+    command -v update-initramfs >/dev/null 2>&1 && update-initramfs -u -k all
     ;;
 esac
 
