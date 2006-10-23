@@ -1,10 +1,20 @@
-mdadm (2.5.4-2~unreleased.0) UNRELEASED; urgency=low
+mdadm (2.5.5-1~unreleased.1) UNRELEASED; urgency=low
 
+  * New upstream release:
+    - fixes the build problems on several architectures (closes: #393314) by
+      including the contents of linux/blkpg.h literally, not via #include.
+    - optimises bitmap file use on 64bit systems.
+    - does not error out anymore when trying to assemble an already assembled
+      array without a corresponding /dev device node.
+    - does not report an error if --assemble --scan only finds already running
+      arrays.
+    - fixes several bugs related to RAID10 and the new offset layout.
+    - improves error message when a wrong '--update' option is given.
   * Added FAQ entries about partitionable arrays.
   * chroot detection now also works for 2.6.18 and beyond (c.f. kernel commit
     778c1144771f0064b6f51bee865cceb0d996f2f9).
 
- -- martin f. krafft <madduck@debian.org>  Wed, 18 Oct 2006 17:39:39 +0200
+ -- martin f. krafft <madduck@debian.org>  Mon, 23 Oct 2006 09:37:02 +0200
 
 mdadm (2.5.4-1) unstable; urgency=low
 
