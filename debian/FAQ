@@ -191,7 +191,7 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   The advantage of far= is that you can easily spread a long sequential read
   across the drives.  The cost is more seeking for writes. offset= can
   possibly get similar benefits with large enough chunk size. Neither upstream
-  nor the upstream maintainer have tried to understand all the implications of
+  nor the package maintainer have tried to understand all the implications of
   that layout. It was added simply because it is a supported layout in DDF and
   DDF support is a goal.
 
