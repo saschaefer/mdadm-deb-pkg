@@ -332,6 +332,15 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
   0. http://marc.theaimsgroup.com/?l=linux-raid&m=116117813315590&w=2
 
+15. How can I start a dirty degraded array?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  A degraded array (e.g. a RAID5 with only two disks) that has not been
+  properly stopped cannot be assembled just like that; mdadm will refuse and
+  complain about a "dirty degraded array".
+
+  The solution is to force-assemble it, and then to start it. Please see
+  recipes 4 and 4b of /usr/share/doc/mdadm/README.recipes.gz .
+
  -- martin f. krafft <madduck@debian.org>  Wed, 18 Oct 2006 15:56:32 +0200
 
 $Id$
