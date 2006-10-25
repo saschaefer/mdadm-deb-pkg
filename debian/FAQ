@@ -114,7 +114,9 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   the event of two failing disks. In a RAID10 configuration, if one disk is
   already dead, the RAID can only survive if any of the two disks in the other
   RAID1 array fails, but not if the second disk in the degraded RADI1 array
-  fails. A RAID6 across four disks can cope with any two disks failing.
+  fails (see next item, 4b). A RAID6 across four disks can cope with any two
+  disks failing. However, RAID6 is noticeably slower than RAID5. RAID5 and
+  RAID4 do not differ much.
 
   If you can afford the extra disks (storage *is* cheap these days), I suggest
   RAID1/10 over RAID4/5/6. If you don't care about performance but need as
@@ -124,6 +126,19 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   Let it be said, however, that I thoroughly regret putting my primary
   workstation on RAID5. Anything disk-intensive brings the system to its
   knees; I will have to migrate to RAID10 at one point.
+
+4b. Can a 4-disk RAID10 survive two disk failures?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  In 2/3 of the cases, yes, and it does not matter which layout you use. When
+  you assemble 4 disks into a RAID10, you essentially stripe a RAID0 across
+  two RAID1, so the four disks A,B,C,D become two pairs: A,B and C,D. If
+  A fails, the RAID6 can only survive if the second failing disk is either
+  C or D; If B fails, your array is dead.
+
+  Thus, if you see a disk failing, replace it as soon as possible!
+
+  If you need to handle two failing disks out of a set of four, you have to
+  use RAID6.
 
 5. How to convert RAID5 to RAID10?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -135,13 +150,14 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
     mdadm --create -l 10 -n4 -pn2 /dev/md1 /dev/sd[cd] missing missing
 
-  For some reason, mdadm actually cares about the order of devices you give
-  it. If you intersperse the missing keywords with the physical drives, it
-  should work:
+  For internal reasons, mdadm actually cares about the order of devices you
+  give it. If you intersperse the missing keywords with the physical drives,
+  it should work:
 
-    mdadm --create -l 10 -n4 -pn2 /dev/md1 /dev/sdc missing /dev/sdd missing
+    mdadm --create -l 10 -n4 -pn2 /dev/md1 missing /dev/sd[cd] missing
 
-  See: http://marc.theaimsgroup.com/?l=linux-raid&m=116004333406395&w=2
+  Also see item (4b) further down and this thread:
+    http://marc.theaimsgroup.com/?l=linux-raid&m=116004333406395&w=2
 
 6. What is the difference between RAID1+0 and RAID10?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
