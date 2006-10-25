@@ -1,3 +1,12 @@
+mdadm (2.5.5-1~unreleased.2) UNRELEASED; urgency=low
+
+  * Send udev events for arrays assembled from the initramfs or by the init
+    script (closes: #394193). I unconditionally send events for all arrays
+    that have been assembled to this point -- it does not matter if an event
+    is sent twice.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 25 Oct 2006 16:38:03 +0200
+
 mdadm (2.5.5-1~unreleased.1) UNRELEASED; urgency=low
 
   * New upstream release:

@@ -157,6 +157,14 @@ case "${1:-}" in
             *) :;;
           esac
         done || exit $?
+
+        log_action_begin_msg "Generating udev events for MD arrays"
+        for uevent in /sys/block/md*/uevent; do
+          test -w $uevent || continue
+          echo add > $uevent
+        done
+        log_action_end_msg 0
+
       else
         log_problem "no $CONFIG file"
       fi
