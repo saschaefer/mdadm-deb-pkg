@@ -129,16 +129,19 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
 4b. Can a 4-disk RAID10 survive two disk failures?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  In 2/3 of the cases, yes, and it does not matter which layout you use. When
-  you assemble 4 disks into a RAID10, you essentially stripe a RAID0 across
-  two RAID1, so the four disks A,B,C,D become two pairs: A,B and C,D. If
-  A fails, the RAID6 can only survive if the second failing disk is either
+  In half of the cases, yes [0], and it does not matter which layout you use.
+  When you assemble 4 disks into a RAID10, you essentially stripe a RAID0
+  across two RAID1, so the four disks A,B,C,D become two pairs: A,B and C,D.
+  If A fails, the RAID6 can only survive if the second failing disk is either
   C or D; If B fails, your array is dead.
 
   Thus, if you see a disk failing, replace it as soon as possible!
 
   If you need to handle two failing disks out of a set of four, you have to
   use RAID6.
+
+  0. it's actually 1/(n-1), where n is the number of disks. I am not
+     a mathematician, see http://aput.net/~jheiss/raid10/
 
 5. How to convert RAID5 to RAID10?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -172,6 +175,15 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   overhead than RAID1+0, which has data pass the md layer twice.
 
   I prefer RAID10 over RAID1+0.
+
+6b. What's the difference between RAID1+0 and RAID0+1?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  In short: RAID1+0 concatenates two mirrored arrays while RAID0+1 mirrors two
+  concatenated arrays.
+
+  RAID1+0 has a greater chance to survive two disk failures, its performance
+  suffers less when in degraded state, and it resyncs faster after replacing
+  a failed disk. See http://aput.net/~jheiss/raid10/ for more details.
 
 7. Which RAID10 layout scheme should I use
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -357,6 +369,30 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   The solution is to force-assemble it, and then to start it. Please see
   recipes 4 and 4b of /usr/share/doc/mdadm/README.recipes.gz .
 
- -- martin f. krafft <madduck@debian.org>  Wed, 18 Oct 2006 15:56:32 +0200
+16. How can I influence the speed with which an array is resynchronised?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  For each array, the MD subsystem exports parameters governing the
+  synchronisation speed via sysfs. The values are in kB/sec.
+
+    /sys/block/mdX/md/sync_speed     -- the current speed
+    /sys/block/mdX/md/sync_speed_max -- the maximum speed
+    /sys/block/mdX/md/sync_speed_min -- the guaranteed minimum speed
+
+17. When I create a new array, why does it resynchronise at first?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  See the mdadm(8) manpage:
+    When creating a RAID5 array, mdadm will automatically create a degraded
+    array with an extra spare drive. This is because building the spare into
+    a degraded array is in general faster than resyncing the parity on
+    a non-degraded, but not clean, array. This feature can be over-ridden with
+    the --force option.
+
+  This also applies to RAID levels 4 and 6.
+
+  It does not make much sense for RAID levels 1 and 10 and can thus be
+  overridden with the --force and --assume-clean options, but it is not
+  recommended. Read the manpage.
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 26 Oct 2006 11:05:05 +0200
 
 $Id$
