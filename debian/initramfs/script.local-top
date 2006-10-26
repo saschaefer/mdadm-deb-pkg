@@ -106,13 +106,4 @@ elif [ "$MD_DEVS" != none ]; then
   done
 fi
 
-verbose && log_begin_msg "Triggering udev events for assembled arrays"
-for uevent in /sys/block/md*/uevent; do
-  test -w $uevent || continue
-  echo add > $uevent
-  uevent=${uevent#/sys/block/}
-  verbose && log_success_msg "triggered uevent for ${uevent%/uevent}"
-done
-verbose && log_end_msg
-
 exit 0

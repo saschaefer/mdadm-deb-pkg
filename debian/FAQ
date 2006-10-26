@@ -129,6 +129,9 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
 4b. Can a 4-disk RAID10 survive two disk failures?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  I am assuming that you are talking about a setup with two copies of each
+  block, so --layout=near2/far2/offset2:
+
   In half of the cases, yes [0], and it does not matter which layout you use.
   When you assemble 4 disks into a RAID10, you essentially stripe a RAID0
   across two RAID1, so the four disks A,B,C,D become two pairs: A,B and C,D.
@@ -138,7 +141,8 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   Thus, if you see a disk failing, replace it as soon as possible!
 
   If you need to handle two failing disks out of a set of four, you have to
-  use RAID6.
+  use RAID6, or store more than two copies of each block (see the --layout
+  option in the mdadm(8) manpage).
 
   0. it's actually 1/(n-1), where n is the number of disks. I am not
      a mathematician, see http://aput.net/~jheiss/raid10/
