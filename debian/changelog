@@ -16,11 +16,11 @@ mdadm (2.5.5-1) unstable; urgency=low
   * Now recommends module-init-tools.
   * Hides ugly errors during configuration in the absense of module-init-tools
     or initramfs-tools.
-  * Send udev events for all arrays assembled by the time the mdadm-raid
-    init.d script runs. This does not close #394193 but it's a good addition
-    anyway. I am not sending these events from the initramfs as well because
-    it would be non-trivial to ensure that an event doesn't get sent twice for
-    a given array.
+  * Send udev events for arrays assembled by the mdadm-raid init.d script.
+    This does not close #394193 but it's a good addition anyway. I am not
+    sending these events from the initramfs as well because it would be
+    non-trivial to ensure that an event doesn't get sent twice for a given
+    array.
   * Added more RAID10 information to the FAQ.
   * Added filters to logcheck for regular events, even by the md driver; also
     promoted messages about non-fresh components to security events.

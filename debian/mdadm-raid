@@ -81,6 +81,14 @@ is_true()
   esac
 }
 
+STATEDIR=/dev
+for dir in /lib/init/rw /dev/shm; do
+  test -d $dir/.mdadm && STATEDIR=$dir && break
+  test -w $dir || continue
+  STATEDIR=$dir
+done
+mkdir $STATEDIR/.mdadm 2>/dev/null && STATEDIR=$STATEDIR/.mdadm || unset STATEDIR
+
 case "${1:-}" in
   start)
     PREFIX="Assembling MD array"
@@ -161,8 +169,11 @@ case "${1:-}" in
 
         log_action_begin_msg "Generating udev events for MD arrays"
         for uevent in /sys/block/md*/uevent; do
+          array=${uevent#/sys/block/}; array=${dev%/uevent}
+          test -e $STATEDIR/$array && continue
           test -w $uevent || continue
           echo add > $uevent
+          : > $STATEDIR/$array
         done
         log_action_end_msg 0
 
@@ -220,6 +231,9 @@ case "${1:-}" in
           *) :;;
         esac
       done || exit $?
+
+      rm -rf $STATEDIR
+
     else
       log_notice "disabled in $DEBIANCONFIG"
     fi
