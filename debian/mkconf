@@ -32,7 +32,7 @@ case "${1:-}" in
     [ -n "${2:-}" ] && CONFIG=$2
     # only barf if the config file specifies anything else than MAILADDR
     if egrep -qv '^(MAILADDR.*|#.*|)$' $CONFIG 2>/dev/null; then
-      echo "E: ${##*/}: $CONFIG already exists." >&2
+      echo "E: $ME: $CONFIG already exists." >&2
       exit -1
     fi
     

@@ -17,7 +17,7 @@ case "${1:-}" in
       modprobe -k md >/dev/null 2>&1 || :
     fi
     if [ ! -f /proc/mdstat ]; then
-      echo 'W: failed to load MD subsystem.' >&2
+      echo 'W: mdadm: failed to load MD subsystem.' >&2
     fi
 
     if [ ! -e /dev/md15 ] \
@@ -149,9 +149,9 @@ _eof
         # no changes by user, so remove
         rm -f /etc/udev/mdadm.rules
       else
-        echo "W: I tried to remove /etc/udev/mdadm.rules (see changelog), but you" >&2
-        echo "W: have modified it, so I won't touch it. Please remove the file" >&2
-        echo "W: at your leisure." >&2
+        echo "W: mdadm: I tried to remove /etc/udev/mdadm.rules (see changelog)," >&2
+        echo "W: mdadm: but you have modified it, so I won't touch it. Please" >&2
+        echo "W: mdadm: remove the file at your leisure." >&2
       fi
     fi
 
