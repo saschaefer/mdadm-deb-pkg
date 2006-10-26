@@ -43,6 +43,9 @@ case "${1:-}" in
       cp -a /etc/mdctl/mdctl.conf /etc/mdadm/mdadm.conf
     fi
 
+    # load current settings, most of which will be overwritten.
+    [ -f $DEBIANCONFIG ] && . $DEBIANCONFIG
+
     db_get mdadm/mail_to
     MAILADDR="${RET:-root}"
 
@@ -112,17 +115,20 @@ AUTOCHECK=$AUTOCHECK
 #   should mdadm start the MD monitoring daemon during boot?
 START_DAEMON=$START_DAEMON
 
+# VERBOSE=
+#   if this variable is set to true, mdadm will be a little more verbose e.g.
+#   when creating the initramfs.
+VERBOSE=${VERBOSE:-false}
+
 # MAIL_TO
 #   this variable is now managed in /etc/mdadm/mdadm.conf (MAILADDR).
 #   Please see mdadm.conf(5).
 
-# USE_DEPRECATED_MDRUN=
+# USE_DEPRECATED_MDRUN:
 #   mdrun is deprecated. If you still want to use it without a warning, set
 #   the following to true.
 #
-#   NOTE: changes to this variable will not be preserved!
-#
-USE_DEPRECATED_MDRUN=false
+USE_DEPRECATED_MDRUN=${USE_DEPRECATED_MDRUN:-false}
 _eof
 
     db_stop

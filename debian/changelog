@@ -24,8 +24,10 @@ mdadm (2.5.5-1) unstable; urgency=low
   * Added more RAID10 information to the FAQ.
   * Added filters to logcheck for regular events, even by the md driver; also
     promoted messages about non-fresh components to security events.
+  * Hide informational messages unless VERBOSE is set to a true value in
+    /etc/default/mdadm.
 
- -- martin f. krafft <madduck@debian.org>  Thu, 26 Oct 2006 22:13:16 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 26 Oct 2006 22:35:24 +0200
 
 mdadm (2.5.4-1) unstable; urgency=low
 

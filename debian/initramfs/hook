@@ -23,17 +23,46 @@ case ${1:-} in
     ;;
 esac
 
+is_true()
+{
+  case "${1:-}" in
+    [Yy]es|[Yy]|1|[Tt]rue|[Tt]) return 0;;
+    *) return 1;
+  esac
+}
+
+write()
+{
+  local PREFIX; PREFIX=$1; shift
+  echo "${PREFIX}: mdadm: $@"
+}
+
+info()
+{
+  is_true ${VERBOSE:-false} && write I "$@"
+}
+
+warn()
+{
+  write W "$@"
+}
+
+err()
+{
+  write E "$@"
+}
+
 if [ -e /usr/share/initramfs-tools/hooks/md ]; then
-  echo "W: mdadm: initramfs md hook still present, stepping out of its way." >&2
-  echo "W: Please see /usr/share/doc/mdadm/README.initramfs-transition ." >&2
+  warn "initramfs md hook still present, stepping out of its way." >&2
+  warn "Please see /usr/share/doc/mdadm/README.initramfs-transition ." >&2
   exit 0
 fi
 
 if [ -e /etc/initramfs-tools/hooks/md ]; then
-  echo "W: mdadm: I found /etc/initramfs-tools/hooks/md, which may conflict" >&2
-  echo "W: with this version of mdadm. Please see /usr/share/doc/mdadm/README.mdrun" >&2
-  echo "W: and /usr/share/initramfs-tools/hooks/mdadm for reference and update" >&2
-  echo "W: (or remove) the file." >&2
+  warn "I found /etc/initramfs-tools/hooks/md, which may conflict" >&2
+  warn "with this version of mdadm. Please see /usr/share/doc/mdadm/README.mdrun" >&2
+  warn "and /usr/share/initramfs-tools/hooks/mdadm for reference and update" >&2
+  warn "(or remove) the file." >&2
   exit 0
 fi
 
@@ -88,11 +117,11 @@ if [ ! -f $CONFIG ]; then
   if /usr/share/mdadm/mkconf generate $CONFIG; then
     # all is well
     install_config $CONFIG $DESTMDADMCONF
-    echo "I: mdadm: auto-generated the mdadm.conf configuration file." >&2
+    info "auto-generated the mdadm.conf configuration file." >&2
   else
     # we failed to auto-generate, so let the emergency procedure take over
-    echo "W: mdadm: failed to auto-generate the mdadm.conf file." >&2
-    echo "W: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
+    warn "failed to auto-generate the mdadm.conf file." >&2
+    warn "please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
   fi
   
 else 
@@ -102,36 +131,36 @@ else
     # the file comes from an old installation and hence is not guaranteed to
     # work. We thus better create one and start all arrays to be sure.
 
-    echo "W: mdadm: unchecked configuration file: $CONFIG" >&2
-    echo "W: mdadm: please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
+    warn "unchecked configuration file: $CONFIG" >&2
+    warn "please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ." >&2
 
     use_temp=1
   elif ! grep -q '^ARRAY' $CONFIG; then
     # the file defines no ARRAYs. We better create a temporary file to be
     # sure.
 
-    echo "W: mdadm: $CONFIG defines no arrays." >&2
+    warn "$CONFIG defines no arrays." >&2
     use_temp=1
 
   else
     # this is the ideal case
     install_config $CONFIG $DESTMDADMCONF
-    echo "I: mdadm: using configuration file: $CONFIG" >&2
+    info "using configuration file: $CONFIG" >&2
   fi
 
   if [ $use_temp -eq 1 ]; then
     tmpfile="${DESTMDADMCONF}.tmp"
     if /usr/share/mdadm/mkconf generate $tmpfile; then
       # all is well, we now have a temporary configuration file
-      echo "I: mdadm: auto-generated temporary mdadm.conf configuration file." >&2
+      info "auto-generated temporary mdadm.conf configuration file." >&2
       install_config $tmpfile $DESTMDADMCONF
     else
       # stuff's really broke, as we failed to generate a temporary file.
       # let's hope the unchecked file works, provided it contains at least one
       # ARRAY statement...
-      echo "W: mdadm: failed to auto-generate temporary mdadm.conf file." >&2
+      warn "failed to auto-generate temporary mdadm.conf file." >&2
       if grep -q '^ARRAY' $CONFIG; then
-        echo "W: mdadm: using the unchecked file and hoping for the best..." >&2
+        warn "using the unchecked file and hoping for the best..." >&2
         install_config $CONFIG $DESTMDADMCONF
       fi
     fi
@@ -143,12 +172,12 @@ fi
 # if at this point, $DESTMDADMCONF does not exist or it does not contain any
 # ARRAY statements, we must let the initramfs handle stuff.
 if [ ! -f $DESTMDADMCONF ]; then
-  echo "W: mdadm: no configuration file available." >&2
-  echo "W: mdadm: falling back to emergency procedure in initramfs." >&2
+  warn "no configuration file available." >&2
+  warn "falling back to emergency procedure in initramfs." >&2
   exit 0
 elif ! grep -q '^ARRAY' $DESTMDADMCONF; then
-  echo "W: mdadm: no arrays defined in configuration file." >&2
-  echo "W: mdadm: falling back to emergency procedure in initramfs." >&2
+  warn "no arrays defined in configuration file." >&2
+  warn "falling back to emergency procedure in initramfs." >&2
   exit 0
 else
   # obtain dev:level pairs from config file, honouring multiline entries
@@ -200,9 +229,9 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
       *) :;;
     esac
 
-    echo "W: mdadm: I am supposed to start $i from the initial ramdisk," >&2
-    echo "W: mdadm: yet I cannot find the array in the configuration file." >&2
-    echo "W: mdadm: I am thus reverting to starting all arrays." >&2
+    warn "I am supposed to start $i from the initial ramdisk," >&2
+    warn "yet I cannot find the array in the configuration file." >&2
+    warn "I am thus reverting to starting all arrays." >&2
     INITRDSTART=all
     break
   done
@@ -225,20 +254,20 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   echo "MD_MODULES='${modules% }'" >> $DESTCONFIG
 
   if [ "$INITRDSTART" = all ]; then
-    echo "I: mdadm: will start all available MD arrays from the initial ramdisk." >&2
+    info "will start all available MD arrays from the initial ramdisk." >&2
   else
     for i in $devs; do
-      echo "I: mdadm: will start MD array $i from the initial ramdisk." >&2
+      info "will start MD array $i from the initial ramdisk." >&2
     done
   fi
 
 else
   echo "MD_DEVS=none" >> $DESTCONFIG
-  echo "I: mdadm: no MD arrays will be started from the initial ramdisk." >&2
+  info "no MD arrays will be started from the initial ramdisk." >&2
 fi
 
 # only output this on Debian systems
 [ -s /etc/default/mdadm ] && \
-  echo 'I: mdadm: use `dpkg-reconfigure --priority=low mdadm` to change this.' >&2
+  info 'use `dpkg-reconfigure --priority=low mdadm` to change this.' >&2
 
 exit 0
