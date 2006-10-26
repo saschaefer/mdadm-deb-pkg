@@ -179,11 +179,16 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 6b. What's the difference between RAID1+0 and RAID0+1?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   In short: RAID1+0 concatenates two mirrored arrays while RAID0+1 mirrors two
-  concatenated arrays.
+  concatenated arrays. However, the two are also often switched.
 
-  RAID1+0 has a greater chance to survive two disk failures, its performance
-  suffers less when in degraded state, and it resyncs faster after replacing
-  a failed disk. See http://aput.net/~jheiss/raid10/ for more details.
+  The linux MD driver supports RAID10, which is equivalent to the above
+  RAID1+0 definition.
+
+  RAID1+0/10 has a greater chance to survive two disk failures, its
+  performance suffers less when in degraded state, and it resyncs faster after
+  replacing a failed disk.
+  
+  See http://aput.net/~jheiss/raid10/ for more details.
 
 7. Which RAID10 layout scheme should I use
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
