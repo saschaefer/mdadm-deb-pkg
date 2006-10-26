@@ -156,7 +156,8 @@ case "${1:-}" in
 
             *) :;;
           esac
-        done || exit $?
+        done
+        ret=$?
 
         log_action_begin_msg "Generating udev events for MD arrays"
         for uevent in /sys/block/md*/uevent; do
@@ -164,6 +165,8 @@ case "${1:-}" in
           echo add > $uevent
         done
         log_action_end_msg 0
+
+        [ $ret -ne 0 ] && exit $ret
 
       else
         log_problem "no $CONFIG file"
