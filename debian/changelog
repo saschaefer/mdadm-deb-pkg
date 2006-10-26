@@ -1,8 +1,10 @@
 mdadm (2.5.5-1~unreleased.3) UNRELEASED; urgency=low
 
   * Added more RAID10 information to the FAQ.
+  * Added filters to logcheck for regular events, even by the md driver; also
+    promoted messages about non-fresh components to security events.
 
- -- martin f. krafft <madduck@debian.org>  Wed, 25 Oct 2006 20:52:41 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 26 Oct 2006 08:16:14 +0200
 
 mdadm (2.5.5-1~unreleased.2) UNRELEASED; urgency=low
 
