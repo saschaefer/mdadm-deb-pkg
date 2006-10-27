@@ -13,6 +13,7 @@ debian mdadm TODO list
   existing configuration file is okay, but I guess in some cases we can
   determine that the configuration is okay. A conservative approach would be
   beneficial to the user. Not sure if it's worth the effort though.
+- one nice^W important thing would be to check device names and UUIDs at least.
 
 - verify operation without udev
   - udev removed before mdadm installed
