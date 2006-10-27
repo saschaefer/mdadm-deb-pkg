@@ -65,7 +65,7 @@ fi
 mkdir --parent /dev/md
 
 CONFIG=/etc/mdadm/mdadm.conf
-# in case the hook failed to install a configuration file, this is out last
+# in case the hook failed to install a configuration file, this is our last
 # attempt... the "emergency procedure"... <drumroll>
 if [ ! -e $CONFIG ]; then
   log_warning_msg "missing mdadm.conf file, trying to create one..."
