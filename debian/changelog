@@ -21,6 +21,8 @@ mdadm (2.5.5-1) unstable; urgency=low
     sending these events from the initramfs as well because it would be
     non-trivial to ensure that an event doesn't get sent twice for a given
     array.
+    Anyway, this is all a hack until the kernel sends online/offline events to
+    udev. See #394193.
   * Added more RAID10 information to the FAQ.
   * Added filters to logcheck for regular events, even by the md driver; also
     promoted messages about non-fresh components to security events.
