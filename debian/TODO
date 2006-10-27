@@ -14,9 +14,13 @@ debian mdadm TODO list
   determine that the configuration is okay. A conservative approach would be
   beneficial to the user. Not sure if it's worth the effort though.
 
-- VERIFY SARGE UPGRADE
 - verify operation without udev
   - udev removed before mdadm installed
   - udev removed after mdadm installed
+
+- more granular handling of init.d starts/stops, don't force all arrays to be
+  started.
+- also only stop those array we started; this can be easily done with
+  sentinels in $STATEDIR
 
 $Id$
