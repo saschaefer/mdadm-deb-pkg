@@ -84,13 +84,14 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
       /dev/md0     -> 0
       /dev/md/0    -> 0
-      /dev/md_d0   -> _d0
+      /dev/md_d0   -> _d0 (d0 in later versions)
       /dev/md/d0   -> d0
       /dev/md/name -> name
       (/dev/name does not seem to work)
 
     mdadm will append the name to '/dev/md/', so it will always output device
-    names under the /dev/md/ directory.
+    names under the /dev/md/ directory. Newer versions can create a symlink
+    from /dev/mdX. See the symlinks option in mdadm.con(5) and mdadm(8).
 
     If you want to change the name, you can do so during assembly:
 
