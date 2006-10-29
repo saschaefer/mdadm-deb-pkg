@@ -69,7 +69,7 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
       mdadm --detail /dev/mdX | sed -ne 's,.*Preferred Minor : ,,p'
       mdadm --examine /dev/sdXY | sed -ne 's,.*Preferred Minor : ,,p'
 
-    Let's call the resulting number MINOR. Also see FAQ 1 further up.
+    Let's call the resulting number MINOR. Also see FAQ 2 further up.
 
     Given MINOR, mdadm will output /dev/md<MINOR> if the device node
     /dev/md<MINOR> exists.
