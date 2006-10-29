@@ -34,7 +34,7 @@ is_true()
 write()
 {
   local PREFIX; PREFIX=$1; shift
-  echo "${PREFIX}: mdadm: $@"
+  echo "${PREFIX}: mdadm: $@" >&2
 }
 
 info()
