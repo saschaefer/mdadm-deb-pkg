@@ -105,8 +105,9 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   Please read /usr/share/doc/mdadm/RAID5_versus_RAID10.txt.gz .
 
   Many people seem to prefer RAID4/5/6 because it makes more efficient use of
-  space. If you have disks of size X, then in order to get 2X of usable space,
-  you need e.g. 3 disks with RAID5, but 4 if you use RAID10 or RAID1+0.
+  space. For example, if you have disks of size X, then in order to get 2X
+  storage, you need 3 disks for RAID5, but 4 if you use RAID10 or RAID1+0 (or
+  RAID6).
   
   This gain in usable space comes at a price: performance; RAID1/10 can be up
   to four times faster than RAID4/5/6.
@@ -117,7 +118,7 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   RAID1 array fails, but not if the second disk in the degraded RADI1 array
   fails (see next item, 4b). A RAID6 across four disks can cope with any two
   disks failing. However, RAID6 is noticeably slower than RAID5. RAID5 and
-  RAID4 do not differ much.
+  RAID4 do not differ much, but can only handle single-disk failures.
 
   If you can afford the extra disks (storage *is* cheap these days), I suggest
   RAID1/10 over RAID4/5/6. If you don't care about performance but need as
@@ -152,21 +153,26 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
 5. How to convert RAID5 to RAID10?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  You have me convinced, I want to convert my RAID5 to a RAID10. I have three
-  disks in the RAID and a spare, so I thought I'd just remove the spare and
-  one of the three disks, create a degraded RAID10 on these two, copy data,
-  then add the other two disks to the new RAID10. However, mdadm cannot
-  assemble a RAID10 with 50% missing devices when I ask it to:
+  To convert RAID5 to RAID10, you need a spare disk (either a spare, forth
+  disk in the array, or a new one). Then you remove the spare and one of the
+  three disks from the RAID5, create a degraded RAID10 across them, create
+  the filesystem and copy the data (or do a raw copy), then add the other two
+  disks to the new RAID10. However, mdadm cannot assemble a RAID10 with 50%
+  missing devices the way you might like it:
 
     mdadm --create -l 10 -n4 -pn2 /dev/md1 /dev/sd[cd] missing missing
 
-  For internal reasons, mdadm actually cares about the order of devices you
-  give it. If you intersperse the missing keywords with the physical drives,
-  it should work:
+  For reasons that may be answered by question 20 further down, mdadm actually
+  cares about the order of devices you give it. If you intersperse the missing
+  keywords with the physical drives, it should work:
+
+    mdadm --create -l 10 -n4 -pn2 /dev/md1 /dev/sdc missing /dev/sdd missing
+
+  or even
 
     mdadm --create -l 10 -n4 -pn2 /dev/md1 missing /dev/sd[cd] missing
 
-  Also see item (4b) further down and this thread:
+  Also see item (4b) further up, and this thread:
     http://marc.theaimsgroup.com/?l=linux-raid&m=116004333406395&w=2
 
 6. What is the difference between RAID1+0 and RAID10?
@@ -257,7 +263,8 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   
 9. Should I use RAID0 (or linear)?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  No.
+  No. Unless you know what you're doing and keep backups, or use it for data
+  that can be lost.
 
 9b. Why not?
 ~~~~~~~~~~~~
@@ -266,12 +273,12 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
   The same applies to LVM by the way.
 
-  If you want/must used LVM or RAID0, put it on RAID1 arrays (RAID10/RAID1+0,
-  or LVM on RAID1).
+  If you want/must used LVM or RAID0, stripe it across RAID1 arrays
+  (RAID10/RAID1+0, or LVM on RAID1), and keep backups!
 
 10. Can I cancel a running array check (checkarray)?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  See the -x option in the `checkarray --help` output.
+  See the -x option in the `/usr/share/mdadm/checkarray --help` output.
 
 11. mdadm warns about duplicate/similar superblocks; what gives?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -315,7 +322,8 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
     mdadm --stop /dev/md1
     mdadm --assemble --update=super-minor --uuid=abcd... /dev/md1
 
-  See also http://bugs.debian.org/386315 and recipe #12 in README.recipes .
+  See question 2 of this FAQ, and also http://bugs.debian.org/386315 and
+  recipe #12 in README.recipes .
 
 13. Can a MD array be partitioned?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -376,10 +384,11 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   A degraded array (e.g. a RAID5 with only two disks) that has not been
   properly stopped cannot be assembled just like that; mdadm will refuse and
-  complain about a "dirty degraded array".
+  complain about a "dirty degraded array", for good reasons.
 
-  The solution is to force-assemble it, and then to start it. Please see
-  recipes 4 and 4b of /usr/share/doc/mdadm/README.recipes.gz .
+  The solution might be to force-assemble it, and then to start it. Please see
+  recipes 4 and 4b of /usr/share/doc/mdadm/README.recipes.gz and make sure you
+  know what you're doing.
 
 16. How can I influence the speed with which an array is resynchronised?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -416,7 +425,7 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
   and the maximum number of failed disks the array can (but is not guaranteed
   to) handle, given the number of disks used and the number of data block
   copies. Note that 2 copies means original + 1 copy. Thus, if you only have
-  one copy, you cannot handle any failures.
+  one copy (the original), you cannot handle any failures.
 
                   1            2            3            4    (# of copies)
         1        0/0          0/0          0/0          0/0
@@ -484,6 +493,6 @@ Also see /usr/share/doc/mdadm/README.recipes.gz
 
   I'll leave it up to you to figure things out. Now go read question 19.
 
- -- martin f. krafft <madduck@debian.org>  Thu, 26 Oct 2006 21:22:05 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 30 Oct 2006 00:13:05 +0200
 
 $Id$
