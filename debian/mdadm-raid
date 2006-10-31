@@ -147,7 +147,7 @@ case "${1:-}" in
               log_dev 0 $1 "started [$6/$6]"
               ;;
 
-            *'has been started with '[[:digit:]]*' drives (out of '[[:digit:]]*').')
+            *'has been started with '[[:digit:]]*' drive'*' (out of '[[:digit:]]*').')
               log_dev 0 $1 "degraded [$6/${10%).}]"
               ;;
 

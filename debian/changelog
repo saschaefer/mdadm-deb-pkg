@@ -1,3 +1,10 @@
+mdadm (2.5.5-2) unstable; urgency=low
+
+  * Merged patch by Dan Pascu to nicely handle situations where a degraded
+    array only has one drive left nicely by the mdadm-raid script.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 31 Oct 2006 14:22:09 +0100
+
 mdadm (2.5.5-1) unstable; urgency=low
 
   * New upstream release:
