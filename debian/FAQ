@@ -1,7 +1,10 @@
 Frequently asked questions -- Debian mdadm
 ==========================================
 
-Also see /usr/share/doc/mdadm/README.recipes.gz
+Also see /usr/share/doc/mdadm/README.recipes.gz .
+
+The latest version of this FAQ is available here:
+  http://svn.debian.org/wsvn/pkg-mdadm/mdadm/trunk/debian/FAQ?op=file&rev=0&sc=0
 
 0. What does MD stand for?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

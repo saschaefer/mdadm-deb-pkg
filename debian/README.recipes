@@ -8,6 +8,9 @@ file.
 
 Enjoy. Submissions welcome.
 
+The latest version of this document is available here:
+  http://svn.debian.org/wsvn/pkg-mdadm/mdadm/trunk/debian/README.recipes?op=file&rev=0&sc=0
+
 0. create a new array
 ~~~~~~~~~~~~~~~~~~~~~
     mdadm --create -l1 -n2 -x1 /dev/md0 /dev/sd[abc]1   # RAID 1, 1 spare

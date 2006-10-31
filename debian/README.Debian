@@ -4,6 +4,9 @@ mdadm for Debian
 Please make sure you read into /usr/share/doc/mdadm/NEWS.Debian.gz and the
 documents listed under "further reading" a little later in this file.
 
+The latest version of this document is available here:
+  http://svn.debian.org/wsvn/pkg-mdadm/mdadm/trunk/debian/README.Debian?op=file&rev=0&sc=0
+
 Upgrading and the configuration file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This version of mdadm now NEEDS /etc/mdadm/mdadm.conf, which it will try to
