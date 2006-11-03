@@ -4,8 +4,10 @@ mdadm (2.5.5-2) unstable; urgency=low
     array only has one drive left nicely by the mdadm-raid script.
   * Updated Japanese debconf translation; thanks to Hideki Yamane
     (closes: #396400).
+  * Added note to mdadm(8)/--metadata about overriding the default in
+    mdadm.conf (closes: #396914).
 
- -- martin f. krafft <madduck@debian.org>  Wed,  1 Nov 2006 16:00:21 +0100
+ -- martin f. krafft <madduck@debian.org>  Fri,  3 Nov 2006 17:48:18 +0100
 
 mdadm (2.5.5-1) unstable; urgency=low
 
