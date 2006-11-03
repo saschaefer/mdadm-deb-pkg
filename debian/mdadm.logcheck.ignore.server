@@ -12,6 +12,7 @@
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: using [[:digit:]]+k window, over a total of [[:digit:]]+ blocks\.$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: (un)?bind<[^>]+>$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: export_rdev\([^)]+\)$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: raid[[:digit:]]+: raid set [[:album:]]+ active with [[:digit:]]+ out of [[:digit:]]+ mirrors$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: RAID([01456]|10) conf printout:$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel:  ---( [wrf]d:[[:digit:]]+){2,3}$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel:  disk [[:digit:]]+,( wo:[[:digit:]]+,)? o:[[:digit:]]+, dev:[sh]d[[:lower:]][[:digit:]]+$
