@@ -1,13 +1,18 @@
-mdadm (2.5.5-2) unstable; urgency=low
+mdadm (2.5.6-1) unstable; urgency=low
 
+  * New upstream release:
+    - added note to mdadm(8)/--metadata about overriding the default in
+      mdadm.conf (closes: #396914).
+    - fixed problems that could cause infinite loop with auto assemble. Thanks
+      to Dan Pascu for pointing this out (closes: #396582).
+    - fixed problems with bitmap file names lost after reading from
+      configuration file.
   * Merged patch by Dan Pascu to nicely handle situations where a degraded
     array only has one drive left nicely by the mdadm-raid script.
   * Updated Japanese debconf translation; thanks to Hideki Yamane
     (closes: #396400).
-  * Added note to mdadm(8)/--metadata about overriding the default in
-    mdadm.conf (closes: #396914).
 
- -- martin f. krafft <madduck@debian.org>  Fri,  3 Nov 2006 17:48:18 +0100
+ -- martin f. krafft <madduck@debian.org>  Thu,  9 Nov 2006 00:47:45 +0100
 
 mdadm (2.5.5-1) unstable; urgency=low
 
