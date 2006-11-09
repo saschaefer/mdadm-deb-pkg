@@ -1,6 +1,7 @@
 #!/bin/sh
 #
-# startall -- starts all existing arrays without requiring mdadm.conf
+# startall -- starts all existing arrays after creating mdadm.conf
+#             overrides the AUTOSTART variable in /etc/default/mdadm
 #
 # Copyright © martin f. krafft <madduck@madduck.net>
 # distributed under the terms of the Artistic Licence 2.0
@@ -25,4 +26,4 @@ if [ ! -f $CONFIG ] && [ ! -f $ALTCONFIG ]; then
   esac
 fi
 
-exec /etc/init.d/mdadm-raid start
+MDADM_FORCE_AUTOSTART__=1 exec /etc/init.d/mdadm-raid start
