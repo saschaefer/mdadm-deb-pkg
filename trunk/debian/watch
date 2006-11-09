@@ -1,0 +1,4 @@
+version=3
+http://www.cse.unsw.edu.au/~neilb/source/mdadm/mdadm-([.[:digit:]]+).tgz
+
+# $Id$

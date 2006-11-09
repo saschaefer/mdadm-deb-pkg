@@ -1,0 +1,189 @@
+#!/bin/sh
+
+# mdrun, (c) Eduard Bloch <blade@debian.org> 2003
+
+# Usage: 
+# Without arguments: autodetect all RAID partitions and activate MDs
+# Arguments: [ DEVDIR ] NUMBER UUID [ <NUMBER UUID> ... ]
+# a number of number/uuid pairs, where NUMBER is the one from /dev/md/*
+# Argument: LIST
+# lists all raids in the syntax needed for the pairs (see above)
+
+# IMPORTANT: create /dev/fs directory if you have devfs support in the kernel
+# but do not want to mount it over /dev. Usage of /dev/fs directory will keep
+# mdrun away from /dev.
+
+# If the first argument is a directory, it will be used as a writeable
+# temporary directory for device nodes. mdrun needs mknod to create them
+# on-the-fly
+
+# Environment: 
+# MORERAIDVOLUMES (list of strings) : additional raid disks to scan, 
+#                                     eg. loop devices
+
+is_true()
+{
+  case "$1" in
+    [Yy]es|[Yy]|1|[Tt]rue) return 0;;
+    *) return 1;
+  esac
+}
+
+warn()
+{
+  echo "$@" >&2
+}
+
+[ -f /etc/default/mdadm ] && . /etc/default/mdadm
+# disabled until the transition is complete
+if false && ! is_true $USE_DEPRECATED_MDRUN; then
+  warn
+  warn =========================
+  warn mdrun deprecation warning
+  warn =========================
+  warn
+  warn If you are seeing this during boot, please upgrade to a newer
+  warn version of the initramfs-tools package and ignore the rest of
+  warn this message.
+  warn
+  warn You are running $0, or your system is not properly configured
+  warn such that $0 is used as a fallback. Due to technical limitations,
+  warn $0 is deprecated and will be removed in a future relese of mdadm.
+  warn Please see /usr/share/doc/mdadm/README.mdrun for more info.
+  warn
+
+  TIMEOUT=15
+  if [ -r /dev/stdin ]; then
+    # cannot use -t or -n, which is not POSIX
+    read -p'Please hit return to continue...' resp < /dev/stdin >&2
+    warn
+  else
+    warn "Pausing for $TIMEOUT seconds..." >&2
+    sleep $TIMEOUT
+  fi
+fi
+
+if ! test -e /proc/partitions ; then
+   echo "/proc not mounted!"
+   exit 1
+fi
+
+DEVDIR=/dev
+
+if [ -d "$1" ] ; then
+   AUTOCREATE=true
+   DEVDIR="$1"
+   shift
+fi
+
+# For people that compile the kernel with devfs (means: different
+# proc/partitions content), but without auto-mounting it
+if ! uname -r | grep "^2.6" 1>/dev/null && [ -z "$AUTOCREATE" ] && grep "	devfs" /proc/filesystems >/dev/null 2>&1 && ! grep "^devfs" /proc/mounts >/dev/null 2>&1 ; then
+
+   mkdir /dev/fs 2>/dev/null
+   # if we can do it - good, we will use it. Otherwise, use /dev even if it is ugly
+
+   # mount devfs for now to make the device names match, umount later
+   if [ -d /dev/fs ] ; then
+      DEVDIR=/dev/fs
+   fi
+   mount none $DEVDIR -tdevfs
+   UMNTDEVFS="umount $DEVDIR"
+fi
+
+# arr(array, index): return contents in array[index]; as with Bourne shell
+# in general, there is no easy way to distinguish between index not
+# existing and empty string assigned.
+arr() { sa_i=`arr_index $2`; eval "echo \"\$$1_${sa_i}\""; unset sa_i; }
+
+# seterr(array, index, value): assign the given value to array[index].
+setarr() { sa_i=`arr_index $2`; eval "$1_${sa_i}=\"$3\""; unset sa_i; }
+
+# arr_index(index): make sure the given index is valid for use.
+arr_index() { echo $1 | sed -e 's/:/_/g' | sed 's;/;_;g'; }
+
+
+BASE=$DEVDIR/md
+export BASE
+#devfs
+test -d $BASE && BASE=$BASE/
+
+next_free_md() {
+   for raidnr in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24; do
+      if ! mdadm -D $BASE$raidnr >/dev/null 2>&1 ; then
+         echo $BASE$raidnr
+         return 0
+      fi
+   done
+   return 1
+}
+
+listpairs() {
+   for NUMBER in `cat /proc/mdstat | grep "^md. : active" | sed -e 's/^md\(.\) :.*/\1/'`; do
+      echo $NUMBER
+      mdadm -D ${BASE}$NUMBER 2>/dev/null |grep UUID | sed 's/.*: \(.*\)/\1/' 
+   done
+}
+
+if [ "$1" = LIST ] ; then
+   echo `listpairs`
+   $UMNTDEVFS
+   exit 0
+fi
+
+DEVDIRESC=$(echo $DEVDIR | sed -e 's!/!\\/!g')
+if [ "$AUTOCREATE" ] ; then
+   CREATECMD=$(sed -e "s/.*major.*//; s/.*\ \([:0-9:]\+\)\ \+\ \([:0-9:]\+\)\ \+\ [:0-9:]\+\ \+\([:a-z0-9\/:]\+\).*/mknod \3 b \1 \2 ; / ; s/\//_/g" < /proc/partitions)
+   export CREATECMD
+   export DEVDIR
+   # and we need array nodes, of course
+   (
+      cd $DEVDIR ;
+      eval $CREATECMD ; 
+      for x in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 ; do
+         mknod ${BASE}$x b 9 $x
+      done
+   )
+   PARTLIST=$(sed -e "s/.*major.*//; s/.*\ \([:0-9:]\+\)\ \+\ \([:0-9:]\+\)\ \+\ [:0-9:]\+\ \+\([:a-z0-9\/:]\+\).*/DEVDIR\3 /; s/\//_/g ; s/DEVDIR/$DEVDIRESC\//;" < /proc/partitions)
+else
+   PARTLIST=$(sed -e "s/.*major.*//; s/^[:0-9 :]* \([:a-z:].[:a-z0-9\/:]*\).*/\1/; s/^\([:a-z:].*\)/$DEVDIRESC\/\1/g" < /proc/partitions)
+fi
+
+for SRC in $PARTLIST $MORERAIDVOLUMES ; do
+   SUM=$(mdadm -E $SRC 2>/dev/null | grep UUID | sed 's/.*: \(.*\)/\1/')
+   for x in $SUM; do
+      UUIDS="$UUIDS $SUM"
+      setarr MDS $SUM "`arr MDS $SUM` $SRC"
+   done
+done
+
+if [ "$#" -gt 1 ] ; then
+   NUMBER=${BASE}$1
+   MD=$2
+   shift ; shift
+   if [ "`arr MDS $MD`" != "started" ] ; then
+      mdadm -A -a yes $NUMBER -f `arr MDS $MD` && setarr MDS $MD "started" 
+      # just to be sure
+      ln /dev/md/$NUMBER /dev/md$NUMBER 2>/dev/null
+   fi
+fi
+
+# and process the rest, if it exists
+# do not touch active arrays
+#dropactive() {
+   for NUMBER in `cat /proc/mdstat | grep "^md. : active" | sed -e 's/^md\(.\) :.*/\1/'`; do
+      setarr MDS `mdadm -D ${BASE}$NUMBER 2>/dev/null |grep UUID | sed 's/.*: \(.*\)/\1/'` "started"
+   done
+#}
+
+
+for MD in $UUIDS; do
+   if [ "`arr MDS $MD`" != "started" ] ; then
+      NUMBER=`next_free_md`
+      mdadm -A -a yes $NUMBER -f `arr MDS $MD` && setarr MDS $MD "started" 
+      # just to be sure
+      ln /dev/md/$NUMBER /dev/md$NUMBER 2>/dev/null
+   fi
+done
+
+$UMNTDEVFS
