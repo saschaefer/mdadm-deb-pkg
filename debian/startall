@@ -14,6 +14,8 @@ set -eu
 CONFIG=/etc/mdadm/mdadm.conf
 ALTCONFIG=/etc/mdadm.conf
 
+modprobe -kq md 2>/dev/null || :
+
 if [ ! -f $CONFIG ] && [ ! -f $ALTCONFIG ]; then
   /usr/share/mdadm/mkconf generate $CONFIG || ret=$?
   case ${ret:-0} in
