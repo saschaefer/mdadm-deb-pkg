@@ -1,5 +1,18 @@
-Testing new version of mdadm
-============================
+Call for help testing new versions of mdadm
+===========================================
+
+The problem with being the mdadm maintainer is that it doesn't make any
+friends but potentially quite a lot of enemies. Even though it's actually very
+unlikely that a new mdadm version causes data loss (mdadm is only the remote
+control into the kernel), people seem to exhibit unexpected reactions when
+their MD arrays with important data don't want to start anymore. In such
+a case, don't panic, don't do anything without understanding the implications,
+and consider asking for help.
+
+That said, I would appreciate if you guys helped me test the latest mdadm
+releases a bit more thoroughly. I do extensive tests myself, but as Murphy
+would be able to predict, the problem only ever occur on other people's
+machines, and I'd much rather fix them sooner than later.
 
 The easiest way to test new mdadm packages is by adding my package repository
 (i386/amd64) to your sources.list file, and configuring the APT pins
