@@ -94,7 +94,7 @@ case "${1:-}" in
   start)
     PREFIX="Assembling MD array"
 
-    if is_true $AUTOSTART || is_true ${MDADM_FORCE_AUTOSTART__:0}; then
+    if is_true $AUTOSTART || is_true ${MDADM_FORCE_AUTOSTART__:-0}; then
       if [ ! -f /proc/mdstat ] && [ -x "$(command -v modprobe)" ] ; then
         modprobe -kq md 2>/dev/null || :
       fi

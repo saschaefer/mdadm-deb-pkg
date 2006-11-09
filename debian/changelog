@@ -1,3 +1,9 @@
+mdadm (2.5.6-3) unstable; urgency=low
+
+  * Fix a syntax error in mdadm-raid script.
+
+ -- martin f. krafft <madduck@debian.org>  Thu,  9 Nov 2006 15:47:51 +0100
+
 mdadm (2.5.6-2) unstable; urgency=low
 
   * Small fixes to mkconf, now returns 255 instead of -1.
