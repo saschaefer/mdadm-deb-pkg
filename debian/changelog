@@ -1,3 +1,11 @@
+mdadm (2.5.6-2) unstable; urgency=low
+
+  * Small fixes to mkconf, now returns 255 instead of -1.
+  * Added /usr/share/mdadm/startall, a helper script to facilitate starting
+    all arrays when booting from rescue/live media.
+
+ -- martin f. krafft <madduck@debian.org>  Thu,  9 Nov 2006 14:06:26 +0100
+
 mdadm (2.5.6-1) unstable; urgency=low
 
   * New upstream release:

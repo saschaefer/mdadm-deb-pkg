@@ -82,6 +82,7 @@ install: build
 
 	install -m0755 debian/mkconf $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/checkarray $(DESTDIR)/usr/share/mdadm
+	install -m0755 debian/startall $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/bugscript $(DESTDIR)/usr/share/bug/mdadm/script
 
 	install -m0644 debian/mdadm.lintian-overrides \
