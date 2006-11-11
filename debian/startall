@@ -17,6 +17,7 @@ ALTCONFIG=/etc/mdadm.conf
 modprobe -kq md 2>/dev/null || :
 
 if [ ! -f $CONFIG ] && [ ! -f $ALTCONFIG ]; then
+  mkdir --parents ${CONFIG%/*}
   /usr/share/mdadm/mkconf > $CONFIG || ret=$?
   case ${ret:-0} in
     0) :;;

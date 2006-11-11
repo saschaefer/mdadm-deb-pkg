@@ -149,6 +149,7 @@ else
   fi
 
   if [ $use_temp -eq 1 ]; then
+    mkdir --parents ${DESTMDADMCONF%/*}
     tmpfile="${DESTMDADMCONF}.tmp"
     if /usr/share/mdadm/mkconf > $tmpfile; then
       # all is well, we now have a temporary configuration file
