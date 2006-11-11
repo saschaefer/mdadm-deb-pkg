@@ -18,11 +18,11 @@ case "${1:-}" in
     ;;
 
   purge)
-    rm -f /etc/default/mdadm
     GEN_SENTINEL=/var/lib/mdadm/mdadm.conf-generated
     if [ -r $GEN_SENTINEL ]; then
       rm -f "$(sed -rne 's,[[:xdigit:]]+  ,,p' $GEN_SENTINEL)"
     fi
+    rm -f /etc/default/mdadm /etc/mdadm.conf /etc/mdadm/mdadm.conf
     rm -rf /var/lib/mdadm
     ;;
 

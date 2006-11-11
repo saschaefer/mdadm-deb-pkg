@@ -1,3 +1,11 @@
+mdadm (2.5.6-4) unstable; urgency=low
+
+  * Actually remove mdadm.conf on purge; previously, the generation of
+    a temporary file for initramfs would screw up the purging; thanks to
+    Fabrice Lorrain for the report (closes: #398088).
+
+ -- martin f. krafft <madduck@debian.org>  Sat, 11 Nov 2006 20:07:55 +0100
+
 mdadm (2.5.6-3) unstable; urgency=low
 
   * Fix a syntax error in mdadm-raid script.

@@ -150,7 +150,7 @@ else
 
   if [ $use_temp -eq 1 ]; then
     tmpfile="${DESTMDADMCONF}.tmp"
-    if /usr/share/mdadm/mkconf generate $tmpfile; then
+    if /usr/share/mdadm/mkconf > $tmpfile; then
       # all is well, we now have a temporary configuration file
       info "auto-generated temporary mdadm.conf configuration file." >&2
       install_config $tmpfile $DESTMDADMCONF

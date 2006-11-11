@@ -17,7 +17,7 @@ ALTCONFIG=/etc/mdadm.conf
 modprobe -kq md 2>/dev/null || :
 
 if [ ! -f $CONFIG ] && [ ! -f $ALTCONFIG ]; then
-  /usr/share/mdadm/mkconf generate $CONFIG || ret=$?
+  /usr/share/mdadm/mkconf > $CONFIG || ret=$?
   case ${ret:-0} in
     0) :;;
     255) echo W: mdadm: using existing mdadm.conf file... >&2;;
