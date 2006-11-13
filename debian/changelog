@@ -1,8 +1,10 @@
 mdadm (2.5.6-5) unstable; urgency=low
 
   * Prevent initramfs hook from exiting prematurely when VERBOSE=false.
+  * Moved debconf question about arrays to start by initramfs to high
+    priority.
 
- -- martin f. krafft <madduck@debian.org>  Mon, 13 Nov 2006 11:18:53 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon, 13 Nov 2006 11:24:21 +0100
 
 mdadm (2.5.6-4) unstable; urgency=low
 
