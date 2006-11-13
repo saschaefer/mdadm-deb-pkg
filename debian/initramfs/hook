@@ -39,7 +39,7 @@ write()
 
 info()
 {
-  is_true ${VERBOSE:-false} && write I "$@"
+  is_true ${VERBOSE:-false} && write I "$@" || :
 }
 
 warn()

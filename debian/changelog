@@ -1,3 +1,9 @@
+mdadm (2.5.6-5) unstable; urgency=low
+
+  * Prevent initramfs hook from exiting prematurely when VERBOSE=false.
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 13 Nov 2006 11:18:53 +0100
+
 mdadm (2.5.6-4) unstable; urgency=low
 
   * Actually remove mdadm.conf on purge; previously, the generation of
