@@ -1,13 +1,14 @@
 debian mdadm TODO list
 ======================
 
-- check whether mdadm.conf and system are consistent during initramfs creation
-  and fail otherwise (#381303).
 - version-1 is a nightmare. E.g. on partitionable arrays, with / on
   /dev/md_d0p3, mdadm -Es ignores /dev/md_d0 and just uses the name, so
   /dev/md/<arrayname>.
 - figure out something about device names.
+- (better) udev integration
 
+- check whether mdadm.conf and system are consistent during initramfs creation
+  and fail otherwise (#381303).
 - add code to compare existing and expected configuration, after standardising
   the files. In most cases, we'll have to answer DUNNO as to whether the
   existing configuration file is okay, but I guess in some cases we can
@@ -21,6 +22,7 @@ debian mdadm TODO list
 
 - more granular handling of init.d starts/stops, don't force all arrays to be
   started.
+- let user specify when to start/stop which array (#398310).
 - also only stop those array we started; this can be easily done with
   sentinels in $STATEDIR
 
