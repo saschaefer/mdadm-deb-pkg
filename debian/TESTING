@@ -46,6 +46,9 @@ archive [2]; see also further down for direct links):
 
   2. http://backports.org/dokuwiki/doku.php?id=instructions
 
+For etch, just replace each occurrence of sarge with etch (s/sarge/etch/g),
+and you won't needs the debconf and lsb-base backports.
+
 ---8<---
 # cat <<_eof >> /etc/apt/sources.list
 deb http://debian.madduck.net/repo sarge-backports main
