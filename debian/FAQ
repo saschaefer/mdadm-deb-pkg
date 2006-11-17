@@ -118,7 +118,7 @@ The latest version of this FAQ is available here:
   At the same time, however, RAID4/5/6 provide somewhat better redundancy in
   the event of two failing disks. In a RAID10 configuration, if one disk is
   already dead, the RAID can only survive if any of the two disks in the other
-  RAID1 array fails, but not if the second disk in the degraded RADI1 array
+  RAID1 array fails, but not if the second disk in the degraded RAID1 array
   fails (see next item, 4b). A RAID6 across four disks can cope with any two
   disks failing. However, RAID6 is noticeably slower than RAID5. RAID5 and
   RAID4 do not differ much, but can only handle single-disk failures.
