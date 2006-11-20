@@ -1,3 +1,11 @@
+mdadm (2.5.6-6) unstable; urgency=medium
+
+  * Fixed a typo in the debconf control script which would cause failures with
+    a dash shell; thanks to Santiago Garcia Mantinan for reporting this, and
+    Andreas Metzeler for providing a solution (closes: #399315).
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 20 Nov 2006 15:02:34 +0800
+
 mdadm (2.5.6-5) unstable; urgency=low
 
   * Prevent initramfs hook from exiting prematurely when VERBOSE=false.
