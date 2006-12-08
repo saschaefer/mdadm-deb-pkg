@@ -52,7 +52,7 @@ case "${1:-}" in
       mkdir -p $RUNDIR
       set +e
       start-stop-daemon -S -p $PIDFILE -x $MDADM -- \
-        --monitor --pid-file $PIDFILE --daemonise --scan
+        --monitor --pid-file $PIDFILE --daemonise --scan ${DAEMON_OPTIONS:-}
       log_end_msg $?
       set -e
     fi

@@ -85,6 +85,8 @@ case "${1:-}" in
     AUTOCHECK="${RET:-true}"
     db_get mdadm/start_daemon
     START_DAEMON="${RET:-true}"
+    #db_get mdadm/daemon_options
+    [ -n "$DAEMON_OPTIONS" ] || DAEMON_OPTIONS='--syslog'
 
     cat <<_eof > $DEBIANCONFIG
 # mdadm Debian configuration
@@ -114,6 +116,10 @@ AUTOCHECK=$AUTOCHECK
 # START_DAEMON:
 #   should mdadm start the MD monitoring daemon during boot?
 START_DAEMON=$START_DAEMON
+
+# DAEMON_OPTIONS:
+#   additional options to pass to the daemon.
+DAEMON_OPTIONS="$DAEMON_OPTIONS"
 
 # VERBOSE=
 #   if this variable is set to true, mdadm will be a little more verbose e.g.
