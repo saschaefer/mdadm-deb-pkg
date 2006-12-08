@@ -1,3 +1,13 @@
+mdadm (2.5.6-7) unstable; urgency=low
+
+  * Only parse ARRAY lines from configuration file when collecting the array
+    pairs. Thanks to Daniel Dehennin for the bug report and suggested fix
+    (closes: #402106).
+  * Prevent modules from being loaded during initramfs time if no arrays are
+    to be assembled at this stage.
+
+ -- martin f. krafft <madduck@debian.org>  Fri,  8 Dec 2006 12:14:07 +0400
+
 mdadm (2.5.6-6) unstable; urgency=medium
 
   * Fixed a typo in the debconf control script which would cause failures with

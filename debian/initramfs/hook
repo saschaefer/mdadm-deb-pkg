@@ -184,6 +184,10 @@ else
   # obtain dev:level pairs from config file, honouring multiline entries
   devpairs="$(
     while read line; do
+      case "$line" in
+        (ARRAY*) :;;
+        (*) continue;;
+      esac
       for atom in $line; do
         case "$atom" in
           (/dev*) dev=$atom;;
@@ -264,6 +268,7 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
 
 else
   echo "MD_DEVS=none" >> $DESTCONFIG
+  echo "MD_MODULES=''" >> $DESTCONFIG
   info "no MD arrays will be started from the initial ramdisk." >&2
 fi
 
