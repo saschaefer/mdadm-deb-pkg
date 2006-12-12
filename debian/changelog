@@ -7,12 +7,12 @@ mdadm (2.5.6-7) unstable; urgency=low
     to be assembled at this stage.
   * Export DAEMON_OPTIONS to /etc/default/mdadm, which gets passed to the
     mdadm daemon on startup from the init.d script. The value is set to
-    --syslog by default, and will get incorporated into debconf in a future
+    -y/--syslog by default, and will get incorporated into debconf in a future
     version.
   * Added Spanish debconf translation by Javier Fernández-Sanguino
     (closes: #402681).
 
- -- martin f. krafft <madduck@debian.org>  Tue, 12 Dec 2006 10:09:34 +0100
+ -- martin f. krafft <madduck@debian.org>  Tue, 12 Dec 2006 10:14:41 +0100
 
 mdadm (2.5.6-6) unstable; urgency=medium
 

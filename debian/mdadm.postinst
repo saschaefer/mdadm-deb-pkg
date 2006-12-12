@@ -86,7 +86,8 @@ case "${1:-}" in
     db_get mdadm/start_daemon
     START_DAEMON="${RET:-true}"
     #db_get mdadm/daemon_options
-    [ -n "$DAEMON_OPTIONS" ] || DAEMON_OPTIONS='--syslog'
+    [ -n "${DAEMON_OPTIONS:-}" ] || DAEMON_OPTIONS='-y'
+    # see #402457 for reason to use -y instead of --syslog
 
     cat <<_eof > $DEBIANCONFIG
 # mdadm Debian configuration
