@@ -9,8 +9,10 @@ mdadm (2.5.6-7) unstable; urgency=low
     mdadm daemon on startup from the init.d script. The value is set to
     --syslog by default, and will get incorporated into debconf in a future
     version.
+  * Added Spanish debconf translation by Javier Fernández-Sanguino
+    (closes: #402681).
 
- -- martin f. krafft <madduck@debian.org>  Fri,  8 Dec 2006 12:31:36 +0400
+ -- martin f. krafft <madduck@debian.org>  Tue, 12 Dec 2006 10:09:34 +0100
 
 mdadm (2.5.6-6) unstable; urgency=medium
 
