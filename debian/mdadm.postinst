@@ -86,8 +86,7 @@ case "${1:-}" in
     db_get mdadm/start_daemon
     START_DAEMON="${RET:-true}"
     #db_get mdadm/daemon_options
-    [ -n "${DAEMON_OPTIONS:-}" ] || DAEMON_OPTIONS='-y'
-    # see #402457 for reason to use -y instead of --syslog
+    [ -n "${DAEMON_OPTIONS:-}" ] || DAEMON_OPTIONS='--syslog'
 
     cat <<_eof > $DEBIANCONFIG
 # mdadm Debian configuration
@@ -122,12 +121,12 @@ START_DAEMON=$START_DAEMON
 #   additional options to pass to the daemon.
 DAEMON_OPTIONS="$DAEMON_OPTIONS"
 
-# VERBOSE=
+# VERBOSE:
 #   if this variable is set to true, mdadm will be a little more verbose e.g.
 #   when creating the initramfs.
 VERBOSE=${VERBOSE:-false}
 
-# MAIL_TO
+# MAIL_TO:
 #   this variable is now managed in /etc/mdadm/mdadm.conf (MAILADDR).
 #   Please see mdadm.conf(5).
 
