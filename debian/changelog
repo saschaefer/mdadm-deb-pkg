@@ -1,4 +1,4 @@
-mdadm (2.5.6-7~unreleased.1) unstable; urgency=low
+mdadm (2.5.6-7) unstable; urgency=low
 
   * Only parse ARRAY lines from configuration file when collecting the array
     pairs. Thanks to Daniel Dehennin for the bug report and suggested fix
@@ -9,6 +9,8 @@ mdadm (2.5.6-7~unreleased.1) unstable; urgency=low
     mdadm daemon on startup from the init.d script. The value is set to
     -y/--syslog by default, and will get incorporated into debconf in a future
     version; thanks for the idea by Alex Owen (closes: #401696).
+  * Incorporate patch by upstream to fix handling of --syslog long option
+    (closes: #402457).
   * Added logcheck filters for new syslog entries by mdadm monitoring daemon.
   * Added Spanish debconf translation by Javier Fernández-Sanguino
     (closes: #402681).

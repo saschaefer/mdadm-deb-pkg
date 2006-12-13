@@ -1,0 +1,18 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 99-syslog-option-FIX.dpatch by martin f. krafft <madduck@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad mdadm-2.5.6.obsolete.0.685678300987096~/ReadMe.c mdadm-2.5.6.obsolete.0.685678300987096/ReadMe.c
+--- mdadm-2.5.6.obsolete.0.685678300987096~/ReadMe.c	2006-11-08 23:57:49.000000000 +0100
++++ mdadm-2.5.6.obsolete.0.685678300987096/ReadMe.c	2006-12-13 15:33:31.000000000 +0100
+@@ -175,6 +175,7 @@
+     {"daemonize", 0, 0, 'f'},
+     {"oneshot",   0, 0, '1'},
+     {"pid-file",  1, 0, 'i'},
++    {"syslog",    0, 0, 'y'},
+     /* For Grow */
+     {"backup-file", 1,0, BackupFile},
+     
