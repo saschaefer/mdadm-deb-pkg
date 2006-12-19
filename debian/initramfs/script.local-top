@@ -30,8 +30,8 @@ if [ -e /scripts/local-top/md ]; then
   exit 1
 fi
 
-MDADM=$(command -v mdadm)
-[ -x $MDADM ] || exit 0
+MDADM=/sbin/mdadm
+[ -x "$MDADM" ] || exit 0
 
 verbose()
 {

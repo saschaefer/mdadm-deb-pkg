@@ -28,7 +28,7 @@ RUNDIR=/var/run/mdadm
 PIDFILE=$RUNDIR/monitor.pid
 DEBIANCONFIG=/etc/default/mdadm
 
-test -x $MDADM || exit 0
+test -x "$MDADM" || exit 0
 
 test -f /proc/mdstat || exit 0
 

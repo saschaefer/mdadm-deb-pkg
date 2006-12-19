@@ -1,3 +1,11 @@
+mdadm (2.5.6-8) unstable; urgency=low
+
+  * Hard-code path to /sbin/mdadm binary rather than searching the $PATH. This
+    closes: #403307 and should be a little more robust in the presence of
+    installations of mdadm in /usr/local.
+
+ -- martin f. krafft <madduck@debian.org>  Sat, 16 Dec 2006 16:20:36 +0100
+
 mdadm (2.5.6-7) unstable; urgency=low
 
   * Only parse ARRAY lines from configuration file when collecting the array

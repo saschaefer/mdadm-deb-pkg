@@ -66,8 +66,8 @@ if [ -e /etc/initramfs-tools/hooks/md ]; then
   exit 0
 fi
 
-MDADM=$(command -v mdadm 2>/dev/null) || :
-[ -x $MDADM ] || exit 0
+MDADM=/sbin/mdadm
+[ -x "$MDADM" ] || exit 0
 
 [ -r /usr/share/initramfs-tools/hook-functions ] || exit 0
 . /usr/share/initramfs-tools/hook-functions
