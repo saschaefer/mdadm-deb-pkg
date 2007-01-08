@@ -9,7 +9,6 @@
 #
 # $Id$
 #
-
 set -eu
 
 if [ ! -r /proc/mdstat ]; then
@@ -34,11 +33,11 @@ fi
 echo >&3
 
 echo "--- /proc/mdstat:" >&3
-cat /proc/mdstat >&3
+cat /proc/mdstat >&3 2>&3 || :
 echo >&3
   
 echo "--- /proc/partitions:" >&3
-cat /proc/partitions >&3 2>&3 || true
+cat /proc/partitions >&3 2>&3 || :
 echo >&3
 
 echo "--- initrd.img-$(uname -r):" >&3
@@ -49,18 +48,18 @@ echo >&3
 
 if [ -r /proc/modules ]; then
   echo "--- /proc/modules:" >&3
-  egrep '(dm_|raid|linear|multipath|faulty)' < /proc/modules >&3
+  egrep '(dm_|raid|linear|multipath|faulty)' < /proc/modules >&3 || :
   echo >&3
 fi
 
 if [ -r /var/log/syslog ]; then
   echo "--- /var/log/syslog:" >&3
-  egrep "^\w{3} [ :[:digit:]]{11} ($(hostname)|localhost) (kernel: md|mdadm): " /var/log/syslog >&3
+  egrep "^\w{3} [ :[:digit:]]{11} ($(hostname)|localhost) (kernel: md|mdadm): " /var/log/syslog >&3 || :
   echo >&3
 fi
 
 echo "--- volume detail:" >&3
-for dev in /dev/[hs]d[a-z]*; do mdadm -E $dev 2>/dev/null && echo --; done >&3
+for dev in /dev/[hs]d[a-z]*; do mdadm -E $dev 2>/dev/null && echo -- || :; done >&3
 echo >&3
 
 if [ -r /proc/cmdline ]; then
@@ -72,7 +71,7 @@ fi
 if [ -f /boot/grub/menu.lst ]; then
   echo "--- grub:" >&3
   if [ -r /boot/grub/menu.lst ]; then
-    grep '^[^#].*root=' /boot/grub/menu.lst >&3
+    grep '^[^#].*root=' /boot/grub/menu.lst >&3 || :
   else
     echo menu.lst file not readable. >&3
   fi
@@ -82,7 +81,7 @@ fi
 if [ -f /etc/lilo.conf ]; then
   echo "--- lilo:" >&3
   if [ -r /etc/lilo.conf ]; then
-    egrep '^([^#].*)?root=' /etc/lilo.conf >&3
+    egrep '^([^#].*)?root=' /etc/lilo.conf >&3 || :
   else
     echo lilo.conf file not readable. >&3
   fi
