@@ -496,6 +496,14 @@ The latest version of this FAQ is available here:
 
   I'll leave it up to you to figure things out. Now go read question 19.
 
+21. Why does the kernel speak of 'resync' when using checkarray
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Please see README.checkarray and
+  http://www.mail-archive.com/linux-raid@vger.kernel.org/msg04835.html .
+
+  In short: it's a bug. checkarray is actually not a resync, but the kernel
+  does not distinguish between them.
+
  -- martin f. krafft <madduck@debian.org>  Thu, 30 Oct 2006 00:13:05 +0200
 
 $Id$
