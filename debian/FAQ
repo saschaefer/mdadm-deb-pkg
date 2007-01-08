@@ -504,6 +504,6 @@ The latest version of this FAQ is available here:
   In short: it's a bug. checkarray is actually not a resync, but the kernel
   does not distinguish between them.
 
- -- martin f. krafft <madduck@debian.org>  Thu, 30 Oct 2006 00:13:05 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 08 Jan 2007 01:04:03 +0200
 
 $Id$
