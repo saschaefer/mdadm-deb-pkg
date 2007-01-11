@@ -2,8 +2,10 @@ mdadm (2.5.6-9) unstable; urgency=low
 
   * More logcheck filters to prevent redundant information logged by mdadm
     --syslog.
+  * Improved mdadm-raid init script to correctly output status information for
+    drives that are initialising or adding spares.
 
- -- martin f. krafft <madduck@debian.org>  Wed, 10 Jan 2007 18:27:05 +0100
+ -- martin f. krafft <madduck@debian.org>  Thu, 11 Jan 2007 16:05:12 +0100
 
 mdadm (2.5.6-8) unstable; urgency=low
 

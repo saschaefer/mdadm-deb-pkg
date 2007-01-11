@@ -143,15 +143,19 @@ case "${1:-}" in
               log_dev 0 $1 "already running"
               ;;
 
-            *'has been started with '[[:digit:]]*' drives.')
-              log_dev 0 $1 "started [$6/$6]"
+            *'has been started with '[[:digit:]]*' drive'*' (out of '[[:digit:]]*') and '[[:digit:]]*' spare'*'.')
+              log_dev 0 $1 "initialising [$6/${10%).}]"
               ;;
 
             *'has been started with '[[:digit:]]*' drive'*' (out of '[[:digit:]]*').')
               log_dev 0 $1 "degraded [$6/${10%).}]"
               ;;
 
-            *'assembled from '[[:digit:]]*' drive's#' - not enough to start the array.')
+            *'has been started with '[[:digit:]]*' drive'*'.')
+              log_dev 0 $1 "started [$6/$6]"
+              ;;
+
+            *'assembled from '[[:digit:]]*' drive'*' - not enough to start the array.')
               log_dev 1 $1 "not enough devices"
               ;;
 
