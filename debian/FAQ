@@ -496,13 +496,30 @@ The latest version of this FAQ is available here:
 
   I'll leave it up to you to figure things out. Now go read question 19.
 
-21. Why does the kernel speak of 'resync' when using checkarray
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+21. Why does the kernel speak of 'resync' when using checkarray?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Please see README.checkarray and
   http://www.mail-archive.com/linux-raid@vger.kernel.org/msg04835.html .
 
   In short: it's a bug. checkarray is actually not a resync, but the kernel
   does not distinguish between them.
+
+22. Can I prioritise the sync process and sync certain arrays before others?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Upon start, md will resynchronise any unclean arrays, starting in somewhat
+  random order. Sometimes it's desirable to sync e.g. /dev/md3 first (because
+  it's the most important), but while /dev/md1 is synchronising, /dev/md3 will
+  be DELAYED (see /proc/mdstat; only if they share the same physical
+  components.
+
+  It is possible to delay the synchronisation via /sys:
+
+    echo idle >/sys/block/md1/md/sync_action
+
+  This will cause md1 to go idle and md to synchronise md3 (or whatever is
+  queued next; repeat the above for other devices if necessary). md will also
+  realise that md1 is still not in sync and queue it for resynchronisation,
+  so it will sync automatically when its turn has come.
 
  -- martin f. krafft <madduck@debian.org>  Thu, 08 Jan 2007 01:04:03 +0200
 
