@@ -24,11 +24,11 @@ deb http://debian.madduck.net/repo sid main
 _eof
 # cat <<_eof >> /etc/apt/preferences
 Package: *
-Pin: release a=sid, release o=madduck
+Pin: release a=unstable,o=madduck
 Pin-Priority: 50
 
 Package: mdadm
-Pin: release a=sid, release o=madduck
+Pin: release a=unstable,o=madduck
 Pin-Priority: 600
 _eof
 # apt-get update; apt-get upgrade
@@ -39,38 +39,38 @@ Alternatively, you can just download the package for i386[0] or amd64[1]:
   0. http://debian.madduck.net/repo/dists/sid/main/binary-i386/admin/
   1. http://debian.madduck.net/repo/dists/sid/main/binary-amd64/admin/
 
-If you're running sarge and are willing to test, that would be great! I've
+If you're running etch and are willing to test, that would be great! I've
 prepared backports, which you can use like so (note how you need backported
 debconf and lsb-base packages too, which are to be found in the backports.org
 archive [2]; see also further down for direct links):
 
   2. http://backports.org/dokuwiki/doku.php?id=instructions
 
-For etch, just replace each occurrence of sarge with etch (s/sarge/etch/g),
-and you won't needs the debconf and lsb-base backports.
+For sarge, just replace each occurrence of etch with sarge (s/etch/sarge/g),
+and add the debconf and lsb-base backports.
 
 ---8<---
 # cat <<_eof >> /etc/apt/sources.list
-deb http://debian.madduck.net/repo sarge-backports main
+deb http://debian.madduck.net/repo etch-backports main
 ## unless you have backports already enabled:
-deb http://www.backports.org/debian sarge-backports main
+deb http://www.backports.org/debian etch-backports main
 _eof
 # cat <<_eof >> /etc/apt/preferences
 Package: *
-Pin: release a=sarge-backports, release o=madduck
+Pin: release a=etch-backports,o=madduck
 Pin-Priority: 50
 
 Package: mdadm
-Pin: release a=sarge-backports, release o=madduck
+Pin: release a=etch-backports,o=madduck
 Pin-Priority: 600
 
-Package: debconf
-Pin: release a=sarge-backports
-Pin-Priority: 600
-
-Package: lsb-base
-Pin: release a=sarge-backports
-Pin-Priority: 600
+#Package: debconf
+#Pin: release a=sarge-backports
+#Pin-Priority: 600
+#
+#Package: lsb-base
+#Pin: release a=sarge-backports
+#Pin-Priority: 600
 _eof
 # apt-get update; apt-get upgrade
 ---8<---
@@ -78,8 +78,8 @@ _eof
 The mdadm backport can also be directly downloaded for i386[3] or amd64[4], the
 needed debconf[5] and lsb-base[6] reside in the backports.org archive.
 
-  3. http://debian.madduck.net/repo/dists/sarge-backports/main/binary-i386/admin/
-  4. http://debian.madduck.net/repo/dists/sarge-backports/main/binary-amd64/admin/
+  3. http://debian.madduck.net/repo/dists/etch-backports/main/binary-i386/admin/
+  4. http://debian.madduck.net/repo/dists/etch-backports/main/binary-amd64/admin/
   5. http://backports.org/debian/pool/main/d/debconf/
   6. http://backports.org/debian/pool/main/l/lsb/
 
