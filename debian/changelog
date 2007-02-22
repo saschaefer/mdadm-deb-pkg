@@ -1,13 +1,15 @@
-mdadm (2.6.1-1) unstable; urgency=low
+mdadm (2.6.1-1~exp.1) experimental; urgency=low
 
-  * New upstream release:
-    - adds --syslog option (closes: #402457)
+  * New upstream release, targeted at experimental until etch is out:
+    - adds --syslog option (closes: #402457).
+    - now can --wait for sync activity to finish (closes: #328197).
+    - for other changes, please see /usr/share/doc/mdadm/changelog.gz
   * Updated debconf translations:
     - Portuguese by Rui Branco (closes: #411745).
 
- -- martin f. krafft <madduck@debian.org>  Thu, 22 Feb 2007 16:33:24 +0100
+ -- martin f. krafft <madduck@debian.org>  Thu, 22 Feb 2007 16:35:16 +0100
 
-mdadm (2.5.6-9) unstable; urgency=low
+mdadm (2.5.6-9) UNRELEASED; urgency=low
 
   * More logcheck filters to prevent redundant information logged by mdadm
     --syslog.
