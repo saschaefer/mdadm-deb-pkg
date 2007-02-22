@@ -1,3 +1,16 @@
+mdadm (2.6.1-1) unstable; urgency=low
+
+  * New upstream release:
+    -
+    -
+    -
+  *
+  *
+  * Updated debconf translations:
+    - Portuguese by Rui Branco (closes: #411745).
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 22 Feb 2007 16:13:47 +0100
+
 mdadm (2.5.6-9) unstable; urgency=low
 
   * More logcheck filters to prevent redundant information logged by mdadm
