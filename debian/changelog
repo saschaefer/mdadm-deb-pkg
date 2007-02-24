@@ -1,3 +1,10 @@
+mdadm (2.6.1-1~exp.2) experimental; urgency=low
+
+  * Updated debconf translations:
+    - Galician by Jacobo Tarrio (closes: #412203).
+
+ -- martin f. krafft <madduck@debian.org>  Sat, 24 Feb 2007 16:41:16 +0100
+
 mdadm (2.6.1-1~exp.1) experimental; urgency=low
 
   * New upstream release, targeted at experimental until etch is out:
