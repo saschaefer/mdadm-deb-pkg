@@ -22,7 +22,7 @@ if [ -n "${MDADM_MAILADDR__:-}" ]; then
   MAILADDR="$MDADM_MAILADDR__"
 else
   # preserve existing MAILADDR
-  MAILADDR="$(sed -ne 's,MAILADDR ,,p' $CONFIG 2>/dev/null || echo root)"
+  MAILADDR="$(sed -ne 's/MAILADDR //p' $CONFIG 2>/dev/null || echo root)"
 fi
 
 generate=0

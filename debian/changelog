@@ -1,3 +1,10 @@
+mdadm (2.6.1-1~exp.3) experimental; urgency=low
+
+  * Patch by Jørn V. Christensen to properly handle multiple email addresses
+    for the MAILADDR setting (closes: #413330).
+
+ -- martin f. krafft <madduck@debian.org>  Mon,  5 Mar 2007 11:19:18 +0000
+
 mdadm (2.6.1-1~exp.2) experimental; urgency=low
 
   * Updated debconf translations:

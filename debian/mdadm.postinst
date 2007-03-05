@@ -70,7 +70,7 @@ case "${1:-}" in
       # if the configuration is writeable but has not been written just
       # before, then edit it to reflect the MAILADDR preference
       if grep -q '^MAILADDR' $CONFIG; then
-        sed -i -e "s,^MAILADDR.*,MAILADDR $MAILADDR," $CONFIG
+        sed -i -e "s/^MAILADDR.*/MAILADDR $MAILADDR/" $CONFIG
       else
         echo "MAILADDR $MAILADDR" >> $CONFIG
       fi
