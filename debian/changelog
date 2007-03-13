@@ -1,3 +1,10 @@
+mdadm (2.6.1-1~exp.4) experimental; urgency=low
+
+  * Incorporate patches by Peter Samuelson fixing several typography as well
+    as typesetting issues in the manpages. Thanks a lot! (closes: #414688)
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 13 Mar 2007 19:26:37 +0100
+
 mdadm (2.6.1-1~exp.3) experimental; urgency=low
 
   * Patch by Jørn V. Christensen to properly handle multiple email addresses
