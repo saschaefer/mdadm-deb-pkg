@@ -107,4 +107,8 @@ elif [ "$MD_DEVS" != none ]; then
   done
 fi
 
+verbose && log_begin_msg "Executing udevtrigger again"
+/sbin/udevtrigger
+verbose && log_end_msg
+
 exit 0
