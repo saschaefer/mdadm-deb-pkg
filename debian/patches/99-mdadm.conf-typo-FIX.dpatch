@@ -1,0 +1,19 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 99-mdadm.conf-typo-FIX.dpatch by martin f. krafft <madduck@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad mdadm-2.5.6~/mdadm.conf.5 mdadm-2.5.6/mdadm.conf.5
+--- mdadm-2.5.6~/mdadm.conf.5	2007-03-31 11:54:16.000000000 +0200
++++ mdadm-2.5.6/mdadm.conf.5	2007-03-31 11:54:36.000000000 +0200
+@@ -285,7 +285,7 @@
+ or
+ .BR md_ .
+ Give
+-.B symlinked=no
++.B symlinks=no
+ to suppress this symlink creation.
+ .RE
+ 
