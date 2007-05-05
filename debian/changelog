@@ -1,3 +1,13 @@
+mdadm (2.6.1-1) unstable; urgency=low
+
+  * Release to unstable.
+  * Start arrays read-only in initramfs to prevent syncing and hence enable
+    resuming/freezing. The arrays will automatically sync as soon something
+    writes to it; thanks to Tim Dijkstra, Neil Brown, and Luis Rodrigo
+    Gallardo Cruz (closes: #415441).
+
+ -- martin f. krafft <madduck@debian.org>  Sat, 05 May 2007 16:12:29 +0200
+
 mdadm (2.6.1-1~exp.5) experimental; urgency=low
 
   * Fix mdadm.conf typo; thanks Tim Phipps (closes: #416626).

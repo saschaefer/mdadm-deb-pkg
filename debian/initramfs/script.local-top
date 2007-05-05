@@ -80,6 +80,9 @@ if [ ! -e $CONFIG ]; then
   MD_DEVS=all
 fi
 
+# prevent writes/syncs so that resuming works (#415441).
+echo 1 > /sys/module/md_mod/parameters/start_ro
+
 if [ "$MD_DEVS" = all ]; then
   
   verbose && log_begin_msg "Assembling all MD arrays"
