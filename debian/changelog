@@ -7,6 +7,8 @@ mdadm (2.6.1-1) unstable; urgency=low
     Gallardo Cruz (closes: #415441).
   * mkconf now tries to preserve existing values for DEVICE, CREATE and
     HOMEHOST (in addition to MAILADDR, which it preserved previously already).
+    PROGRAM is preserved but only added to mdadm.conf if it occured in the
+    previously existing configuration file.
 
  -- martin f. krafft <madduck@debian.org>  Sat, 05 May 2007 16:12:29 +0200
 

@@ -22,7 +22,7 @@ if [ -n "${MDADM_MAILADDR__:-}" ]; then
   MAILADDR="$MDADM_MAILADDR__"
 else
   # preserve existing MAILADDR
-  MAILADDR="$(sed -ne 's/^MAILADDR //p' $CONFIG 2>/dev/null)"
+  MAILADDR="$(sed -ne 's/^MAILADDR //p' $CONFIG 2>/dev/null)" || :
 fi
 
 # save existing values as defaults
@@ -30,6 +30,7 @@ if [ -r "$CONFIG" ]; then
   DEVICE="$(sed -ne 's/^DEVICE //p' $CONFIG)"
   CREATE="$(sed -ne 's/^CREATE //p' $CONFIG)"
   HOMEHOST="$(sed -ne 's/^HOMEHOST //p' $CONFIG)"
+  PROGRAM="$(sed -ne 's/^PROGRAM //p' $CONFIG)"
 fi
 
 generate=0
@@ -69,6 +70,14 @@ HOMEHOST ${HOMEHOST:-<system>}
 MAILADDR ${MAILADDR:-root}
 
 _eof
+
+if [ -n "$PROGRAM" ]; then
+  cat <<-_eof
+	# program to run when mdadm monitor detects potentially interesting events
+	PROGRAM ${PROGRAM}
+	
+	_eof
+fi
 
 error=0
 if [ ! -r /proc/mdstat ]; then
