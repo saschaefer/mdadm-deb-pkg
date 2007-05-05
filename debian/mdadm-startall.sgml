@@ -55,13 +55,13 @@ manpage.1: manpage.sgml
     &dhsection;
   </refmeta>
   <refnamediv>
-    <refname>mdadm-startall</refname>
+    <refname>&dhucpackage;</refname>
 
     <refpurpose>helper script to start all known arrays</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
-      <command>&dhpackage;</command>
+      <command>&dhucpackage;</command>
     </cmdsynopsis>
   </refsynopsisdiv>
   <refsect1>
