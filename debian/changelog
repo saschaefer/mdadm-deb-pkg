@@ -9,6 +9,9 @@ mdadm (2.6.1-1) unstable; urgency=low
     HOMEHOST (in addition to MAILADDR, which it preserved previously already).
     PROGRAM is preserved but only added to mdadm.conf if it occured in the
     previously existing configuration file.
+  * startall is now mdadm-startall and lives in /sbin, thanks to Eduard Bloch.
+    It now can handle existing mdadm.conf files much more gracefully, mostly
+    thanks to the above mkconf enhancements (closes: #415336).
 
  -- martin f. krafft <madduck@debian.org>  Sat, 05 May 2007 16:12:29 +0200
 

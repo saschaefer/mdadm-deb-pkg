@@ -30,8 +30,11 @@ debian/patches/00list: force-run
 .PHONY: configure
 configure: debian/patches/00list
 
+debian/mdadm-startall.8: debian/mdadm-startall.sgml
+	docbook-to-man $< > $@
+
 build: configure patch build-stamp
-build-stamp: 
+build-stamp: debian/mdadm-startall.8
 	dh_testdir
 	$(MAKE) -f debian/rules mdadm.udeb DEBIAN=yes
 	$(MAKE) clean
@@ -82,8 +85,9 @@ install: build
 
 	install -m0755 debian/mkconf $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/checkarray $(DESTDIR)/usr/share/mdadm
-	install -m0755 debian/startall $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/bugscript $(DESTDIR)/usr/share/bug/mdadm/script
+
+	install -m0755 debian/mdadm-startall $(DESTDIR)/sbin
 
 	install -m0644 debian/mdadm.lintian-overrides \
 		$(DESTDIR)/usr/share/lintian/overrides/mdadm

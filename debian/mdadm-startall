@@ -16,17 +16,19 @@ ALTCONFIG=/etc/mdadm.conf
 
 modprobe -kq md 2>/dev/null || :
 
-if [ ! -f $CONFIG ] && [ ! -f $ALTCONFIG ]; then
-  mkdir --parents ${CONFIG%/*}
-  /usr/share/mdadm/mkconf > $CONFIG || ret=$?
+[ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG
+
+if ! grep -q '^ARRAY' $CONFIG 2>/dev/null; then
+  /usr/share/mdadm/mkconf force-generate || ret=$?
   case ${ret:-0} in
     0) :;;
-    255) echo W: mdadm: using existing mdadm.conf file... >&2;;
     *)
       echo E: mdadm: mdadm.conf creation failed, aborting. >&2
       exit $ret
       ;;
   esac
+else
+  echo W: mdadm: using ARRAYs defined in existing mdadm.conf. >&2
 fi
 
 MDADM_FORCE_AUTOSTART__=1 exec /etc/init.d/mdadm-raid start
