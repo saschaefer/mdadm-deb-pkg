@@ -62,8 +62,6 @@ manpage.1: manpage.sgml
   <refsynopsisdiv>
     <cmdsynopsis>
       <command>&dhpackage;</command>
-
-      <arg><option>-r</option></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
   <refsect1>
