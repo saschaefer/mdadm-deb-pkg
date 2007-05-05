@@ -5,6 +5,8 @@ mdadm (2.6.1-1) unstable; urgency=low
     resuming/freezing. The arrays will automatically sync as soon something
     writes to it; thanks to Tim Dijkstra, Neil Brown, and Luis Rodrigo
     Gallardo Cruz (closes: #415441).
+  * mkconf now tries to preserve existing values for DEVICE, CREATE and
+    HOMEHOST (in addition to MAILADDR, which it preserved previously already).
 
  -- martin f. krafft <madduck@debian.org>  Sat, 05 May 2007 16:12:29 +0200
 

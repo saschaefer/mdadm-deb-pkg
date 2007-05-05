@@ -22,7 +22,14 @@ if [ -n "${MDADM_MAILADDR__:-}" ]; then
   MAILADDR="$MDADM_MAILADDR__"
 else
   # preserve existing MAILADDR
-  MAILADDR="$(sed -ne 's/MAILADDR //p' $CONFIG 2>/dev/null || echo root)"
+  MAILADDR="$(sed -ne 's/^MAILADDR //p' $CONFIG 2>/dev/null)"
+fi
+
+# save existing values as defaults
+if [ -r "$CONFIG" ]; then
+  DEVICE="$(sed -ne 's/^DEVICE //p' $CONFIG)"
+  CREATE="$(sed -ne 's/^CREATE //p' $CONFIG)"
+  HOMEHOST="$(sed -ne 's/^HOMEHOST //p' $CONFIG)"
 fi
 
 generate=0
@@ -50,16 +57,16 @@ cat <<_eof
 
 # by default, scan all partitions (/proc/partitions) for MD superblocks.
 # alternatively, specify devices to scan, using wildcards if desired.
-DEVICE partitions
+DEVICE ${DEVICE:-partitions}
 
 # auto-create devices with Debian standard permissions
-CREATE owner=root group=disk mode=0660 auto=yes
+CREATE ${CREATE:-owner=root group=disk mode=0660 auto=yes}
 
 # automatically tag new arrays as belonging to the local system
-HOMEHOST <system>
+HOMEHOST ${HOMEHOST:-<system>}
 
 # instruct the monitoring daemon where to send mail alerts
-MAILADDR $MAILADDR
+MAILADDR ${MAILADDR:-root}
 
 _eof
 
