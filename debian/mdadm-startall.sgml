@@ -67,7 +67,7 @@ manpage.1: manpage.sgml
   <refsect1>
     <title>DESCRIPTION</title>
 
-    <para>The <command>mdadm-startall</command> script scans the system for
+    <para>The <command>&dhucpackage;</command> script scans the system for
     arrays and writes a configuration file matching the current state. It then
     starts all arrays it found. If a configuration file already exists and
     defines arrays, it is used instead.
