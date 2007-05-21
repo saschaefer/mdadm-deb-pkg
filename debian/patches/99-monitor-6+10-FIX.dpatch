@@ -1,0 +1,19 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 99-monitor-6+10-FIX.dpatch by martin f. krafft <madduck@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad mdadm-2.6.2~/Monitor.c mdadm-2.6.2/Monitor.c
+--- mdadm-2.6.2~/Monitor.c	2007-05-21 14:24:20.000000000 +0200
++++ mdadm-2.6.2/Monitor.c	2007-05-21 14:24:45.000000000 +0200
+@@ -401,6 +401,8 @@
+ 				if (mse->devnum != MAXINT &&
+ 				    (strcmp(mse->level, "raid1")==0 ||
+ 				     strcmp(mse->level, "raid5")==0 ||
++				     strcmp(mse->level, "raid6")==0 ||
++				     strcmp(mse->level, "raid10")==0 ||
+ 				     strcmp(mse->level, "multipath")==0)
+ 					) {
+ 					struct state *st = malloc(sizeof *st);

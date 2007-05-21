@@ -1,3 +1,15 @@
+mdadm (2.6.2-1) unstable; urgency=low
+
+  * New upstream release
+    - new options --fail detach and --remove faulty can be used to fail and
+      remove devices that are no longer physically present (closes: #416512).
+    - --help output now goes to stdout (closes: #416653).
+    - plenty of manpage fixes, thanks Peter Samuelson (closes: #414688).
+  * Incorporated patch by Mikko Rasa to fix detecting of raid6 (and raid10)
+    devices with --scan (closes: #421915).
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 21 May 2007 14:25:43 +0200
+
 mdadm (2.6.1-1) unstable; urgency=low
 
   * Release to unstable.
