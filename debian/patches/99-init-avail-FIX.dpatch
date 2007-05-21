@@ -1,0 +1,19 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 99-init-avail-FIX.dpatch by martin f. krafft <madduck@debian.org>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: No description.
+
+@DPATCH@
+diff -urNad mdadm-2.6.2~/Detail.c mdadm-2.6.2/Detail.c
+--- mdadm-2.6.2~/Detail.c	2007-05-21 06:25:50.000000000 +0200
++++ mdadm-2.6.2/Detail.c	2007-05-21 14:41:40.000000000 +0200
+@@ -59,7 +59,7 @@
+ 	void *super = NULL;
+ 	int rv = test ? 4 : 1;
+ 	int avail_disks = 0;
+-	char *avail;
++	char *avail = NULL;
+ 
+ 	if (fd < 0) {
+ 		fprintf(stderr, Name ": cannot open %s: %s\n",
