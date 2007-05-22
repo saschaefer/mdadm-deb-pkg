@@ -8,12 +8,17 @@
 diff -urNad mdadm-2.6.2~/Detail.c mdadm-2.6.2/Detail.c
 --- mdadm-2.6.2~/Detail.c	2007-05-21 06:25:50.000000000 +0200
 +++ mdadm-2.6.2/Detail.c	2007-05-21 14:41:40.000000000 +0200
-@@ -59,7 +59,7 @@
- 	void *super = NULL;
- 	int rv = test ? 4 : 1;
- 	int avail_disks = 0;
--	char *avail;
-+	char *avail = NULL;
- 
- 	if (fd < 0) {
- 		fprintf(stderr, Name ": cannot open %s: %s\n",
+@@ -377,12 +377,12 @@ This is pretty boring
+
+        if (brief > 1 && devices) printf("\n   devices=%s", devices);
+        if (brief) printf("\n");
+-out:
+        if (test &&
+            !enough(array.level, array.raid_disks, array.layout,
+                    1, avail, avail_disks))
+                rv = 2;
+
++out:
+        close(fd);
+        return rv;
+ }
