@@ -6,19 +6,19 @@
 
 @DPATCH@
 diff -urNad mdadm-2.6.2~/Detail.c mdadm-2.6.2/Detail.c
---- mdadm-2.6.2~/Detail.c	2007-05-21 06:25:50.000000000 +0200
-+++ mdadm-2.6.2/Detail.c	2007-05-21 14:41:40.000000000 +0200
-@@ -377,12 +377,12 @@ This is pretty boring
-
-        if (brief > 1 && devices) printf("\n   devices=%s", devices);
-        if (brief) printf("\n");
+--- mdadm-2.6.2~/Detail.c	2007-05-22 11:31:59.000000000 +0200
++++ mdadm-2.6.2/Detail.c	2007-05-22 11:32:58.000000000 +0200
+@@ -377,12 +377,12 @@
+ 
+ 	if (brief > 1 && devices) printf("\n   devices=%s", devices);
+ 	if (brief) printf("\n");
 -out:
-        if (test &&
-            !enough(array.level, array.raid_disks, array.layout,
-                    1, avail, avail_disks))
-                rv = 2;
-
+ 	if (test &&
+ 	    !enough(array.level, array.raid_disks, array.layout,
+ 		    1, avail, avail_disks))
+ 		rv = 2;
+ 
 +out:
-        close(fd);
-        return rv;
+ 	close(fd);
+ 	return rv;
  }
