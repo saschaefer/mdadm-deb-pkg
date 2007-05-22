@@ -1,0 +1,244 @@
+# Galician translation of mdadm's debconf templates
+# This file is distributed under the same license as the mdadm package.
+# Jacobo Tarrio <jtarrio@debian.org>, 2007.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: mdadm\n"
+"Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
+"POT-Creation-Date: 2006-09-16 13:03+0200\n"
+"PO-Revision-Date: 2007-02-24 16:04+0100\n"
+"Last-Translator: Jacobo Tarrio <jtarrio@debian.org>\n"
+"Language-Team: Galician <proxecto@trasno.net>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:1001
+msgid "MD arrays needed for the root filesystem:"
+msgstr "Arrays MD necesarios para o sistema de ficheiros raíz"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:1001
+msgid "${msg}"
+msgstr "${msg}"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:1001
+msgid ""
+"Please enter a space-separated list of devices, 'all', or 'none'. You may "
+"omit the leading '/dev/' and just enter e.g. \"md0 md1\", or \"md/1 md/d0\"."
+msgstr ""
+"Introduza unha lista de dispositivos separados por espazos, \"all\" (todos) "
+"ou \"none\" (ningún). Pode omitir o \"/dev/\" do principio e introducir só, "
+"por exemplo, \"md0 md1\" ou \"md/1 md/d0\"."
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid "for internal use - only the long description is needed."
+msgstr "para uso interno - só se precisa da descrición longa."
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid ""
+"If your system has its root filesystem on an MD array (RAID), it needs to be "
+"started early during the boot sequence. If your root filesystem is on a "
+"logical volume (LVM), which is on MD, all constituent arrays need to be "
+"started."
+msgstr ""
+"Se o seu sistema ten o sistema de ficheiros raíz nun array MD (RAID), hai "
+"que o iniciar no principio da secuencia de inicio. Se o seu sistema de "
+"ficheiros raíz está nun volume lóxico (LVM) que está nun MD, hai que iniciar "
+"os arrays constituíntes."
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid ""
+"If you know exactly which arrays are needed to bring up the root filesystem, "
+"and you want to postpone starting all other arrays to a later point in the "
+"boot sequence, enter the arrays to start here. Alternatively, enter 'all' to "
+"simply start all available arrays."
+msgstr ""
+"Se sabe exactamente que arrays son necesarios para erguer o sistema de "
+"ficheiros raíz, e se quere pospor o inicio dos demáis arrays ata un punto "
+"posterior da secuencia de inicio, introduza aquí os arrays a iniciar. "
+"Alternativamente, introduza \"all\" para iniciar tódolos arrays dispoñibles."
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid ""
+"If you do not need or want to start any arrays for the root filesystem, "
+"leave the answer blank (or enter 'none'). This may be the case if you are "
+"using kernel autostart or do not need any arrays to boot."
+msgstr ""
+"Se non quere ou precisa de iniciar ningún array para o sistema de ficheiros "
+"raíz, deixe a resposta en branco (ou introduza \"none\"). Este pode ser o "
+"caso se está a empregar o autoinicio do núcleo ou non precisa de ningún "
+"array para o inicio."
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:3001
+msgid "An error occurred: device node does not exist"
+msgstr "Houbo un erro: o nodo do dispositivo non existe"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:4001
+msgid "An error occurred: not a block device"
+msgstr "Houbo un erro: non é un dispositivo de bloques"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:5001
+msgid "An error occurred: not an MD array"
+msgstr "Houbo un erro: non é un array MD"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:6001
+msgid "An error occurred: array not listed in mdadm.conf file"
+msgstr "Houbo un erro: o array non figura no ficheiro mdadm.conf"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid "Proceed with starting arrays not listed in mdadm.conf?"
+msgstr "¿Iniciar os arrays que non figuran en mdadm.conf?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid ""
+"The array you have specified (${array}) is not listed in the configuration "
+"file ${config}. Therefore it cannot be started during boot, unless you "
+"correct the configuration file and recreate the initial ramdisk."
+msgstr ""
+"O array que especificou (${array}) non figura no ficheiro de configuración "
+"${config}. Polo tanto, non se pode arrincar no inicio do sistema, a menos "
+"que corrixa o ficheiro de configuración e volva crear o disco RAM inicial."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid ""
+"Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend "
+"to continue."
+msgstr ""
+"Consulte /usr/share/doc/mdadm/README.upgrading-2.5.3.gz se quere continuar."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid ""
+"This warning is only relevant if you need arrays to be started from the "
+"initial ramdisk to be able to boot. If you use kernel autostarting, or do "
+"not need any arrays to be started as early as the initial ramdisk is loaded, "
+"you can simply continue. Alternatively, choose not to continue and enter "
+"'none' when prompted which arrays to start from the initial ramdisk."
+msgstr ""
+"Este aviso só é relevante se precisa de iniciar arrays desde o disco RAM "
+"inicial para poder iniciar o sistema. Se emprega autoinicio do núcleo ou non "
+"precisa de iniciar arrays tan pronto como se cargue o disco RAM inicial, "
+"pode continuar. De xeito alternativo, escolla non continuar e introduza "
+"\"none\" cando se lle pregunte que arrays quere iniciar do disco RAM inicial."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:8001
+msgid "Do you want to start MD arrays automatically?"
+msgstr "¿Quere iniciar os arrays MD automaticamente?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:8001
+msgid ""
+"Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
+"specified in /etc/mdadm/mdadm.conf, which have not yet been started. Unless "
+"you have compiled multiple device (MD) support into the kernel and marked "
+"all partitions part of MD arrays with type 0xfd (as those and only those "
+"will be started automatically by the kernel), this is probably what you want."
+msgstr ""
+"Despois do inicio do sistema base, mdadm pode iniciar tódolos arrays MD "
+"(RAIDs) especificados en /etc/mdadm/mdadm.conf que non estean aínda "
+"iniciados. A menos que teña o soporte de dispositivos múltiples (MD) "
+"compilado no núcleo e teña tódalas particións marcadas coma parte de arrays "
+"MD de tipo 0xfd (xa que esas, e só esas, as ha iniciar automaticamente o "
+"núcleo), isto é, probablemente, o que quere."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:9001
+msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
+msgstr ""
+"¿Debería mdadm facer comprobacións mensuais de redundancia dos arrays MD?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:9001
+msgid ""
+"If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
+"redundancy of your MD arrays (RAIDs). This may be a resource-intensive "
+"process, depending on your setup, but it could help prevent rare cases of "
+"data loss. Note that this is a read-only check unless errors are found; if "
+"errors are found, mdadm will try to correct them, which may result in write "
+"access to the media."
+msgstr ""
+"Se o seu núcleo ten soporte para iso (>> 2.6.14), mdadm pode facer "
+"comprobacións periódicas de redundancia dos seus arrays MD (RAIDs). Este "
+"pode ser un proceso intensivo en recursos, dependendo da configuración, pero "
+"pode axudar a evitar algúns casos raros de perdas de datos. Teña en conta "
+"que esta é unha comprobación de só lectura a menos que se atopen erros; se "
+"se atopan erros, mdadm ha tratar de os arranxar, o que pode producir accesos "
+"de escritura aos soportes."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:9001
+msgid ""
+"The default, if turned on, is to run the checks on the first Sunday of every "
+"month at 01:06 o'clock."
+msgstr ""
+"A opción por defecto, se se activa, é facer as comprobacións o primeiro "
+"domingo de cada mes ás 01:16."
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:10001
+msgid "Do you want to start the MD monitoring daemon?"
+msgstr "¿Quere iniciar o servizo de monitorización de MD?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:10001
+msgid ""
+"The MD (RAID) monitor daemon sends email notifications in response to "
+"important MD events (such as a disk failure). You probably want to enable it."
+msgstr ""
+"O servizo de monitorización de MD (RAID) envía avisos por email en resposta "
+"a eventos importantes de MD (coma fallos nos discos). Seguramente queira "
+"activalo."
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:11001
+msgid "Recipient for email notifications:"
+msgstr "Destinatario para os avisos por email:"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:11001
+msgid ""
+"Please enter the email address of the user who should get the email "
+"notification for important MD events."
+msgstr ""
+"Introduza o enderezo de email do usuario que debe recibir os avisos por "
+"email de eventos importantes de MD."
