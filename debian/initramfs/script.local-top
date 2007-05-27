@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright © 2006 Martin F. Krafft <madduck@debian.org>
+# Copyright © 2006-2007 Martin F. Krafft <madduck@debian.org>
 # based on the scripts in the initramfs-tools package.
 # released under the terms of the Artistic Licence.
 #
