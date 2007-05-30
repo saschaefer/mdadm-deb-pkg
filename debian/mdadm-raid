@@ -124,7 +124,7 @@ case "${1:-}" in
             'No arrays found in config file'*)
               # no point in carrying on.
               shift
-              log_problem "no $*"
+              log_notice "no $*"
               exit 0
               ;;
 

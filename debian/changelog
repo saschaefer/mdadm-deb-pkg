@@ -1,8 +1,10 @@
 mdadm (2.6.2-2) unstable; urgency=low
 
   * Fix typos in md(4) manpage; thanks Jeroen (closes: #425576).
+  * Make init script not report failure when there are no arrays defined in
+    config file.
 
- -- martin f. krafft <madduck@debian.org>  Tue, 22 May 2007 18:26:56 +0200
+ -- martin f. krafft <madduck@debian.org>  Wed, 30 May 2007 14:45:57 +0200
 
 mdadm (2.6.2-1) unstable; urgency=low
 
