@@ -3,6 +3,10 @@ mdadm (2.6.2-2) unstable; urgency=low
   * Fix typos in md(4) manpage; thanks Jeroen (closes: #425576).
   * Make init script not report failure when there are no arrays defined in
     config file.
+  * Add /usr/share/doc/mdadm/examples/newdisk, a script to integrate
+    a replacement disk into an existing array with minimal effort; will remain
+    in examples/ until I had a chance to really test and understand it. Thanks
+    to Arno van Amersfoort (closes: #427880).
 
  -- martin f. krafft <madduck@debian.org>  Wed, 30 May 2007 14:45:57 +0200
 
