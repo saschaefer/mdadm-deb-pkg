@@ -1,3 +1,9 @@
+mdadm (2.6.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 04 Sep 2007 21:48:33 +0200
+
 mdadm (2.6.2-2) unstable; urgency=low
 
   * Fix typos in md(4) manpage; thanks Jeroen (closes: #425576).
