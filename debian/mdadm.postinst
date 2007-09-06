@@ -26,7 +26,7 @@ case "${1:-}" in
 
         echo -n 'Generating array device nodes... ' >&2
         cd /dev
-        if /sbin/MAKEDEV md >&2 >/dev/null; then
+        if /dev/MAKEDEV md >&2 >/dev/null; then
           echo 'done.' >&2
         else
           echo 'failed.' >&2

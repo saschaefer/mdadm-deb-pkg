@@ -3,8 +3,10 @@ mdadm (2.6.3-1) unstable; urgency=low
   * New upstream release.
   * Do not call update-initramfs -k all, it can be set via
     /etc/initramfs-tools/update-initramfs.conf (closes: #439334).
+  * Depend on udev|makedev instead of just makedev and invoke /dev/MAKEDEV,
+    not /sbin/MAKEDEV (closes: #436998).
 
- -- martin f. krafft <madduck@debian.org>  Thu, 06 Sep 2007 23:20:02 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 06 Sep 2007 23:26:14 +0200
 
 mdadm (2.6.2-2) unstable; urgency=low
 
