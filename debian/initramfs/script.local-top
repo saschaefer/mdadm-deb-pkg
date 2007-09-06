@@ -100,7 +100,7 @@ elif [ "$MD_DEVS" != none ]; then
   for dev in $MD_DEVS; do
 
     verbose && log_begin_msg "Assembling MD array $dev"
-    if $MDADM --assemble --run --auto=yes $dev; then
+    if $MDADM --assemble --scan --run --auto=yes $dev; then
       verbose && log_success_msg "started $dev"
     else
       log_failure_msg "failed to start $dev"

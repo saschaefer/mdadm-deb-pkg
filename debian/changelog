@@ -9,8 +9,11 @@ mdadm (2.6.3-1) unstable; urgency=low
     simply note that this involves initramfs assembling arrays it finds
     automatically at boot. Also added a FAQ entry on how to turn off the init
     script warning when no arrays are found (closes: #434934).
+  * Add --scan to the single-device-assembly-codepath in the initramfs
+    local-top script; thanks to Mario 'BitKoenig' Holbe for the patch
+    (closes: #440703).
 
- -- martin f. krafft <madduck@debian.org>  Thu, 06 Sep 2007 23:44:15 +0200
+ -- martin f. krafft <madduck@debian.org>  Fri, 07 Sep 2007 00:08:28 +0200
 
 mdadm (2.6.2-2) unstable; urgency=low
 
