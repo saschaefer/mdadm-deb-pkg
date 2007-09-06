@@ -174,11 +174,11 @@ fi
 # ARRAY statements, we must let the initramfs handle stuff.
 if [ ! -f $DESTMDADMCONF ]; then
   warn "no configuration file available."
-  warn "falling back to emergency procedure in initramfs."
+  info "letting initramfs assemble auto-detected arrays."
   exit 0
 elif ! grep -q '^ARRAY' $DESTMDADMCONF; then
   warn "no arrays defined in configuration file."
-  warn "falling back to emergency procedure in initramfs."
+  info "letting initramfs assemble auto-detected arrays."
   exit 0
 else
   # obtain dev:level pairs from config file, honouring multiline entries

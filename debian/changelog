@@ -5,8 +5,12 @@ mdadm (2.6.3-1) unstable; urgency=low
     /etc/initramfs-tools/update-initramfs.conf (closes: #439334).
   * Depend on udev|makedev instead of just makedev and invoke /dev/MAKEDEV,
     not /sbin/MAKEDEV (closes: #436998).
+  * De-escalate the initramfs hook warning about an "emergency procedure" and
+    simply note that this involves initramfs assembling arrays it finds
+    automatically at boot. Also added a FAQ entry on how to turn off the init
+    script warning when no arrays are found (closes: #434934).
 
- -- martin f. krafft <madduck@debian.org>  Thu, 06 Sep 2007 23:26:14 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 06 Sep 2007 23:44:15 +0200
 
 mdadm (2.6.2-2) unstable; urgency=low
 
