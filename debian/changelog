@@ -1,8 +1,10 @@
 mdadm (2.6.3-1) unstable; urgency=low
 
   * New upstream release.
+  * Do not call update-initramfs -k all, it can be set via
+    /etc/initramfs-tools/update-initramfs.conf (closes: #439334).
 
- -- martin f. krafft <madduck@debian.org>  Tue, 04 Sep 2007 21:48:33 +0200
+ -- martin f. krafft <madduck@debian.org>  Thu, 06 Sep 2007 23:20:02 +0200
 
 mdadm (2.6.2-2) unstable; urgency=low
 

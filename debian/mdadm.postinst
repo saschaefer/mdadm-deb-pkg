@@ -161,7 +161,7 @@ _eof
       fi
     fi
 
-    command -v update-initramfs >/dev/null 2>&1 && update-initramfs -u -k all
+    command -v update-initramfs >/dev/null 2>&1 && update-initramfs -u
     ;;
 esac
 
