@@ -62,7 +62,7 @@ if [ ! -f /proc/mdstat ]; then
 fi
 
 # handle /dev/md/X nodes
-mkdir --parent /dev/md
+mkdir -p /dev/md
 
 CONFIG=/etc/mdadm/mdadm.conf
 # in case the hook failed to install a configuration file, this is our last

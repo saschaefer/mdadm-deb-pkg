@@ -1,3 +1,10 @@
+mdadm (2.6.3-2) unstable; urgency=low
+
+  * Use short option in initramfs script mkdir call, so make it klibc-utils
+    compatible; thanks maximilian attems for the patch (closes: #443436).
+
+ -- martin f. krafft <madduck@debian.org>  Sat, 22 Sep 2007 17:47:38 +0100
+
 mdadm (2.6.3-1) unstable; urgency=low
 
   * New upstream release.
