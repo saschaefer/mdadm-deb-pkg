@@ -1,10 +1,3 @@
-mdadm (2.6.3-2) unstable; urgency=low
-
-  * Use short option in initramfs script mkdir call, so make it klibc-utils
-    compatible; thanks maximilian attems for the patch (closes: #443436).
-
- -- martin f. krafft <madduck@debian.org>  Sat, 22 Sep 2007 17:47:38 +0100
-
 mdadm (2.6.3-1) unstable; urgency=low
 
   * New upstream release.
@@ -19,8 +12,10 @@ mdadm (2.6.3-1) unstable; urgency=low
   * Add --scan to the single-device-assembly-codepath in the initramfs
     local-top script; thanks to Mario 'BitKoenig' Holbe for the patch
     (closes: #440703).
+  * Use short option in initramfs script mkdir call, so make it klibc-utils
+    compatible; thanks maximilian attems for the patch (closes: #443436).
 
- -- martin f. krafft <madduck@debian.org>  Fri, 07 Sep 2007 00:08:28 +0200
+ -- martin f. krafft <madduck@debian.org>  Sat, 22 Sep 2007 17:54:54 +0100
 
 mdadm (2.6.2-2) unstable; urgency=low
 
