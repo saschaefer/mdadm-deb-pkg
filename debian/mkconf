@@ -71,7 +71,7 @@ MAILADDR ${MAILADDR:-root}
 
 _eof
 
-if [ -n "$PROGRAM" ]; then
+if [ -n "${PROGRAM:-}" ]; then
   cat <<-_eof
 	# program to run when mdadm monitor detects potentially interesting events
 	PROGRAM ${PROGRAM}
