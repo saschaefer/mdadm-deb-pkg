@@ -4,16 +4,13 @@
 # based on the scripts in the initramfs-tools package.
 # released under the terms of the Artistic Licence.
 #
-# $Id$
-#
-
 set -eu
 
 PREREQ="udev_helper"
 
 prereqs()
 {
-	echo "$PREREQ"
+  echo "$PREREQ"
 }
 
 case ${1:-} in
