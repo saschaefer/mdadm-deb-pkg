@@ -1,6 +1,8 @@
-mdadm (2.6.3-1) unstable; urgency=low
+mdadm (2.6.3+200709292116+4450e59-1) unstable; urgency=low
 
-  * New upstream release.
+  * New merge from upstream @4450e59ffaf75623fa4261e244b0717a7463aa84
+    - makes "--write-mostly" effective when re-adding a device to an array.
+      (closes: #442874).
   * Do not call update-initramfs -k all, it can be set via
     /etc/initramfs-tools/update-initramfs.conf (closes: #439334).
   * Depend on udev|makedev instead of just makedev and invoke /dev/MAKEDEV,
@@ -16,7 +18,7 @@ mdadm (2.6.3-1) unstable; urgency=low
     compatible; thanks maximilian attems for the patch (closes: #443436).
   * Handle module name synonyms in initramfs hook script (closes: #432585).
 
- -- martin f. krafft <madduck@debian.org>  Sat, 29 Sep 2007 20:53:14 +0100
+ -- martin f. krafft <madduck@debian.org>  Sat, 29 Sep 2007 21:21:25 +0100
 
 mdadm (2.6.2-2) unstable; urgency=low
 
