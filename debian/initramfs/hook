@@ -252,8 +252,14 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
     echo "MD_DEVS='$devs'" >> $DESTCONFIG
   fi
 
-  # raid4 is handled by raid5
-  modules="$(echo $levels | sed -e 's,raid4,raid5,g')"
+  # handle module synonyms
+  modules="$(echo $levels \
+    | sed -re 's,\<[[:digit:]]+\>,raid&,g;   # prefix digits with raid
+               s,stripe,raid0,g;             # striping is raid0
+               s,mirror,raid1,g;             # mirroring is raid1
+               s,raid4,raid5,g;              # use raid5 to handle raid4
+               s,mp,multipath,g              # mp is multipath
+               ')"
 
   # if raid456 module is present, use it for raid[456]
   modprobe --set-version="$version" --show-depends raid456 >/dev/null 2>&1 \

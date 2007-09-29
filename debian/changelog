@@ -14,8 +14,9 @@ mdadm (2.6.3-1) unstable; urgency=low
     (closes: #440703).
   * Use short option in initramfs script mkdir call, so make it klibc-utils
     compatible; thanks maximilian attems for the patch (closes: #443436).
+  * Handle module name synonyms in initramfs hook script (closes: #432585).
 
- -- martin f. krafft <madduck@debian.org>  Sat, 22 Sep 2007 17:54:54 +0100
+ -- martin f. krafft <madduck@debian.org>  Sat, 29 Sep 2007 20:53:14 +0100
 
 mdadm (2.6.2-2) unstable; urgency=low
 
