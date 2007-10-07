@@ -1,3 +1,11 @@
+mdadm (2.5.6-9) unstable; urgency=low
+
+  * Updated debconf translations:
+    - Portuguese by Rui Branco (closes: #411745).
+    - Galician by Jacobo Tarrio (closes: #412203).
+
+ -- martin f. krafft <madduck@debian.org>  Sat, 24 Feb 2007 16:44:04 +0100
+
 mdadm (2.5.6-8) unstable; urgency=low
 
   * Hard-code path to /sbin/mdadm binary rather than searching the $PATH. This
