@@ -48,8 +48,8 @@ CPPFLAGS=
 endif
 
 SYSCONFDIR = /etc
-CONFFILE = $(SYSCONFDIR)/mdadm.conf
-CONFFILE2 = $(SYSCONFDIR)/mdadm/mdadm.conf
+CONFFILE = $(SYSCONFDIR)/mdadm/mdadm.conf
+CONFFILE2 = $(SYSCONFDIR)/mdadm.conf
 MAILCMD =/usr/sbin/sendmail -t
 CONFFILEFLAGS = -DCONFFILE=\"$(CONFFILE)\" -DCONFFILE2=\"$(CONFFILE2)\"
 CFLAGS = $(CWFLAGS) $(CXFLAGS) -DSendmail=\""$(MAILCMD)"\" $(CONFFILEFLAGS)
