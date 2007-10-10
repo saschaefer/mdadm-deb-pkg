@@ -14,26 +14,17 @@ ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
     CXFLAGS += -O0
     CXFLAGS_UDEB += -O0
 else
-		CXFLAGS += -O2
+    CXFLAGS += -O2
     CXFLAGS_UDEB += -Os
 endif
 
-include /usr/share/dpatch/dpatch.make
-
-$(DPATCH_STAMPFN): debian/patches/00list
-force-run:
-.PHONY: force-run
-debian/patches/00list: force-run
-	dh_testdir
-	make -sC debian/patches
-
 .PHONY: configure
-configure: debian/patches/00list
+configure:
 
 debian/mdadm-startall.8: debian/mdadm-startall.sgml
 	docbook-to-man $< > $@
 
-build: configure patch build-stamp
+build: configure build-stamp
 build-stamp: debian/mdadm-startall.8
 	dh_testdir
 	$(MAKE) -f debian/rules mdadm.udeb DEBIAN=yes
@@ -54,10 +45,7 @@ mdadm: configure
 	$(MAKE) $(FLAGS) all
 .PHONY: mdadm
 
-clean: clean-patched unpatch
-	rm -f debian/patches/00list
-
-clean-patched:
+clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
