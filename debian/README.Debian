@@ -1,0 +1,87 @@
+mdadm for Debian
+================
+
+Please make sure you read into /usr/share/doc/mdadm/NEWS.Debian.gz and the
+documents listed under "further reading" a little later in this file.
+
+The latest version of this document is available here:
+  http://svn.debian.org/wsvn/pkg-mdadm/mdadm/trunk/debian/README.Debian?op=file&rev=0&sc=0
+
+Upgrading and the configuration file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This version of mdadm now NEEDS /etc/mdadm/mdadm.conf, which it will try to
+generate during installation, if nonexistent.
+
+PLEASE MAKE SURE TO READ /usr/share/doc/mdadm/README.upgrading-2.5.3.gz !
+
+You can use the output of /usr/share/mdadm/mkconf to generate your very own
+mdadm.conf file, and look into
+/usr/share/doc/mdadm/examples/mdadm.conf-example for inspiration.
+
+Autostarting devices
+~~~~~~~~~~~~~~~~~~~~
+The mdadm.conf file controls which devices are to be started automatically by
+mdadm during boot (assuming AUTOSTART is set to true in /etc/default/mdadm),
+and various other parameters about how they are to be started. The file can
+also contain some control parameters for the mdadm monitor daemon. See
+mdadm.conf(5) for more information.
+
+Note: this only applies to modular kernels. If you use a monolithic kernel,
+you can control which devices are started automatically by changing the
+partition type: 0xfd for autostart, 0x83 to prevent autostart. mdadm does not
+actually care about the partition type, only the kernel does.
+
+Common recipes
+~~~~~~~~~~~~~~
+Check /usr/share/doc/mdadm/README.recipes.gz for some simple examples of how
+to do the most common stuff with mdadm.
+
+To RAID5 or not to RAID5
+~~~~~~~~~~~~~~~~~~~~~~~~
+See http://www.miracleas.com/BAARF/BAARF2.html . The package maintainer could
+not possibly come up with so much emotion over such a technical topic.
+
+See also the RAID5_versus_RAID10.txt.gz document included with this package.
+
+Further reading
+~~~~~~~~~~~~~~~
+The documentation for the kernel md driver is included in
+/usr/share/doc/mdadm/md.txt.gz. In addition, the md(4) manpage provides
+valuable information about the applicable concepts. Do read those!
+
+Further documents of interest:
+  - Linux-RAID reference Wiki:
+      http://linux-raid.osdl.org
+  - Linux software RAID HOWTO:
+      http://tldp.org/HOWTO/Software-RAID-HOWTO.html
+  - linux-raid mailing list info:
+      http://vger.kernel.org/vger-lists.html#linux-raid
+  - linux-raid mailing list FAQ:
+      http://www.faqs.org/contrib/linux-raid/
+
+Upstream
+~~~~~~~~
+For completeness: The upstream repository is available from
+  http://neil.brown.name/git?p=mdadm
+  git clone git://neil.brown.name/mdadm
+
+Debian package maintenance
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+The package is maintained in SVN on alioth.debian.org. To obtain the source:
+
+  svn://svn.debian.org/svn/pkg-mdadm/mdadm/trunk
+  svn+ssh://<username>@svn.debian.org/svn/pkg-mdadm/mdadm/trunk
+
+The second form is for developers with the intention to contribute. If you
+want to join the mdadm effort, please talk to me.
+
+Since the SVN repository only store the ./debian directory, you need the
+upstream tarball as well. I suggest using svn-buildpackage.
+
+Please do not forget to tag new releases.
+
+There are things to do listed in debian/TODO .
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 07 Jul 2006 10:55:42 +0200
+
+$Id$

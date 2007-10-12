@@ -1,0 +1,303 @@
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans
+#
+#    Developers do not need to manually edit POT or PO files.
+#
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: mdadm 2.5.5-1\n"
+"Report-Msgid-Bugs-To: pkg-mdadm-devel@lists.alioth.debian.org\n"
+"POT-Creation-Date: 2006-09-16 13:03+0200\n"
+"PO-Revision-Date: 2006-10-15 13:52+0900\n"
+"Last-Translator: Hideki Yamane (Debian-JP) <henrich@debian.or.jp>\n"
+"Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:1001
+msgid "MD arrays needed for the root filesystem:"
+msgstr "root ファイルシステムに必要な MD アレイ:"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:1001
+msgid "${msg}"
+msgstr "${msg}"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:1001
+msgid ""
+"Please enter a space-separated list of devices, 'all', or 'none'. You may "
+"omit the leading '/dev/' and just enter e.g. \"md0 md1\", or \"md/1 md/d0\"."
+msgstr ""
+"デバイスのリストをスペースで区切って入力、あるいは 'all' または 'none' と入力して"
+"ください。前の '/dev/' を省略して、単に \"md0 md1\" あるいは \"md/1 md/d0\" など"
+"としても構いません。"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid "for internal use - only the long description is needed."
+msgstr "内部での利用について - でも、長い説明が必要です。"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid ""
+"If your system has its root filesystem on an MD array (RAID), it needs to be "
+"started early during the boot sequence. If your root filesystem is on a "
+"logical volume (LVM), which is on MD, all constituent arrays need to be "
+"started."
+msgstr ""
+"あなたのシステムで root ファイルシステムを MD アレイ (RAID) 上に配置しているな"
+"らば、ブートシーケンスの初期段階で MD アレイを開始する必要があります。root ファイ"
+"ルシステムが MD 上の論理ボリューム (LVM) 上にある場合、構成しているアレイ全ての"
+"開始が必要です。"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid ""
+"If you know exactly which arrays are needed to bring up the root filesystem, "
+"and you want to postpone starting all other arrays to a later point in the "
+"boot sequence, enter the arrays to start here. Alternatively, enter 'all' to "
+"simply start all available arrays."
+msgstr ""
+"どのアレイが root ファイルシステムの立ち上げに必要かを正確に知っており、ブート"
+"シーケンスの後の時点まで意図しているもの以外全てのアレイ起動を遅らせたい場合、"
+"ここで最初に起動するアレイを入力してください。そうでない場合、'all' と入力して"
+"単に全ての利用可能なアレイを最初に立ち上げてください。"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:2001
+msgid ""
+"If you do not need or want to start any arrays for the root filesystem, "
+"leave the answer blank (or enter 'none'). This may be the case if you are "
+"using kernel autostart or do not need any arrays to boot."
+msgstr ""
+"root ファイルシステムのために、どのアレイも必要ない、あるいはどのアレイも起動したく"
+"は無いという場合は、空白のままに (あるいは 'none' と入力) してください。"
+"これは、カーネルで自動的に起動される場合や起動時にはアレイは不要であるという"
+"場合です。"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:3001
+msgid "An error occurred: device node does not exist"
+msgstr "エラーが発生しました: デバイスノードが存在しません"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:4001
+msgid "An error occurred: not a block device"
+msgstr "エラーが発生しました: ブロックデバイスではありません"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:5001
+msgid "An error occurred: not an MD array"
+msgstr "エラーが発生しました: MD アレイではありません"
+
+#. Type: text
+#. Description
+#: ../mdadm.templates:6001
+msgid "An error occurred: array not listed in mdadm.conf file"
+msgstr "エラーが発生しました: mdadm.conf ファイルに記述されていないアレイです"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid "Proceed with starting arrays not listed in mdadm.conf?"
+msgstr "mdadm.conf に記述されていないアレイの起動を続行しますか?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid ""
+"The array you have specified (${array}) is not listed in the configuration "
+"file ${config}. Therefore it cannot be started during boot, unless you "
+"correct the configuration file and recreate the initial ramdisk."
+msgstr ""
+"指定したアレイ (${array}) は設定ファイル ${config} に記述されていません。"
+"そのため、設定ファイルを修正して initrd を再生成しなければブート時に起動できません。"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid ""
+"Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend "
+"to continue."
+msgstr ""
+"続行したい場合は、/usr/share/doc/mdadm/README.upgrading-2.5.3.gz "
+"を参照してください。"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:7001
+msgid ""
+"This warning is only relevant if you need arrays to be started from the "
+"initial ramdisk to be able to boot. If you use kernel autostarting, or do "
+"not need any arrays to be started as early as the initial ramdisk is loaded, "
+"you can simply continue. Alternatively, choose not to continue and enter "
+"'none' when prompted which arrays to start from the initial ramdisk."
+msgstr ""
+"この警告は、ブートできるようにアレイを initrd から起動する必要がある場合だけ関係"
+"します。カーネルで自動的にアレイを起動するようにしている場合、あるいは initrd が"
+"ロードされる程早い段階でどのアレイも起動したくはない場合はそのまま続行できます。"
+"他の選択肢としては、起動の続行を中止し、どのアレイを initrd から起動するかを"
+"尋ねられた際に 'none' と入力します。"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:8001
+msgid "Do you want to start MD arrays automatically?"
+msgstr "MD アレイを自動的に起動しますか?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:8001
+msgid ""
+"Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
+"specified in /etc/mdadm/mdadm.conf, which have not yet been started. Unless "
+"you have compiled multiple device (MD) support into the kernel and marked "
+"all partitions part of MD arrays with type 0xfd (as those and only those "
+"will be started automatically by the kernel), this is probably what you want."
+msgstr ""
+"一旦ベースシステムが起動すると、mdadm は /etc/mdadm/mdadm.conf で指定された"
+"まだ起動していない全ての MD アレイ (RAID) を起動できます。複数のデバイス (MD) "
+"をサポートするようにカーネルをコンパイルしており、MD アレイのすべてのパーティション"
+"をパーティションタイプ 0xfd と設定しない限り、これを推奨します (このようにした場合、"
+"そしてこの設定の場合のみ、アレイは自動的にカーネルから起動されます) 。"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:9001
+msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
+msgstr "mdadm は、毎月 MD アレイの冗長性チェックを行いますか?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:9001
+msgid ""
+"If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
+"redundancy of your MD arrays (RAIDs). This may be a resource-intensive "
+"process, depending on your setup, but it could help prevent rare cases of "
+"data loss. Note that this is a read-only check unless errors are found; if "
+"errors are found, mdadm will try to correct them, which may result in write "
+"access to the media."
+msgstr ""
+"カーネルがサポートしている場合 (2.6.14 以降)、mdadm は定期的に MD アレイ (RAID) "
+"の冗長性チェックをすることが可能です。これは、設定に依存しますがリソースを集中的に"
+"使用する動作です。しかし、稀なデータ消失をあらかじめ避けるのに役立つでしょう。"
+"これは、エラーが見つからない限りは読み込みチェックのみであるのに注意してください。"
+"エラーが発見された場合、mdadm は修正しようとして、結果的にメディアへ書き込みを"
+"行います。"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:9001
+msgid ""
+"The default, if turned on, is to run the checks on the first Sunday of every "
+"month at 01:06 o'clock."
+msgstr ""
+"有効にした場合、デフォルトでは毎月第一日曜 01:06 にチェックが実行されます。"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:10001
+msgid "Do you want to start the MD monitoring daemon?"
+msgstr "MD 監視デーモンを起動しますか?"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:10001
+msgid ""
+"The MD (RAID) monitor daemon sends email notifications in response to "
+"important MD events (such as a disk failure). You probably want to enable it."
+msgstr ""
+"MD (RAID) 監視デーモンは、重大な MD 関連のイベント (ディスク障害など) に対して"
+"メールで通知を送ります。有効にするのを推奨します。。"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:11001
+msgid "Recipient for email notifications:"
+msgstr "メール通知の宛先:"
+
+#. Type: string
+#. Description
+#: ../mdadm.templates:11001
+msgid ""
+"Please enter the email address of the user who should get the email "
+"notification for important MD events."
+msgstr ""
+"MD 関連の重大なイベントが発生した際、メールでの通知を受け取る必要があるユー"
+"ザのメールアドレスを入力してください。"
+
+#~ msgid "Initialise the superblock if you reuse hard disks"
+#~ msgstr "ハードディスクを再利用する場合は superblock を初期化してください"
+
+#~ msgid ""
+#~ "WARNING! If you are using hard disks which have RAID superblocks from "
+#~ "earlier installations in different RAID arrays, you MUST zero each "
+#~ "superblock *before* activating the autostart feature."
+#~ msgstr ""
+#~ "警告! 以前のインストールによって他の RAID アレイに対する RAID superblock "
+#~ "を保持しているハードディスクを使っている場合、自動起動機能を有効にする"
+#~ "「前」に、その superblock をゼロで上書きすることが「必要」です。"
+
+#~ msgid ""
+#~ "To do this, do not start the RAID devices automatically. First, zero the "
+#~ "superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-"
+#~ "reconfigure mdadm` to reactivate the autostart feature."
+#~ msgstr ""
+#~ "これを行うには、RAID デバイスを自動的に起動してはいけません。まず、 "
+#~ "superblock をゼロで上書きします (mdadm --zero-superblock /dev/xxx)。 そし"
+#~ "て、自動起動機能を有効にするため、'dpkg-reconfigure mdadm' コマンドを実行"
+#~ "します。"
+
+#~ msgid ""
+#~ "You have the option to start all other arrays (those not needed for the "
+#~ "root filesystem) later in the boot sequence. Doing so will give you "
+#~ "greater control over the arrays with the mdadm configuration file. "
+#~ "Starting all arrays at boot-time may be safer though."
+#~ msgstr ""
+#~ "ブートシーケンスの後ろの方で (root ファイルシステムには必要ない) 他のアレ"
+#~ "イ全てを起動するという選択肢もあります。これを選べば、mdadm の設定ファイル"
+#~ "を使って、アレイについて様々な設定が出来るようになるでしょう。もっとも、起"
+#~ "動時に全てのアレイを起動するほうが安全ではあります。"
+
+#~ msgid ""
+#~ "If RAID devices are started automatically, all RAID devices are "
+#~ "discovered and assembled automatically at system startup. This option "
+#~ "should only be used if the md driver is compiled as a module. If it is "
+#~ "compiled into your kernel, the automatic startup will be performed at "
+#~ "boot time by the kernel and therefore you should not choose this option."
+#~ msgstr ""
+#~ "RAID デバイスが自動的に起動するようにすると、システム起動時に全ての RAID "
+#~ "デバイスが検出され、自動的に構成されます。このオプションは md ドライバがモ"
+#~ "ジュールとしてコンパイルされている場合のみに利用します。カーネルに組み込ん"
+#~ "でコンパイルしていた場合、システム起動時にカーネルによって自動起動が実行さ"
+#~ "れるので、このオプションでの選択はできません。"
+
+#~ msgid ""
+#~ "When the RAID monitor daemon runs, email notifications are sent when a "
+#~ "disk belonging to a RAID array fails or changes its status for some "
+#~ "reason."
+#~ msgstr ""
+#~ "RAID 監視デーモンが動作している場合、RAID アレイに属しているディスクが故障"
+#~ "するか何らかの理由で変化した際にメールで通知が送られます。"
