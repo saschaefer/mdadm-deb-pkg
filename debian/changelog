@@ -1,3 +1,9 @@
+mdadm (2.6.3+200709292116+4450e59-3) unstable; urgency=low
+
+  * Patch by Jérémy Bobbio which completes the fix for #444682.
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 01 Oct 2007 16:16:19 +0100
+
 mdadm (2.6.3+200709292116+4450e59-2) unstable; urgency=low
 
   * Patch the routine loading v1 superblocks to fix a segfault on amd64
