@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # mdadm bug submission control script
 #
@@ -7,16 +7,31 @@
 # Copyright © martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence 2.0
 #
-# $Id$
+# we need /bin/bash for readline and -n capabalities in the prompt(s)
 #
 set -eu
+
+if ! command -v yesno >/dev/null; then
+  if [ -r /usr/share/reportbug/handle_bugscript ]; then
+    exec /usr/share/reportbug/handle_bugscript ". $0" /dev/stdout
+  fi
+  yesno() {
+    read -n1 -p"$1" REPLY
+    case "$REPLY" in
+      [yY]) REPLY=yep;;
+      [nN]) REPLY=nop;;
+      ('') REPLY="$2";;
+    esac
+  }
+  exec 3>&1
+fi
 
 if [ ! -r /proc/mdstat ]; then
   echo "The local system does not have MD (RAID) support: no drivers loaded."
   echo "Without MD support, I cannot collect as much information as I'd like."
 
   #yesno "Are you sure you want to report a bug at this time? " yep
-  yesno "Hit any key to continue..."
+  yesno "Hit any key to continue..." yep
   #[ "$REPLY" = yep ] || exit 1
 fi
 
