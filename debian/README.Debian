@@ -117,10 +117,6 @@ First, the setup, which you only have to do once on each machine you work with:
 # leave out --global if you want to set your identity only for mdadm
 git config --global user.name 'your name'
 git config --global user.email 'your@email.address'
-# the next two are not needed but ensure that git does not send patches to
-# your own email address.
-git config sendemail.signedoffcc false
-git config sendemail.suppressfrom true
 git clone git://git.debian.org/git/pkg-mdadm/mdadm.git
 
 To prepare the actual patch, do the following:
