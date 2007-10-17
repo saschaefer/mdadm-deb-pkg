@@ -100,7 +100,11 @@ You can browse the repository here:
 If you want to join the mdadm effort, please send me an email. I'll be very
 glad for any help I get.
 
-There are things to do listed in debian/TODO .
+There are things to do listed in debian/TODO.
+
+You might also be interested in the following document, which explains how
+package maintenance of mdadm was migrated from SVN to Git:
+  http://blog.madduck.net/debian/2007.10.07_converting-a-package-to-git
 
 Patches
 ~~~~~~~
