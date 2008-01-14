@@ -152,9 +152,17 @@ static void examine_super1(void *sbv, char *homehost)
 	char *c;
 	int l = homehost ? strlen(homehost) : 0;
 	int layout;
+	unsigned long long sb_offset;
 
 	printf("          Magic : %08x\n", __le32_to_cpu(sb->magic));
-	printf("        Version : %02d\n", 1);
+	printf("        Version : 1");
+	sb_offset = __le64_to_cpu(sb->super_offset);
+	if (sb_offset <= 4)
+		printf(".1\n");
+	else if (sb_offset <= 8)
+		printf(".2\n");
+	else
+		printf(".0\n");
 	printf("    Feature Map : 0x%x\n", __le32_to_cpu(sb->feature_map));
 	printf("     Array UUID : ");
 	for (i=0; i<16; i++) {
@@ -174,7 +182,7 @@ static void examine_super1(void *sbv, char *homehost)
 	printf("     Raid Level : %s\n", c?c:"-unknown-");
 	printf("   Raid Devices : %d\n", __le32_to_cpu(sb->raid_disks));
 	printf("\n");
-	printf("  Used Dev Size : %llu%s\n",
+	printf(" Avail Dev Size : %llu%s\n",
 	       (unsigned long long)__le64_to_cpu(sb->data_size),
 	       human_size(__le64_to_cpu(sb->data_size)<<9));
 	if (__le32_to_cpu(sb->level) >= 0) {
@@ -194,7 +202,7 @@ static void examine_super1(void *sbv, char *homehost)
 			       ddsks*(unsigned long long)__le64_to_cpu(sb->size),
 			       human_size(ddsks*__le64_to_cpu(sb->size)<<9));
 		if (sb->size != sb->data_size)
-			printf("      Used Size : %llu%s\n",
+			printf("  Used Dev Size : %llu%s\n",
 			       (unsigned long long)__le64_to_cpu(sb->size),
 			       human_size(__le64_to_cpu(sb->size)<<9));
 	}
@@ -337,6 +345,7 @@ static void brief_examine_super1(void *sbv)
 {
 	struct mdp_superblock_1 *sb = sbv;
 	int i;
+	unsigned long long sb_offset;
 	char *nm;
 	char *c=map_num(pers, __le32_to_cpu(sb->level));
 
@@ -348,9 +357,15 @@ static void brief_examine_super1(void *sbv)
 	else
 		nm = "??";
 
-	printf("ARRAY /dev/md/%s level=%s metadata=1 num-devices=%d UUID=",
-	       nm,
-	       c?c:"-unknown-", __le32_to_cpu(sb->raid_disks));
+	printf("ARRAY /dev/md/%s level=%s ", nm, c?c:"-unknown-");
+	sb_offset = __le64_to_cpu(sb->super_offset);
+	if (sb_offset <= 4)
+		printf("metadata=1.1 ");
+	else if (sb_offset <= 8)
+		printf("metadata=1.2 ");
+	else
+		printf("metadata=1.0 ");
+	printf("num-devices=%d UUID=", __le32_to_cpu(sb->raid_disks));
 	for (i=0; i<16; i++) {
 		if ((i&3)==0 && i != 0) printf(":");
 		printf("%02x", sb->set_uuid[i]);
@@ -902,12 +917,16 @@ static int write_init_super1(struct supertype *st, void *sbv,
 		break;
 	case 1:
 		sb->super_offset = __cpu_to_le64(0);
+		if (4*2 + bm_space + __le64_to_cpu(sb->size) > dsize)
+			bm_space = dsize - __le64_to_cpu(sb->size) - 4*2;
 		sb->data_offset = __cpu_to_le64(bm_space + 4*2);
 		sb->data_size = __cpu_to_le64(dsize - bm_space - 4*2);
 		break;
 	case 2:
 		sb_offset = 4*2;
 		sb->super_offset = __cpu_to_le64(4*2);
+		if (4*2 + 4*2 + bm_space + __le64_to_cpu(sb->size) > dsize)
+			bm_space = dsize - __le64_to_cpu(sb->size) - 4*2 - 4*2;
 		sb->data_offset = __cpu_to_le64(4*2 + 4*2 + bm_space);
 		sb->data_size = __cpu_to_le64(dsize - 4*2 - 4*2 - bm_space );
 		break;
@@ -975,36 +994,37 @@ static int load_super1(struct supertype *st, int fd, void **sbp, char *devname)
 	struct misc_dev_info *misc;
 
 
-	if (st->ss == NULL) {
+	if (st->ss == NULL || st->minor_version == -1) {
 		int bestvers = -1;
+		struct supertype tst;
 		__u64 bestctime = 0;
 		/* guess... choose latest ctime */
-		st->ss = &super1;
-		for (st->minor_version = 0; st->minor_version <= 2 ; st->minor_version++) {
-			switch(load_super1(st, fd, sbp, devname)) {
+		tst.ss = &super1;
+		for (tst.minor_version = 0; tst.minor_version <= 2 ; tst.minor_version++) {
+			switch(load_super1(&tst, fd, sbp, devname)) {
 			case 0: super = *sbp;
 				if (bestvers == -1 ||
 				    bestctime < __le64_to_cpu(super->ctime)) {
-					bestvers = st->minor_version;
+					bestvers = tst.minor_version;
 					bestctime = __le64_to_cpu(super->ctime);
 				}
 				free(super);
 				*sbp = NULL;
 				break;
-			case 1: st->ss = NULL; return 1; /*bad device */
+			case 1: return 1; /*bad device */
 			case 2: break; /* bad, try next */
 			}
 		}
 		if (bestvers != -1) {
 			int rv;
-			st->minor_version = bestvers;
-			st->ss = &super1;
-			st->max_devs = 384;
-			rv = load_super1(st, fd, sbp, devname);
-			if (rv) st->ss = NULL;
+			tst.minor_version = bestvers;
+			tst.ss = &super1;
+			tst.max_devs = 384;
+			rv = load_super1(&tst, fd, sbp, devname);
+			if (rv == 0)
+				*st = tst;
 			return rv;
 		}
-		st->ss = NULL;
 		return 2;
 	}
 	if (!get_dev_size(fd, devname, &dsize))
@@ -1123,9 +1143,7 @@ static struct supertype *match_metadata_desc1(char *arg)
 
 	st->ss = &super1;
 	st->max_devs = 384;
-	if (strcmp(arg, "1") == 0 ||
-	    strcmp(arg, "1.0") == 0 ||
-	    strcmp(arg, "default/large") == 0) {
+	if (strcmp(arg, "1.0") == 0) {
 		st->minor_version = 0;
 		return st;
 	}
@@ -1135,6 +1153,11 @@ static struct supertype *match_metadata_desc1(char *arg)
 	}
 	if (strcmp(arg, "1.2") == 0) {
 		st->minor_version = 2;
+		return st;
+	}
+	if (strcmp(arg, "1") == 0 ||
+	    strcmp(arg, "default/large") == 0) {
+		st->minor_version = -1;
 		return st;
 	}
 
@@ -1154,6 +1177,9 @@ static __u64 avail_size1(struct supertype *st, __u64 devsize)
 	devsize -= choose_bm_space(devsize);
 
 	switch(st->minor_version) {
+	case -1: /* no specified.  Now time to set default */
+		st->minor_version = 0;
+		/* FALL THROUGH */
 	case 0:
 		/* at end */
 		return ((devsize - 8*2 ) & ~(4*2-1));

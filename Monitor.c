@@ -31,8 +31,8 @@
 #include	"md_p.h"
 #include	"md_u.h"
 #include	<sys/wait.h>
-#include	<sys/signal.h>
-#include	<values.h>
+#include	<signal.h>
+#include	<limits.h>
 #include	<syslog.h>
 
 static void alert(char *event, char *dev, char *disc, char *mailaddr, char *mailfrom,
@@ -172,7 +172,7 @@ int Monitor(mddev_dev_t devlist,
 			st->utime = 0;
 			st->next = statelist;
 			st->err = 0;
-			st->devnum = MAXINT;
+			st->devnum = INT_MAX;
 			st->percent = -2;
 			st->expected_spares = mdlist->spare_disks;
 			if (mdlist->spare_group)
@@ -192,7 +192,7 @@ int Monitor(mddev_dev_t devlist,
 			st->utime = 0;
 			st->next = statelist;
 			st->err = 0;
-			st->devnum = MAXINT;
+			st->devnum = INT_MAX;
 			st->percent = -2;
 			st->expected_spares = -1;
 			st->spare_group = NULL;
@@ -234,6 +234,7 @@ int Monitor(mddev_dev_t devlist,
 */				st->err=1;
 				continue;
 			}
+			fcntl(fd, F_SETFD, FD_CLOEXEC);
 			if (ioctl(fd, GET_ARRAY_INFO, &array)<0) {
 				if (!st->err)
 					alert("DeviceDisappeared", dev, NULL,
@@ -244,8 +245,10 @@ int Monitor(mddev_dev_t devlist,
 				close(fd);
 				continue;
 			}
-			if (array.level != 1 && array.level != 5 && array.level != -4 &&
-				array.level != 6 && array.level != 10) {
+			/* It's much easier to list what array levels can't
+			 * have a device disappear than all of them that can
+			 */
+			if (array.level == 0 || array.level == -1) {
 				if (!st->err)
 					alert("DeviceDisappeared", dev, "Wrong-Level",
 					      mailaddr, mailfrom, alert_cmd, dosyslog);
@@ -253,7 +256,7 @@ int Monitor(mddev_dev_t devlist,
 				close(fd);
 				continue;
 			}
-			if (st->devnum == MAXINT) {
+			if (st->devnum == INT_MAX) {
 				struct stat stb;
 				if (fstat(fd, &stb) == 0 &&
 				    (S_IFMT&stb.st_mode)==S_IFBLK) {
@@ -266,7 +269,7 @@ int Monitor(mddev_dev_t devlist,
 
 			for (mse2 = mdstat ; mse2 ; mse2=mse2->next)
 				if (mse2->devnum == st->devnum) {
-					mse2->devnum = MAXINT; /* flag it as "used" */
+					mse2->devnum = INT_MAX; /* flag it as "used" */
 					mse = mse2;
 				}
 
@@ -328,6 +331,7 @@ int Monitor(mddev_dev_t devlist,
 			for (i=0; i<MaxDisks && i <= array.raid_disks + array.nr_disks;
 			     i++) {
 				mdu_disk_info_t disc;
+				disc.number = i;
 				if (ioctl(fd, GET_DISK_INFO, &disc) >= 0) {
 					info[i].state = disc.state;
 					info[i].major = disc.major;
@@ -398,10 +402,9 @@ int Monitor(mddev_dev_t devlist,
 		if (scan) {
 			struct mdstat_ent *mse;
 			for (mse=mdstat; mse; mse=mse->next) 
-				if (mse->devnum != MAXINT &&
-				    (strcmp(mse->level, "raid1")==0 ||
-				     strcmp(mse->level, "raid5")==0 ||
-				     strcmp(mse->level, "multipath")==0)
+				if (mse->devnum != INT_MAX &&
+				    (strcmp(mse->level, "raid0")!=0 &&
+				     strcmp(mse->level, "linear")!=0)
 					) {
 					struct state *st = malloc(sizeof *st);
 					mdu_array_info_t array;

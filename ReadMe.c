@@ -24,7 +24,7 @@
 
 #include "mdadm.h"
 
-char Version[] = Name " - v2.6.2 - 21st May 2007\n";
+char Version[] = Name " - v2.6.4 - 19th October 2007\n";
 
 /*
  * File: ReadMe.c
@@ -87,6 +87,8 @@ char Version[] = Name " - v2.6.2 - 21st May 2007\n";
  */
 
 char short_options[]="-ABCDEFGIQhVXWvqbc:i:l:p:m:n:x:u:c:d:z:U:sarfRSow1tye:";
+char short_bitmap_options[]=
+                   "-ABCDEFGIQhVXWvqb:c:i:l:p:m:n:x:u:c:d:z:U:sarfRSow1tye:";
 char short_bitmap_auto_options[]=
                    "-ABCDEFGIQhVXWvqb:c:i:l:p:m:n:x:u:c:d:z:U:sa:rfRSow1tye:";
 
@@ -590,7 +592,7 @@ mapping_t r5layout[] = {
 };
 
 mapping_t pers[] = {
-	{ "linear", -1},
+	{ "linear", LEVEL_LINEAR},
 	{ "raid0", 0},
 	{ "0", 0},
 	{ "stripe", 0},
@@ -601,13 +603,13 @@ mapping_t pers[] = {
 	{ "4", 4},
 	{ "raid5", 5},
 	{ "5", 5},
-	{ "multipath", -4},
-	{ "mp", -4},
+	{ "multipath", LEVEL_MULTIPATH},
+	{ "mp", LEVEL_MULTIPATH},
 	{ "raid6", 6},
 	{ "6", 6},
 	{ "raid10", 10},
 	{ "10", 10},
-	{ "faulty", -5},
+	{ "faulty", LEVEL_FAULTY},
 	{ NULL, 0}
 };
 

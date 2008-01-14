@@ -1,3 +1,30 @@
+Changes Prior to 2.6.4 release
+    -   Make "--create --auto=mdp" work for non-standard device names.
+    -   Fix restarting of a 'reshape' if it was stopped in the middle.
+    -   Fix a segfault when using v1 superblock.
+    -   Make --write-mostly effective when re-adding a device to an array.
+    -   Various minor fixes
+
+Changes Prior to 2.6.3 release
+    -   allow --write-behind to be set for --grow.
+    -   When adding new disk to an array, don't reserve so much bitmap
+        space that the disk cannot store the required data. (Needed when
+	1.x array was created with older mdadm).
+    -   When adding a drive that was a little too small, we did not get
+	the correct error message.
+    -   Make sure that if --assemble find an array in the critical region
+	of a reshape, and cannot find the critical data to restart the
+	reshape, it gives an error message.
+    -   Fix segfault with '--detail --export' and non-persistent
+        superblocks.
+    -   Various manpage updates.
+    -   Improved 'raid4' support (--assemble, --monitor)
+    -   Option parsing fixes w.r.t -a
+    -   Interpret "--assemble --metadata=1" to allow any version 1.x
+	metadata, and be more specific in the "metadata=" message printed
+	with --examine --brief
+    -   Fix spare migration in --monitor.
+
 Changes Prior to 2.6.2 release
     -   --fail detached and --remove faulty can be used to fail and
 	remove devices that are no longer physically present.

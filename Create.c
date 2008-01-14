@@ -73,7 +73,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 	unsigned long long bitmapsize;
 
 	mdu_array_info_t array;
-	int major = BITMAP_MAJOR_HI;
+	int major_num = BITMAP_MAJOR_HI;
 
 	memset(&array, 0, sizeof(array));
 
@@ -81,6 +81,15 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 	if (vers < 9000) {
 		fprintf(stderr, Name ": Create requires md driver version 0.90.0 or later\n");
 		return 1;
+	} else {
+		mdu_array_info_t inf;
+		memset(&inf, 0, sizeof(inf));
+		ioctl(mdfd, GET_ARRAY_INFO, &inf);
+		if (inf.working_disks != 0) {
+			fprintf(stderr, Name ": another array by this name"
+				" is already running.\n");
+			return 1;
+		}
 	}
 	if (level == UnSet) {
 		fprintf(stderr,
@@ -100,6 +109,11 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 	if (raiddisks < 2 && level >= 4) {
 		fprintf(stderr,
 			Name ": at least 2 raid-devices needed for level 4 or 5\n");
+		return 1;
+	}
+	if (level <= 0 && sparedisks) {
+		fprintf(stderr,
+			Name ": This level does not support spare devices\n");
 		return 1;
 	}
 	if (subdevs > raiddisks+sparedisks) {
@@ -158,20 +172,24 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 	case 10:
 	case 6:
 	case 0:
-	case -1: /* linear */
+	case LEVEL_LINEAR: /* linear */
 		if (chunk == 0) {
 			chunk = 64;
 			if (verbose > 0)
 				fprintf(stderr, Name ": chunk size defaults to 64K\n");
 		}
 		break;
-	default: /* raid1, multipath */
+	case 1:
+	case LEVEL_MULTIPATH:
 		if (chunk) {
 			chunk = 0;
 			if (verbose > 0)
 				fprintf(stderr, Name ": chunk size ignored for this level\n");
 		}
 		break;
+	default:
+		fprintf(stderr, Name ": unknown level %d\n", level);
+		return 1;
 	}
 
 	/* now look at the subdevs */
@@ -225,7 +243,8 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 			}
 			if (st->ss->major != 0 ||
 			    st->minor_version != 90)
-				fprintf(stderr, Name ": Defaulting to verion %d.%d metadata\n",
+				fprintf(stderr, Name ": Defaulting to version"
+					" %d.%d metadata\n",
 					st->ss->major,
 					st->minor_version);
 		}
@@ -305,12 +324,13 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		}
 	}
 
-	/* If this is  raid5, we want to configure the last active slot
+	/* If this is raid4/5, we want to configure the last active slot
 	 * as missing, so that a reconstruct happens (faster than re-parity)
 	 * FIX: Can we do this for raid6 as well?
 	 */
 	if (assume_clean==0 && force == 0 && first_missing >= raiddisks) {
 		switch ( level ) {
+		case 4:
 		case 5:
 			insert_point = raiddisks-1;
 			sparedisks++;
@@ -320,6 +340,12 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		default:
 			break;
 		}
+	}
+
+	if (level <= 0 && first_missing != subdevs * 2) {
+		fprintf(stderr,
+			Name ": This level does not support missing devices\n");
+		return 1;
 	}
 	
 	/* Ok, lets try some ioctls */
@@ -335,7 +361,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		array.md_minor = minor(stb.st_rdev);
 	array.not_persistent = 0;
 	/*** FIX: Need to do something about RAID-6 here ***/
-	if ( ( (level == 5) &&
+	if ( ( (level == 4 || level == 5) &&
 	       (insert_point < raiddisks || first_missing < raiddisks) )
 	     ||
 	     ( level == 6 && missing_disks == 2)
@@ -411,7 +437,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		return 1;
 
 	if (bitmap_file && vers < 9003) {
-		major = BITMAP_MAJOR_HOSTENDIAN;
+		major_num = BITMAP_MAJOR_HOSTENDIAN;
 #ifdef __BIG_ENDIAN
 		fprintf(stderr, Name ": Warning - bitmaps created on this kernel are not portable\n"
 			"  between different architectured.  Consider upgrading the Linux kernel.\n");
@@ -425,7 +451,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		}
 		if (!st->ss->add_internal_bitmap(st, super, &bitmap_chunk,
 						 delay, write_behind,
-						 bitmapsize, 1, major)) {
+						 bitmapsize, 1, major_num)) {
 			fprintf(stderr, Name ": Given bitmap chunk size not supported.\n");
 			return 1;
 		}
@@ -455,7 +481,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		if (CreateBitmap(bitmap_file, force, (char*)uuid, bitmap_chunk,
 				 delay, write_behind,
 				 bitmapsize,
-				 major)) {
+				 major_num)) {
 			return 1;
 		}
 		bitmap_fd = open(bitmap_file, O_RDWR);

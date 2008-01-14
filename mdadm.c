@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
 		switch(opt) {
 		case '@': /* just incase they say --manage */
 			newmode = MANAGE;
-			shortopt = short_bitmap_auto_options;
+			shortopt = short_bitmap_options;
 			break;
 		case 'a':
 		case 'r':
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 		case ReAdd: /* re-add */
 			if (!mode) {
 				newmode = MANAGE;
-				shortopt = short_bitmap_auto_options;
+				shortopt = short_bitmap_options;
 			}
 			break;
 
@@ -196,7 +196,9 @@ int main(int argc, char *argv[])
 		case 'B': newmode = BUILD; shortopt = short_bitmap_auto_options; break;
 		case 'C': newmode = CREATE; shortopt = short_bitmap_auto_options; break;
 		case 'F': newmode = MONITOR;break;
-		case 'G': newmode = GROW; shortopt = short_bitmap_auto_options; break;
+		case 'G': newmode = GROW;
+			shortopt = short_bitmap_options;
+			break;
 		case 'I': newmode = INCREMENTAL; break;
 		case AutoDetect:
 			newmode = AUTODETECT; break;
@@ -815,9 +817,15 @@ int main(int argc, char *argv[])
 			backup_file = optarg;
 			continue;
 
-		case O(GROW,'b'):
 		case O(BUILD,'b'):
 		case O(CREATE,'b'): /* here we create the bitmap */
+			if (strcmp(optarg, "none") == 0) {
+				fprintf(stderr, Name ": '--bitmap none' only"
+					" support for --grow\n");
+				exit(2);
+			}
+			/* FALL THROUGH */
+		case O(GROW,'b'):
 			if (strcmp(optarg, "internal")== 0 ||
 			    strcmp(optarg, "none")== 0 ||
 			    strchr(optarg, '/') != NULL) {
@@ -842,6 +850,7 @@ int main(int argc, char *argv[])
 			bitmap_chunk = bitmap_chunk ? bitmap_chunk * 1024 : 512;
 			continue;
 
+		case O(GROW, WriteBehind):
 		case O(BUILD, WriteBehind):
 		case O(CREATE, WriteBehind): /* write-behind mode */
 			write_behind = DEFAULT_MAX_WRITE_BEHIND;

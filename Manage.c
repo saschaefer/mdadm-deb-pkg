@@ -306,6 +306,7 @@ int Manage_subdevs(char *devname, int fd,
 					dv->devname, strerror(errno));
 				return 1;
 			}
+			remove_partitions(tfd);
 			if (array.not_persistent==0)
 				st->ss->load_super(st, tfd, &osuper, NULL);
 			/* will use osuper later */
@@ -361,7 +362,6 @@ int Manage_subdevs(char *devname, int fd,
 						close(dfd);
 						continue;
 					}
-					remove_partitions(dfd);
 					close(dfd);
 					break;
 				}
@@ -384,9 +384,9 @@ int Manage_subdevs(char *devname, int fd,
 				else if (osuper) {
 					st->ss->uuid_from_super(ouuid, osuper);
 					if (memcmp(duuid, ouuid, sizeof(ouuid))==0) {
-						/* look close enough for now.  Kernel
-						 * will worry about where a bitmap
-						 * based reconstruct is possible
+						/* looks close enough for now.  Kernel
+						 * will worry about whether a bitmap
+						 * based reconstruction is possible.
 						 */
 						struct mdinfo mdi;
 						st->ss->getinfo_super(&mdi, osuper);
@@ -395,6 +395,8 @@ int Manage_subdevs(char *devname, int fd,
 						disc.number = mdi.disk.number;
 						disc.raid_disk = mdi.disk.raid_disk;
 						disc.state = mdi.disk.state;
+						if (dv->writemostly)
+							disc.state |= 1 << MD_DISK_WRITEMOSTLY;
 						if (ioctl(fd, ADD_NEW_DISK, &disc) == 0) {
 							if (verbose >= 0)
 								fprintf(stderr, Name ": re-added %s\n", dv->devname);

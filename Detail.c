@@ -137,7 +137,8 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 		printf("MD_DEVICES=%d\n", array.raid_disks);
 		printf("MD_METADATA=%d.%d\n", array.major_version,
 		       array.minor_version);
-		st->ss->export_super(super);
+		if (super)
+			st->ss->export_super(super);
 		goto out;
 	}
 
@@ -377,12 +378,12 @@ This is pretty boring
 
 	if (brief > 1 && devices) printf("\n   devices=%s", devices);
 	if (brief) printf("\n");
-out:
 	if (test &&
 	    !enough(array.level, array.raid_disks, array.layout,
 		    1, avail, avail_disks))
 		rv = 2;
 
+out:
 	close(fd);
 	return rv;
 }
