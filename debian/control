@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian mdadm maintainers <pkg-mdadm-devel@lists.alioth.debian.org>
 Uploaders: martin f. krafft <madduck@debian.org>, Mario Joussen <joussen@debian.org>
 Build-Depends: debhelper (>= 5), po-debconf, groff-base, docbook-to-man
-Standards-Version: 3.7.2
+Standards-Version: 3.7.3
 Vcs-Git: git://git.debian.org/git/pkg-mdadm/mdadm
 Vcs-Browser: http://git.debian.org/?p=pkg-mdadm/mdadm.git
 
