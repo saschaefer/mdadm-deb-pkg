@@ -10,10 +10,11 @@
 #
 ### BEGIN INIT INFO
 # Provides:          mdadm
-# Required-Start:    $local_fs $remote_fs
-# Required-Stop:     $local_fs $remote_fs
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
+# Required-Start:    checkroot
+# Required-Stop:     umountroot
+# Should-Start:      module-init-tools
+# Default-Start:     S
+# Default-Stop:      0 6
 # Short-Description: MD monitoring daemon
 # Description:       mdadm provides a monitor mode, in which it will scan for
 #                    problems with the MD devices. If a problem is found, the

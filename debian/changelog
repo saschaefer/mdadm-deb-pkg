@@ -1,8 +1,10 @@
 mdadm (2.6.4-1) unstable; urgency=low
 
   * New upstream release.
+  * Apply patch by Petter Reinholdtsen to fix dependency loop in
+    init.d script (closes: #460256).
 
- -- martin f. krafft <madduck@debian.org>  Mon, 14 Jan 2008 12:01:38 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon, 14 Jan 2008 12:02:58 +0100
 
 mdadm (2.6.3+200709292116+4450e59-3) unstable; urgency=low
 
