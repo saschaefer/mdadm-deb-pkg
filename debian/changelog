@@ -1,3 +1,33 @@
+mdadm (2.6.4-2) unstable; urgency=low
+
+  * Adjusted logcheck rules to follow kernel changes; thanks to Frédéric
+    Brière (closes: #462478).
+  * Debconf templates and debian/control reviewed by the debian-l10n-
+    english team as part of the Smith review project. Closes: #463673
+  * Debconf translation updates (thanks to Christian Perrier for compiling
+    them):
+    * Japanese. Closes: #464438
+    * Galician. Closes: #464454
+    * French. Closes: #465984
+    * Czech. Closes: #466306
+    * Dutch. Closes: #466543
+    * Russian. Closes: #466577
+    * Portuguese. Closes: #466794
+    * German. Closes: #466989
+    * Vietnamese. Closes: #467118
+  * New debconf translations:
+    * Finnish. Closes: #468048
+  * Fixed bashism in mdadm-raid init.d script; thanks to Raphael Geisser
+    (closes: #471874).
+  * Do not output warning when run from cron and no arrays are found
+    (closes: #474542).
+  * Add doc-base registration file; thanks to Roberto C. Sanchez
+    (closes: #451684).
+  * Reschedule "mdadm Sunday" to 00:57 instead of 01:06 to prevent double
+    invocation on DST change (closes: #449244).
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 11 Apr 2008 10:48:45 +0200
+
 mdadm (2.6.4-1) unstable; urgency=low
 
   * New upstream release.

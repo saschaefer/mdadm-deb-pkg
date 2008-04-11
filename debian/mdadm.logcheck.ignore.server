@@ -4,11 +4,12 @@
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: md[[:digit:]]+ still in use\.$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: cannot remove active disk [[:alnum:]]+ from md[[:digit:]]+ \.\.\. ?$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: raid([01456]|456|10) personality registered for level ([01456]|10)$
-^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: syncing RAID array md[[:digit:]]+$
-^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: md[[:digit:]]+: sync done\.$
-^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: minimum _guaranteed_ reconstruction speed: [[:digit:]]+ KB/sec/disc\.$
-^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: using maximum available idle IO bandwidth \(but not more than [[:digit:]]+ KB/sec\) for reconstruction\.$
-^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: delaying resync of md[[:digit:]]+ until md[[:digit:]]+ has finished resync \(they share one or more physical units\)$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: (data-check|requested-resync|resync|reshape|recovery) of RAID array md[[:digit:]]+$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: resuming (data-check|requested-resync|resync|reshape|recovery) of md[[:digit:]]+ from checkpoint\.$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: md[[:digit:]]+: (data-check|requested-resync|resync|reshape|recovery) done\.$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: minimum _guaranteed_  ?speed: [[:digit:]]+ KB/sec/disk\.$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: using maximum available idle IO bandwidth \(but not more than [[:digit:]]+ KB/sec\) for (data-check|requested-resync|resync|reshape|recovery)\.$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: delaying (data-check|requested-resync|resync|reshape|recovery) of md[[:digit:]]+ until md[[:digit:]]+ has finished \(they share one or more physical units\)$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: using [[:digit:]]+k window, over a total of [[:digit:]]+ blocks\.$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: (un)?bind<[^>]+>$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel: md: export_rdev\([^)]+\)$

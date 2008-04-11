@@ -38,7 +38,7 @@ test -f $DEBIANCONFIG && . $DEBIANCONFIG
 
 short_dev()
 {
-  local dev=${1##*/}
+  local dev; dev=${1##*/}
   case "$dev" in
     md*|md_*|mdp*|mdp_*) echo "$dev";;
     d*) echo "md_${dev}";;
