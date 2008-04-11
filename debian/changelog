@@ -15,6 +15,8 @@ mdadm (2.6.4-2) unstable; urgency=low
     * Portuguese. Closes: #466794
     * German. Closes: #466989
     * Vietnamese. Closes: #467118
+  * Fixed bashism in mdadm-raid init.d script; thanks to Raphael Geisser
+    (closes: #471874).
 
  -- martin f. krafft <madduck@debian.org>  Fri, 11 Apr 2008 10:48:45 +0200
 
