@@ -19,6 +19,8 @@ mdadm (2.6.4-2) unstable; urgency=low
     (closes: #471874).
   * Do not output warning when run from cron and no arrays are found
     (closes: #474542).
+  * Add doc-base registration file; thanks to Roberto C. Sanchez
+    (closes: #451684).
 
  -- martin f. krafft <madduck@debian.org>  Fri, 11 Apr 2008 10:48:45 +0200
 
