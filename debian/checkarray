@@ -109,8 +109,10 @@ if [ ! -d /sys/block ]; then
 fi
 
 if [ -z "$(ls /sys/block/md* 2>/dev/null)" ]; then
-  [ $quiet -lt 2 ] && echo "$PROGNAME: W: no active MD arrays found." >&2
-  [ $quiet -lt 2 ] && echo "$PROGNAME: W: (maybe uninstall the mdadm package?)" >&2
+  if [ $quiet -lt 2 ] && [ $cron != 1 ]; then
+    echo "$PROGNAME: W: no active MD arrays found." >&2
+    echo "$PROGNAME: W: (maybe uninstall the mdadm package?)" >&2
+  fi
   exit 5
 fi
 
