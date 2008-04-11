@@ -117,7 +117,7 @@ if [ -z "$(ls /sys/block/md* 2>/dev/null)" ]; then
 fi
 
 if [ -z "$(ls /sys/block/md*/md/level 2>/dev/null)" ]; then
-  [ $quiet -lt 2 ] && echo "$PROGNAME: W: kernel too old, no support for redundancy checks." >&2
+  [ $quiet -lt 2 ] && echo "$PROGNAME: E: kernel too old, no support for redundancy checks." >&2
   exit 6
 fi
 
@@ -127,7 +127,7 @@ if ! egrep -q '^raid([1456]|10)$' /sys/block/md*/md/level 2>/dev/null; then
 fi
 
 if [ -z "$(ls /sys/block/md*/md/sync_action 2>/dev/null)" ]; then
-  [ $quiet -lt 2 ] && echo "$PROGNAME: W: no kernel support for redundancy checks." >&2
+  [ $quiet -lt 2 ] && echo "$PROGNAME: E: no kernel support for redundancy checks." >&2
   exit 3
 fi
 
