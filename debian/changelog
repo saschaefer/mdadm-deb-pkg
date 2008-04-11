@@ -15,6 +15,8 @@ mdadm (2.6.4-2) unstable; urgency=low
     * Portuguese. Closes: #466794
     * German. Closes: #466989
     * Vietnamese. Closes: #467118
+  * New debconf translations:
+    * Finnish. Closes: #468048
   * Fixed bashism in mdadm-raid init.d script; thanks to Raphael Geisser
     (closes: #471874).
   * Do not output warning when run from cron and no arrays are found
