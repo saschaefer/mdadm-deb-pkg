@@ -25,6 +25,7 @@ mdadm (2.6.4-2) unstable; urgency=low
     (closes: #451684).
   * Reschedule "mdadm Sunday" to 00:57 instead of 01:06 to prevent double
     invocation on DST change (closes: #449244).
+  * Bump DH compatibility level to 6; no changes required.
 
  -- martin f. krafft <madduck@debian.org>  Fri, 11 Apr 2008 10:48:45 +0200
 
