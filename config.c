@@ -100,7 +100,7 @@ int match_keyword(char *word)
 {
 	int len = strlen(word);
 	int n;
-    
+
 	if (len < 3) return -1;
 	for (n=0; keywords[n]; n++) {
 		if (strncasecmp(word, keywords[n], len)==0)
@@ -161,11 +161,24 @@ char *conf_word(FILE *file, int allow_key)
 					word[len++] = c;
 				}
 				c = getc(file);
+				/* Hack for broken kernels (2.6.14-.24) that put
+				 *        "active(auto-read-only)"
+				 * in /proc/mdstat instead of
+				 *        "active (auto-read-only)"
+				 */
+				if (c == '(' && len >= 6
+				    && strncmp(word+len-6, "active", 6) == 0)
+					c = ' ';
 			}
 		}
 		if (c != EOF) ungetc(c, file);
 	}
 	word[len] = 0;
+
+	/* Further HACK for broken kernels.. 2.6.14-2.6.24 */
+	if (strcmp(word, "auto-read-only)") == 0)
+		strcpy(word, "(auto-read-only)");
+
 /*    printf("word is <%s>\n", word); */
 	if (!wordfound) {
 		free(word);
@@ -173,7 +186,7 @@ char *conf_word(FILE *file, int allow_key)
 	}
 	return word;
 }
-	
+
 /*
  * conf_line reads one logical line from the conffile.
  * It skips comments and continues until it finds a line that starts
@@ -237,7 +250,7 @@ mddev_dev_t load_partitions(void)
 		if (buf[0] != ' ')
 			continue;
 		major = strtoul(buf, &mp, 10);
-		if (mp == buf || *mp != ' ') 
+		if (mp == buf || *mp != ' ')
 			continue;
 		minor = strtoul(mp, NULL, 10);
 
@@ -379,7 +392,7 @@ static void createline(char *line)
 	}
 }
 
-void devline(char *line) 
+void devline(char *line)
 {
 	char *w;
 	struct conf_dev *cd;
@@ -494,7 +507,7 @@ void arrayline(char *line)
 		} else if (strncasecmp(w, "metadata=", 9) == 0) {
 			/* style of metadata on the devices. */
 			int i;
-			
+
 			for(i=0; superlist[i] && !mis.st; i++)
 				mis.st = superlist[i]->match_metadata_desc(w+9);
 
@@ -657,7 +670,7 @@ void load_conffile(void)
 		}
 		free_line(line);
 	}
-    
+
 	fclose(f);
 
 /*    printf("got file\n"); */
@@ -717,7 +730,7 @@ mddev_dev_t conf_get_devs()
 		free(t->devname);
 		free(t);
 	}
-    
+
 	load_conffile();
 
 	if (cdevlist == NULL)

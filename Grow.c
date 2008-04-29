@@ -47,19 +47,18 @@ int Grow_Add_device(char *devname, int fd, char *newdev)
 	 */
 	struct mdinfo info;
 
-	void *super = NULL;
 	struct stat stb;
 	int nfd, fd2;
 	int d, nd;
 	struct supertype *st = NULL;
-	
+
 
 	if (ioctl(fd, GET_ARRAY_INFO, &info.array) < 0) {
 		fprintf(stderr, Name ": cannot get array info for %s\n", devname);
 		return 1;
 	}
 
-	st = super_by_version(info.array.major_version, info.array.minor_version);
+	st = super_by_fd(fd);
 	if (!st) {
 		fprintf(stderr, Name ": cannot handle arrays with superblock version %d\n", info.array.major_version);
 		return 1;
@@ -103,9 +102,9 @@ int Grow_Add_device(char *devname, int fd, char *newdev)
 			fprintf(stderr, Name ": cannot open device file %s\n", dv);
 			return 1;
 		}
-		if (super) free(super);
-		super= NULL;
-		if (st->ss->load_super(st, fd2, &super, NULL)) {
+		st->ss->free_super(st);
+
+		if (st->ss->load_super(st, fd2, NULL)) {
 			fprintf(stderr, Name ": cannot find super block on %s\n", dv);
 			close(fd2);
 			return 1;
@@ -115,16 +114,16 @@ int Grow_Add_device(char *devname, int fd, char *newdev)
 	/* Ok, looks good. Lets update the superblock and write it out to
 	 * newdev.
 	 */
-	
+
 	info.disk.number = d;
 	info.disk.major = major(stb.st_rdev);
 	info.disk.minor = minor(stb.st_rdev);
 	info.disk.raid_disk = d;
 	info.disk.state = (1 << MD_DISK_SYNC) | (1 << MD_DISK_ACTIVE);
-	st->ss->update_super(&info, super, "linear-grow-new", newdev,
+	st->ss->update_super(st, &info, "linear-grow-new", newdev,
 			     0, 0, NULL);
 
-	if (st->ss->store_super(st, nfd, super)) {
+	if (st->ss->store_super(st, nfd)) {
 		fprintf(stderr, Name ": Cannot store new superblock on %s\n",
 			newdev);
 		close(nfd);
@@ -167,7 +166,7 @@ int Grow_Add_device(char *devname, int fd, char *newdev)
 			fprintf(stderr, Name ": cannot open device file %s\n", dv);
 			return 1;
 		}
-		if (st->ss->load_super(st, fd2, &super, NULL)) {
+		if (st->ss->load_super(st, fd2, NULL)) {
 			fprintf(stderr, Name ": cannot find super block on %s\n", dv);
 			close(fd);
 			return 1;
@@ -177,10 +176,10 @@ int Grow_Add_device(char *devname, int fd, char *newdev)
 		info.array.active_disks = nd+1;
 		info.array.working_disks = nd+1;
 
-		st->ss->update_super(&info, super, "linear-grow-update", dv,
+		st->ss->update_super(st, &info, "linear-grow-update", dv,
 				     0, 0, NULL);
-		
-		if (st->ss->store_super(st, fd2, super)) {
+
+		if (st->ss->store_super(st, fd2)) {
 			fprintf(stderr, Name ": Cannot store new superblock on %s\n", dv);
 			close(fd2);
 			return 1;
@@ -278,7 +277,7 @@ int Grow_addbitmap(char *devname, int fd, char *file, int chunk, int delay, int 
 		bitmapsize = bitmapsize * array.raid_disks / ncopies;
 	}
 
-	st = super_by_version(array.major_version, array.minor_version);
+	st = super_by_fd(fd);
 	if (!st) {
 		fprintf(stderr, Name ": Cannot understand version %d.%d\n",
 			array.major_version, array.minor_version);
@@ -302,17 +301,16 @@ int Grow_addbitmap(char *devname, int fd, char *file, int chunk, int delay, int 
 				continue;
 			dv = map_dev(disk.major, disk.minor, 1);
 			if (dv) {
-				void *super;
 				int fd2 = dev_open(dv, O_RDWR);
 				if (fd2 < 0)
 					continue;
-				if (st->ss->load_super(st, fd2, &super, NULL)==0) {
+				if (st->ss->load_super(st, fd2, NULL)==0) {
 					if (st->ss->add_internal_bitmap(
-						    st, super,
+						    st,
 						    &chunk, delay, write_behind,
 						    bitmapsize, 0, major)
 						)
-						st->ss->write_bitmap(st, fd2, super);
+						st->ss->write_bitmap(st, fd2);
 					else {
 						fprintf(stderr, Name ": failed to create internal bitmap - chunksize problem.\n");
 						close(fd2);
@@ -332,7 +330,6 @@ int Grow_addbitmap(char *devname, int fd, char *file, int chunk, int delay, int 
 		int bitmap_fd;
 		int d;
 		int max_devs = st->max_devs;
-		void *super = NULL;
 
 		/* try to load a superblock */
 		for (d=0; d<max_devs; d++) {
@@ -349,9 +346,9 @@ int Grow_addbitmap(char *devname, int fd, char *file, int chunk, int delay, int 
 			if (!dv) continue;
 			fd2 = dev_open(dv, O_RDONLY);
 			if (fd2 >= 0 &&
-			    st->ss->load_super(st, fd2, &super, NULL) == 0) {
+			    st->ss->load_super(st, fd2, NULL) == 0) {
 				close(fd2);
-				st->ss->uuid_from_super(uuid, super);
+				st->ss->uuid_from_super(st, uuid);
 				break;
 			}
 			close(fd2);
@@ -437,10 +434,9 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 	int d, i, spares;
 	int nrdisks;
 	int err;
-	void *super = NULL;
 
-	struct sysarray *sra;
-	struct sysdev *sd;
+	struct mdinfo *sra;
+	struct mdinfo *sd;
 
 	if (ioctl(fd, GET_ARRAY_INFO, &array) < 0) {
 		fprintf(stderr, Name ": %s is not an active md array - aborting\n",
@@ -523,8 +519,8 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 	case 4:
 	case 5:
 	case 6:
-		st = super_by_version(array.major_version,
-				      array.minor_version);
+		st = super_by_fd(fd);
+
 		/* size can be changed independently.
 		 * layout/chunksize/raid_disks/level can be changed
 		 * though the kernel may not support it all.
@@ -635,13 +631,13 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 				devname);
 			return 1;
 		}
-		if (sra->spares == 0 && backup_file == NULL) {
+		if (sra->array.spare_disks == 0 && backup_file == NULL) {
 			fprintf(stderr, Name ": %s: Cannot grow - need a spare or backup-file to backup critical section\n",
 				devname);
 			return 1;
 		}
 
-		nrdisks = array.nr_disks + sra->spares;
+		nrdisks = array.nr_disks + sra->array.spare_disks;
 		/* Now we need to open all these devices so we can read/write.
 		 */
 		fdlist = malloc((1+nrdisks) * sizeof(int));
@@ -654,22 +650,25 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 			fdlist[d] = -1;
 		d = array.raid_disks;
 		for (sd = sra->devs; sd; sd=sd->next) {
-			if (sd->state & (1<<MD_DISK_FAULTY))
+			if (sd->disk.state & (1<<MD_DISK_FAULTY))
 				continue;
-			if (sd->state & (1<<MD_DISK_SYNC)) {
-				char *dn = map_dev(sd->major, sd->minor, 1);
-				fdlist[sd->role] = dev_open(dn, O_RDONLY);
-				offsets[sd->role] = sd->offset;
-				if (fdlist[sd->role] < 0) {
+			if (sd->disk.state & (1<<MD_DISK_SYNC)) {
+				char *dn = map_dev(sd->disk.major,
+						   sd->disk.minor, 1);
+				fdlist[sd->disk.raid_disk]
+					= dev_open(dn, O_RDONLY);
+				offsets[sd->disk.raid_disk] = sd->data_offset;
+				if (fdlist[sd->disk.raid_disk] < 0) {
 					fprintf(stderr, Name ": %s: cannot open component %s\n",
 						devname, dn?dn:"-unknown-");
 					goto abort;
 				}
 			} else {
 				/* spare */
-				char *dn = map_dev(sd->major, sd->minor, 1);
+				char *dn = map_dev(sd->disk.major,
+						   sd->disk.minor, 1);
 				fdlist[d] = dev_open(dn, O_RDWR);
-				offsets[d] = sd->offset;
+				offsets[d] = sd->data_offset;
 				if (fdlist[d]<0) {
 					fprintf(stderr, Name ": %s: cannot open component %s\n",
 						devname, dn?dn:"-unknown");
@@ -684,7 +683,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 					" --grow aborted\n", devname, i);
 				goto abort;
 			}
-		spares = sra->spares;
+		spares = sra->array.spare_disks;
 		if (backup_file) {
 			fdlist[d] = open(backup_file, O_RDWR|O_CREAT|O_EXCL, 0600);
 			if (fdlist[d] < 0) {
@@ -703,7 +702,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 		}
 
 		/* Find a superblock */
-		if (st->ss->load_super(st, fdlist[0], &super, NULL)) {
+		if (st->ss->load_super(st, fdlist[0], NULL)) {
 			fprintf(stderr, Name ": %s: Cannot find a superblock\n",
 				devname);
 			goto abort;
@@ -711,7 +710,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 
 
 		memcpy(bsb.magic, "md_backup_data-1", 16);
-		st->ss->uuid_from_super((int*)&bsb.set_uuid, super);
+		st->ss->uuid_from_super(st, (int*)&bsb.set_uuid);
 		bsb.mtime = __cpu_to_le64(time(0));
 		bsb.arraystart = 0;
 		bsb.length = __cpu_to_le64(last_block);
@@ -816,7 +815,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 				break;
 			sleep(1);
 		}
-		
+
 		/* invalidate superblocks */
 		memset(&bsb, 0, sizeof(bsb));
 		for (i=odisks; i<d ; i++) {
@@ -881,7 +880,6 @@ int Grow_restart(struct supertype *st, struct mdinfo *info, int *fdlist, int cnt
 	old_disks = info->array.raid_disks - info->delta_disks;
 
 	for (i=old_disks-(backup_file?1:0); i<cnt; i++) {
-		void *super = NULL;
 		struct mdinfo dinfo;
 		struct mdp_backup_super bsb;
 		char buf[4096];
@@ -902,11 +900,12 @@ int Grow_restart(struct supertype *st, struct mdinfo *info, int *fdlist, int cnt
 			fd = fdlist[i];
 			if (fd < 0)
 				continue;
-			if (st->ss->load_super(st, fd, &super, NULL))
+			if (st->ss->load_super(st, fd, NULL))
 				continue;
 
-			st->ss->getinfo_super(&dinfo, super);
-			free(super); super = NULL;
+			st->ss->getinfo_super(st, &dinfo);
+			st->ss->free_super(st);
+
 			if (lseek64(fd,
 				    (dinfo.data_offset + dinfo.component_size - 8) <<9,
 				    0) < 0)
@@ -944,11 +943,11 @@ int Grow_restart(struct supertype *st, struct mdinfo *info, int *fdlist, int cnt
 		for(j=0; j<info->array.raid_disks; j++) {
 			if (fdlist[j] < 0)
 				continue;
-			if (st->ss->load_super(st, fdlist[j], &super, NULL))
+			if (st->ss->load_super(st, fdlist[j], NULL))
 				/* FIXME should be this be an error */
 				continue;
-			st->ss->getinfo_super(&dinfo, super);
-			free(super); super = NULL;
+			st->ss->getinfo_super(st, &dinfo);
+			st->ss->free_super(st);
 			offsets[j] = dinfo.data_offset;
 		}
 		printf(Name ": restoring critical section\n");
@@ -968,13 +967,15 @@ int Grow_restart(struct supertype *st, struct mdinfo *info, int *fdlist, int cnt
 
 		for (j=0; j<info->array.raid_disks; j++) {
 			if (fdlist[j] < 0) continue;
-			if (st->ss->load_super(st, fdlist[j], &super, NULL))
+			if (st->ss->load_super(st, fdlist[j], NULL))
 				continue;
-			st->ss->getinfo_super(&dinfo, super);
+			st->ss->getinfo_super(st, &dinfo);
 			dinfo.reshape_progress = __le64_to_cpu(bsb.length);
-			st->ss->update_super(&dinfo, super, "_reshape_progress",NULL,0, 0, NULL);
-			st->ss->store_super(st, fdlist[j], super);
-			free(super);
+			st->ss->update_super(st, &dinfo,
+					     "_reshape_progress",
+					     NULL,0, 0, NULL);
+			st->ss->store_super(st, fdlist[j]);
+			st->ss->free_super(st);
 		}
 
 		/* And we are done! */

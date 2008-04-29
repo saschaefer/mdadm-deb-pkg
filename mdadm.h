@@ -28,6 +28,7 @@
  */
 
 #define	_GNU_SOURCE
+#define _FILE_OFFSET_BITS 64
 #include	<unistd.h>
 #if !defined(__dietlibc__) && !defined(__KLIBC__)
 extern __off64_t lseek64 __P ((int __fd, __off64_t __offset, int __whence));
@@ -131,6 +132,14 @@ struct mdinfo {
 	int			reshape_active;
 	unsigned long long	reshape_progress;
 	int			new_level, delta_disks, new_layout, new_chunk;
+	int			errors;
+	int			cache_size; /* size of raid456 stripe cache*/
+	int			mismatch_cnt;
+	char			text_version[50];
+
+	char 		sys_name[20];
+	struct mdinfo *devs;
+	struct mdinfo *next;
 };
 
 struct createinfo {
@@ -195,7 +204,7 @@ enum special_options {
 #define UnSet (0xfffe)
 typedef struct mddev_ident_s {
 	char	*devname;
-	
+
 	int	uuid_set;
 	int	uuid[4];
 	char	name[33];
@@ -268,28 +277,6 @@ extern void map_free(struct map_ent *map);
 extern void map_add(struct map_ent **melp,
 		    int devnum, int major, int minor, int uuid[4], char *path);
 
-/* Data structure for holding info read from sysfs */
-struct sysdev {
-	char	name[20];
-	int	role;
-	int	major, minor;
-	unsigned long long offset, size;
-	int	state;
-	int	errors;
-	struct sysdev *next;
-};
-struct sysarray {
-	char	name[20];
-	struct sysdev *devs;
-	int	chunk;
-	unsigned long long component_size;
-	int	layout;
-	int	level;
-	int	spares;
-	int	cache_size;
-	int	mismatch_cnt;
-	int	major_version, minor_version;
-};
 /* various details can be requested */
 #define	GET_LEVEL	1
 #define	GET_LAYOUT	2
@@ -308,13 +295,13 @@ struct sysarray {
 /* If fd >= 0, get the array it is open on,
  * else use devnum. >=0 -> major9. <0.....
  */
-extern void sysfs_free(struct sysarray *sra);
-extern struct sysarray *sysfs_read(int fd, int devnum, unsigned long options);
-extern int sysfs_set_str(struct sysarray *sra, struct sysdev *dev,
+extern void sysfs_free(struct mdinfo *sra);
+extern struct mdinfo *sysfs_read(int fd, int devnum, unsigned long options);
+extern int sysfs_set_str(struct mdinfo *sra, struct mdinfo *dev,
 			 char *name, char *val);
-extern int sysfs_set_num(struct sysarray *sra, struct sysdev *dev,
+extern int sysfs_set_num(struct mdinfo *sra, struct mdinfo *dev,
 			 char *name, unsigned long long val);
-extern int sysfs_get_ll(struct sysarray *sra, struct sysdev *dev,
+extern int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
 			char *name, unsigned long long *val);
 
 
@@ -341,30 +328,35 @@ extern char *map_dev(int major, int minor, int create);
 
 
 extern struct superswitch {
-	void (*examine_super)(void *sbv, char *homehost);
-	void (*brief_examine_super)(void *sbv);
-	void (*detail_super)(void *sbv, char *homehost);
-	void (*export_super)(void *sbv);
-	void (*brief_detail_super)(void *sbv);
-	void (*uuid_from_super)(int uuid[4], void *sbv);
-	void (*getinfo_super)(struct mdinfo *info, void *sbv);
-	int (*match_home)(void *sbv, char *homehost);
-	int (*update_super)(struct mdinfo *info, void *sbv, char *update,
+	void (*examine_super)(struct supertype *st, char *homehost);
+	void (*brief_examine_super)(struct supertype *st);
+	void (*detail_super)(struct supertype *st, char *homehost);
+	void (*export_super)(struct supertype *st);
+	void (*brief_detail_super)(struct supertype *st);
+	void (*uuid_from_super)(struct supertype *st, int uuid[4]);
+	void (*getinfo_super)(struct supertype *st, struct mdinfo *info);
+	int (*match_home)(struct supertype *st, char *homehost);
+	int (*update_super)(struct supertype *st, struct mdinfo *info,
+			    char *update,
 			    char *devname, int verbose,
 			    int uuid_set, char *homehost);
-	int (*init_super)(struct supertype *st, void **sbp, mdu_array_info_t *info, unsigned long long size, char *name, char *homehost, int *uuid);
-	void (*add_to_super)(void *sbv, mdu_disk_info_t *dinfo);
-	int (*store_super)(struct supertype *st, int fd, void *sbv);
-	int (*write_init_super)(struct supertype *st, void *sbv, mdu_disk_info_t *dinfo, char *devname);
-	int (*compare_super)(void **firstp, void *secondv);
-	int (*load_super)(struct supertype *st, int fd, void **sbp, char *devname);
+	int (*init_super)(struct supertype *st, mdu_array_info_t *info,
+			  unsigned long long size, char *name,
+			  char *homehost, int *uuid);
+	void (*add_to_super)(struct supertype *st, mdu_disk_info_t *dinfo);
+	int (*store_super)(struct supertype *st, int fd);
+	int (*write_init_super)(struct supertype *st, mdu_disk_info_t *dinfo,
+				char *devname);
+	int (*compare_super)(struct supertype *st, struct supertype *tst);
+	int (*load_super)(struct supertype *st, int fd, char *devname);
 	struct supertype * (*match_metadata_desc)(char *arg);
 	__u64 (*avail_size)(struct supertype *st, __u64 size);
-	int (*add_internal_bitmap)(struct supertype *st, void *sbv, int *chunkp,
+	int (*add_internal_bitmap)(struct supertype *st, int *chunkp,
 				   int delay, int write_behind,
 				   unsigned long long size, int may_change, int major);
-	void (*locate_bitmap)(struct supertype *st, int fd, void *sbv);
-	int (*write_bitmap)(struct supertype *st, int fd, void *sbv);
+	void (*locate_bitmap)(struct supertype *st, int fd);
+	int (*write_bitmap)(struct supertype *st, int fd);
+	void (*free_super)(struct supertype *st);
 	int major;
 	int swapuuid; /* true if uuid is bigending rather than hostendian */
 } super0, super1, *superlist[];
@@ -373,10 +365,12 @@ struct supertype {
 	struct superswitch *ss;
 	int minor_version;
 	int max_devs;
+	void *sb;
 };
 
-extern struct supertype *super_by_version(int vers, int minor);
+extern struct supertype *super_by_fd(int fd);
 extern struct supertype *guess_super(int fd);
+extern struct supertype *dup_super(struct supertype *st);
 extern int get_dev_size(int fd, char *dname, unsigned long long *sizep);
 extern void get_one_disk(int mdfd, mdu_array_info_t *ainf,
 			 mdu_disk_info_t *disk);
@@ -508,7 +502,6 @@ extern int match_oneof(char *devices, char *devname);
 extern void uuid_from_super(int uuid[4], mdp_super_t *super);
 extern int same_uuid(int a[4], int b[4], int swapuuid);
 extern void copy_uuid(void *a, int b[4], int swapuuid);
-/* extern int compare_super(mdp_super_t *first, mdp_super_t *second);*/
 extern unsigned long calc_csum(void *super, int bytes);
 extern int enough(int level, int raid_disks, int layout, int clean,
 		   char *avail, int avail_disks);

@@ -1,3 +1,13 @@
+Changes Prior to this release
+    -   Avoid segfault when parsing /proc/mdstat with auto-read-only
+	arrays.
+    -   Fix problem with failing to add devices to v.large (>4TB) arrays,
+	cause by problems with device-size overflow.
+    -   For v0.90 superblocks, print the 'Events' count as a real count,
+	not 2 numbers separated by a dot.
+    -   Updates some URLs in the man page.
+    -   Allow creation of a RAID6 with exactly one missing device.
+
 Changes Prior to 2.6.4 release
     -   Make "--create --auto=mdp" work for non-standard device names.
     -   Fix restarting of a 'reshape' if it was stopped in the middle.

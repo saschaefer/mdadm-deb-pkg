@@ -1,3 +1,12 @@
+mdadm (2.6.5-1) UNRELEASED; urgency=low
+
+  * New upstream version, which
+    - fixes a segfault when reading /proc/mdstat (closes: #462154).
+    - fixes a possible bug with v1 bitmap space allocation (closes: #474548).
+    - supports large files for loop assembly (closes: #463769).
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 29 Apr 2008 13:43:02 +0200
+
 mdadm (2.6.4-2) unstable; urgency=low
 
   * Adjusted logcheck rules to follow kernel changes; thanks to Frédéric

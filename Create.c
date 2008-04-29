@@ -63,19 +63,19 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 	int fail=0, warn=0;
 	struct stat stb;
 	int first_missing = subdevs * 2;
+	int second_missing = subdevs * 2;
 	int missing_disks = 0;
 	int insert_point = subdevs * 2; /* where to insert a missing drive */
-	void *super;
 	int pass;
 	int vers;
 	int rv;
 	int bitmap_fd;
 	unsigned long long bitmapsize;
+	struct mdinfo info;
 
-	mdu_array_info_t array;
 	int major_num = BITMAP_MAJOR_HI;
 
-	memset(&array, 0, sizeof(array));
+	memset(&info, 0, sizeof(info));
 
 	vers = md_get_version(mdfd);
 	if (vers < 9000) {
@@ -180,6 +180,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		}
 		break;
 	case 1:
+	case LEVEL_FAULTY:
 	case LEVEL_MULTIPATH:
 		if (chunk) {
 			chunk = 0;
@@ -193,8 +194,8 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 	}
 
 	/* now look at the subdevs */
-	array.active_disks = 0;
-	array.working_disks = 0;
+	info.array.active_disks = 0;
+	info.array.working_disks = 0;
 	dnum = 0;
 	for (dv=devlist; dv; dv=dv->next, dnum++) {
 		char *dname = dv->devname;
@@ -203,12 +204,14 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		if (strcasecmp(dname, "missing")==0) {
 			if (first_missing > dnum)
 				first_missing = dnum;
+			if (second_missing > dnum && dnum > first_missing)
+				second_missing = dnum;
 			missing_disks ++;
 			continue;
 		}
-		array.working_disks++;
+		info.array.working_disks++;
 		if (dnum < raiddisks)
-			array.active_disks++;
+			info.array.active_disks++;
 		fd = open(dname, O_RDONLY|O_EXCL, 0);
 		if (fd <0 ) {
 			fprintf(stderr, Name ": Cannot open %s: %s\n",
@@ -297,7 +300,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		if (level > 0 || level == LEVEL_MULTIPATH || level == LEVEL_FAULTY) {
 			/* size is meaningful */
 			if (minsize > 0x100000000ULL && st->ss->major == 0) {
-				fprintf(stderr, Name ": devices too large for RAID level %d\n", level);	
+				fprintf(stderr, Name ": devices too large for RAID level %d\n", level);
 				return 1;
 			}
 			size = minsize;
@@ -334,12 +337,24 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		case 5:
 			insert_point = raiddisks-1;
 			sparedisks++;
-			array.active_disks--;
+			info.array.active_disks--;
 			missing_disks++;
 			break;
 		default:
 			break;
 		}
+	}
+	/* For raid6, if creating with 1 missing drive, make a good drive
+	 * into a spare, else the create will fail
+	 */
+	if (assume_clean == 0 && force == 0 && first_missing < raiddisks &&
+	    second_missing >= raiddisks && level == 6) {
+		insert_point = raiddisks - 1;
+		if (insert_point == first_missing)
+			insert_point--;
+		sparedisks ++;
+		info.array.active_disks--;
+		missing_disks++;
 	}
 
 	if (level <= 0 && first_missing != subdevs * 2) {
@@ -347,30 +362,31 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 			Name ": This level does not support missing devices\n");
 		return 1;
 	}
-	
+
 	/* Ok, lets try some ioctls */
 
-	array.level = level;
-	array.size = size;
-	array.raid_disks = raiddisks;
+	info.array.level = level;
+	info.array.size = size;
+	info.array.raid_disks = raiddisks;
 	/* The kernel should *know* what md_minor we are dealing
 	 * with, but it chooses to trust me instead. Sigh
 	 */
-	array.md_minor = 0;
+	info.array.md_minor = 0;
 	if (fstat(mdfd, &stb)==0)
-		array.md_minor = minor(stb.st_rdev);
-	array.not_persistent = 0;
-	/*** FIX: Need to do something about RAID-6 here ***/
+		info.array.md_minor = minor(stb.st_rdev);
+	info.array.not_persistent = 0;
+
 	if ( ( (level == 4 || level == 5) &&
 	       (insert_point < raiddisks || first_missing < raiddisks) )
 	     ||
-	     ( level == 6 && missing_disks == 2)
+	     ( level == 6 && (insert_point < raiddisks
+			      || second_missing < raiddisks))
 	     ||
 	     assume_clean
 		)
-		array.state = 1; /* clean, but one+ drive will be missing */
+		info.array.state = 1; /* clean, but one+ drive will be missing*/
 	else
-		array.state = 0; /* not clean, but no errors */
+		info.array.state = 0; /* not clean, but no errors */
 
 	if (level == 10) {
 		/* for raid10, the bitmap size is the capacity of the array,
@@ -402,12 +418,13 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 	 * So for now, we assume that all raid and spare
 	 * devices will be given.
 	 */
-	array.spare_disks=sparedisks;
-	array.failed_disks=missing_disks;
-	array.nr_disks = array.working_disks + array.failed_disks;
-	array.layout = layout;
-	array.chunk_size = chunk*1024;
-	array.major_version = st->ss->major;
+	info.array.spare_disks=sparedisks;
+	info.array.failed_disks=missing_disks;
+	info.array.nr_disks = info.array.working_disks
+		+ info.array.failed_disks;
+	info.array.layout = layout;
+	info.array.chunk_size = chunk*1024;
+	info.array.major_version = st->ss->major;
 
 	if (name == NULL || *name == 0) {
 		/* base name on mddev */
@@ -433,7 +450,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 				name += 2;
 		}
 	}
-	if (!st->ss->init_super(st, &super, &array, size, name, homehost, uuid))
+	if (!st->ss->init_super(st, &info.array, size, name, homehost, uuid))
 		return 1;
 
 	if (bitmap_file && vers < 9003) {
@@ -449,7 +466,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 			fprintf(stderr, Name ": internal bitmaps not supported by this kernel.\n");
 			return 1;
 		}
-		if (!st->ss->add_internal_bitmap(st, super, &bitmap_chunk,
+		if (!st->ss->add_internal_bitmap(st, &bitmap_chunk,
 						 delay, write_behind,
 						 bitmapsize, 1, major_num)) {
 			fprintf(stderr, Name ": Given bitmap chunk size not supported.\n");
@@ -466,7 +483,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		inf.major_version = st->ss->major;
 		inf.minor_version = st->minor_version;
 		rv = ioctl(mdfd, SET_ARRAY_INFO, &inf);
-	} else 
+	} else
 		rv = ioctl(mdfd, SET_ARRAY_INFO, NULL);
 	if (rv) {
 		fprintf(stderr, Name ": SET_ARRAY_INFO failed for %s: %s\n",
@@ -477,7 +494,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 	if (bitmap_file) {
 		int uuid[4];
 
-		st->ss->uuid_from_super(uuid, super);
+		st->ss->uuid_from_super(st, uuid);
 		if (CreateBitmap(bitmap_file, force, (char*)uuid, bitmap_chunk,
 				 delay, write_behind,
 				 bitmapsize,
@@ -506,26 +523,25 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 		     dv=(dv->next)?(dv->next):moved_disk, dnum++) {
 			int fd;
 			struct stat stb;
-			mdu_disk_info_t disk;
 
-			disk.number = dnum;
+			info.disk.number = dnum;
 			if (dnum == insert_point) {
 				moved_disk = dv;
 			}
-			disk.raid_disk = disk.number;
-			if (disk.raid_disk < raiddisks)
-				disk.state = (1<<MD_DISK_ACTIVE) |
+			info.disk.raid_disk = info.disk.number;
+			if (info.disk.raid_disk < raiddisks)
+				info.disk.state = (1<<MD_DISK_ACTIVE) |
 						(1<<MD_DISK_SYNC);
 			else
-				disk.state = 0;
+				info.disk.state = 0;
 			if (dv->writemostly)
-				disk.state |= (1<<MD_DISK_WRITEMOSTLY);
+				info.disk.state |= (1<<MD_DISK_WRITEMOSTLY);
 
 			if (dnum == insert_point ||
 			    strcasecmp(dv->devname, "missing")==0) {
-				disk.major = 0;
-				disk.minor = 0;
-				disk.state = (1<<MD_DISK_FAULTY);
+				info.disk.major = 0;
+				info.disk.minor = 0;
+				info.disk.state = (1<<MD_DISK_FAULTY);
 			} else {
 				fd = open(dv->devname, O_RDONLY|O_EXCL, 0);
 				if (fd < 0) {
@@ -534,25 +550,26 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 					return 1;
 				}
 				fstat(fd, &stb);
-				disk.major = major(stb.st_rdev);
-				disk.minor = minor(stb.st_rdev);
+				info.disk.major = major(stb.st_rdev);
+				info.disk.minor = minor(stb.st_rdev);
 				remove_partitions(fd);
 				close(fd);
 			}
 			switch(pass){
 			case 1:
-				st->ss->add_to_super(super, &disk);
+				st->ss->add_to_super(st, &info.disk);
 				break;
 			case 2:
-				if (disk.state == 1) break;
+				if (info.disk.state == 1) break;
 				Kill(dv->devname, 0, 1); /* Just be sure it is clean */
 				Kill(dv->devname, 0, 1); /* and again, there could be two superblocks */
-				st->ss->write_init_super(st, super, &disk, dv->devname);
+				st->ss->write_init_super(st, &info.disk,
+							 dv->devname);
 
-				if (ioctl(mdfd, ADD_NEW_DISK, &disk)) {
+				if (ioctl(mdfd, ADD_NEW_DISK, &info.disk)) {
 					fprintf(stderr, Name ": ADD_NEW_DISK for %s failed: %s\n",
 						dv->devname, strerror(errno));
-					free(super);
+					st->ss->free_super(st);
 					return 1;
 				}
 
@@ -561,7 +578,7 @@ int Create(struct supertype *st, char *mddev, int mdfd,
 			if (dv == moved_disk && dnum != insert_point) break;
 		}
 	}
-	free(super);
+	st->ss->free_super(st);
 
 	/* param is not actually used */
 	if (runstop == 1 || subdevs >= raiddisks) {

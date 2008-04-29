@@ -45,7 +45,7 @@ int Manage_ro(char *devname, int fd, int readonly)
 	 *
 	 */
 	mdu_array_info_t array;
-	
+
 	if (md_get_version(fd) < 9000) {
 		fprintf(stderr, Name ": need md driver version 0.90.0 or later\n");
 		return 1;
@@ -55,7 +55,7 @@ int Manage_ro(char *devname, int fd, int readonly)
 			devname);
 		return 1;
 	}
-	
+
 	if (readonly>0) {
 		if (ioctl(fd, STOP_ARRAY_RO, NULL)) {
 			fprintf(stderr, Name ": failed to set readonly for %s: %s\n",
@@ -69,7 +69,7 @@ int Manage_ro(char *devname, int fd, int readonly)
 			return 1;
 		}
 	}
-	return 0;			
+	return 0;
 }
 
 #ifndef MDASSEMBLE
@@ -88,7 +88,7 @@ int Manage_runstop(char *devname, int fd, int runstop, int quiet)
 			return 1;
 		}
 	}
-	
+
 	if (md_get_version(fd) < 9000) {
 		fprintf(stderr, Name ": need md driver version 0.90.0 or later\n");
 		return 1;
@@ -188,13 +188,12 @@ int Manage_subdevs(char *devname, int fd,
 	 */
 	mdu_array_info_t array;
 	mdu_disk_info_t disc;
+	unsigned long long array_size;
 	mddev_dev_t dv, next = NULL;
 	struct stat stb;
 	int j, jnext = 0;
 	int tfd;
-	struct supertype *st;
-	void *dsuper = NULL;
-	void *osuper = NULL; /* original super */
+	struct supertype *st, *tst;
 	int duuid[4];
 	int ouuid[4];
 
@@ -203,6 +202,22 @@ int Manage_subdevs(char *devname, int fd,
 			devname);
 		return 1;
 	}
+
+	/* array.size is only 32 bit and may be truncated.
+	 * So read from sysfs if possible, and record number of sectors
+	 */
+
+	array_size = get_component_size(fd);
+	if (array_size <= 0)
+		array_size = array.size * 2;
+
+	tst = super_by_fd(fd);
+	if (!tst) {
+		fprintf(stderr, Name ": unsupport array - version %d.%d\n",
+			array.major_version, array.minor_version);
+		return 1;
+	}
+
 	for (dv = devlist, j=0 ; dv; dv = next, j = jnext) {
 		unsigned long long ldsize;
 		char dvname[20];
@@ -291,13 +306,6 @@ int Manage_subdevs(char *devname, int fd,
 			return 1;
 		case 'a':
 			/* add the device */
-			st = super_by_version(array.major_version,
-					      array.minor_version);
-			if (!st) {
-				fprintf(stderr, Name ": unsupport array - version %d.%d\n",
-					array.major_version, array.minor_version);
-				return 1;
-			}
 
 			/* Make sure it isn't in use (in 2.6 or later) */
 			tfd = open(dv->devname, O_RDONLY|O_EXCL);
@@ -307,9 +315,12 @@ int Manage_subdevs(char *devname, int fd,
 				return 1;
 			}
 			remove_partitions(tfd);
+
+			st = dup_super(tst);
+
 			if (array.not_persistent==0)
-				st->ss->load_super(st, tfd, &osuper, NULL);
-			/* will use osuper later */
+				st->ss->load_super(st, tfd, NULL);
+
 			if (!get_dev_size(tfd, dv->devname, &ldsize)) {
 				close(tfd);
 				return 1;
@@ -334,17 +345,17 @@ int Manage_subdevs(char *devname, int fd,
 			if (array.not_persistent == 0) {
 
 				/* Make sure device is large enough */
-				if (st->ss->avail_size(st, ldsize/512) <
-				    array.size) {
+				if (tst->ss->avail_size(tst, ldsize/512) <
+				    array_size) {
 					fprintf(stderr, Name ": %s not large enough to join array\n",
 						dv->devname);
 					return 1;
 				}
 
 				/* need to find a sample superblock to copy, and
-				 * a spare slot to use 
+				 * a spare slot to use
 				 */
-				for (j=0; j<st->max_devs; j++) {
+				for (j = 0; j < tst->max_devs; j++) {
 					char *dev;
 					int dfd;
 					disc.number = j;
@@ -358,14 +369,15 @@ int Manage_subdevs(char *devname, int fd,
 					if (!dev) continue;
 					dfd = dev_open(dev, O_RDONLY);
 					if (dfd < 0) continue;
-					if (st->ss->load_super(st, dfd, &dsuper, NULL)) {
+					if (tst->ss->load_super(tst, dfd,
+								NULL)) {
 						close(dfd);
 						continue;
 					}
 					close(dfd);
 					break;
 				}
-				if (!dsuper) {
+				if (!tst->sb) {
 					fprintf(stderr, Name ": cannot find valid superblock in this array - HELP\n");
 					return 1;
 				}
@@ -373,7 +385,7 @@ int Manage_subdevs(char *devname, int fd,
 				 * and was temporarily removed, and is now being re-added.
 				 * If so, we can simply re-add it.
 				 */
-				st->ss->uuid_from_super(duuid, dsuper);
+				tst->ss->uuid_from_super(tst, duuid);
 
 				/* re-add doesn't work for version-1 superblocks
 				 * before 2.6.18 :-(
@@ -381,15 +393,15 @@ int Manage_subdevs(char *devname, int fd,
 				if (array.major_version == 1 &&
 				    get_linux_version() <= 2006018)
 					;
-				else if (osuper) {
-					st->ss->uuid_from_super(ouuid, osuper);
+				else if (st->sb) {
+					st->ss->uuid_from_super(st, ouuid);
 					if (memcmp(duuid, ouuid, sizeof(ouuid))==0) {
 						/* looks close enough for now.  Kernel
 						 * will worry about whether a bitmap
 						 * based reconstruction is possible.
 						 */
 						struct mdinfo mdi;
-						st->ss->getinfo_super(&mdi, osuper);
+						st->ss->getinfo_super(st, &mdi);
 						disc.major = major(stb.st_rdev);
 						disc.minor = minor(stb.st_rdev);
 						disc.number = mdi.disk.number;
@@ -409,7 +421,7 @@ int Manage_subdevs(char *devname, int fd,
 				/* non-persistent. Must ensure that new drive
 				 * is at least array.size big.
 				 */
-				if (ldsize/512 < array.size) {
+				if (ldsize/512 < array_size) {
 					fprintf(stderr, Name ": %s not large enough to join array\n",
 						dv->devname);
 					return 1;
@@ -420,7 +432,7 @@ int Manage_subdevs(char *devname, int fd,
 			 * we must choose the same free number, which requires
 			 * starting at 'raid_disks' and counting up
 			 */
-			for (j = array.raid_disks; j< st->max_devs; j++) {
+			for (j = array.raid_disks; j< tst->max_devs; j++) {
 				disc.number = j;
 				if (ioctl(fd, GET_DISK_INFO, &disc))
 					break;
@@ -436,8 +448,9 @@ int Manage_subdevs(char *devname, int fd,
 			if (array.not_persistent==0) {
 				if (dv->writemostly)
 					disc.state |= 1 << MD_DISK_WRITEMOSTLY;
-				st->ss->add_to_super(dsuper, &disc);
-				if (st->ss->write_init_super(st, dsuper, &disc, dv->devname))
+				tst->ss->add_to_super(tst, &disc);
+				if (tst->ss->write_init_super(tst, &disc,
+							      dv->devname))
 					return 1;
 			} else if (dv->re_add) {
 				/*  this had better be raid1.
@@ -446,7 +459,7 @@ int Manage_subdevs(char *devname, int fd,
 				 */
 				char *used = malloc(array.raid_disks);
 				memset(used, 0, array.raid_disks);
-				for (j=0; j< st->max_devs; j++) {
+				for (j=0; j< tst->max_devs; j++) {
 					mdu_disk_info_t disc2;
 					disc2.number = j;
 					if (ioctl(fd, GET_DISK_INFO, &disc2))
@@ -507,7 +520,7 @@ int Manage_subdevs(char *devname, int fd,
 		}
 	}
 	return 0;
-	
+
 }
 
 int autodetect(void)
