@@ -115,16 +115,12 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 	int must_close = 0;
 	int old_linux = 0;
 	int vers = 0; /* Keep gcc quite - it really is initialised */
-	void *first_super = NULL, *super = NULL;
 	struct {
 		char *devname;
-		unsigned int major, minor;
-		unsigned int oldmajor, oldminor;
-		long long events;
-		int uptodate;
-		int state;
-		int raid_disk;
-		int disk_nr;
+		int uptodate; /* set once we decide that this device is as
+			       * recent as everything else in the array.
+			       */
+		struct mdinfo i;
 	} *devices;
 	int *best = NULL; /* indexed by raid_disk */
 	unsigned int bestcnt = 0;
@@ -215,7 +211,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		char *devname = tmpdev->devname;
 		int dfd;
 		struct stat stb;
-		struct supertype *tst = st;
+		struct supertype *tst = dup_super(st);
 
 		if (tmpdev->used > 1) continue;
 
@@ -226,11 +222,6 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			continue;
 		}
 
-		if (super) {
-			free(super);
-			super = NULL;
-		}
-		
 		dfd = dev_open(devname, O_RDONLY|O_EXCL);
 		if (dfd < 0) {
 			if ((inargv && verbose >= 0) || verbose > 0)
@@ -251,62 +242,67 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 				fprintf(stderr, Name ": no recogniseable superblock on %s\n",
 					devname);
 			tmpdev->used = 2;
-		} else if (tst->ss->load_super(tst,dfd, &super, NULL)) {
+		} else if (tst->ss->load_super(tst,dfd, NULL)) {
 			if ((inargv && verbose >= 0) || verbose > 0)
 				fprintf( stderr, Name ": no RAID superblock on %s\n",
 					 devname);
 		} else {
-			tst->ss->getinfo_super(&info, super);
+			tst->ss->getinfo_super(tst, &info);
 		}
 		if (dfd >= 0) close(dfd);
 
 		if (ident->uuid_set && (!update || strcmp(update, "uuid")!= 0) &&
-		    (!super || same_uuid(info.uuid, ident->uuid, tst->ss->swapuuid)==0)) {
+		    (!tst || !tst->sb ||
+		     same_uuid(info.uuid, ident->uuid, tst->ss->swapuuid)==0)) {
 			if ((inargv && verbose >= 0) || verbose > 0)
 				fprintf(stderr, Name ": %s has wrong uuid.\n",
 					devname);
-			continue;
+			goto loop;
 		}
 		if (ident->name[0] && (!update || strcmp(update, "name")!= 0) &&
-		    (!super || name_matches(info.name, ident->name, homehost)==0)) {
+		    (!tst || !tst->sb ||
+		     name_matches(info.name, ident->name, homehost)==0)) {
 			if ((inargv && verbose >= 0) || verbose > 0)
 				fprintf(stderr, Name ": %s has wrong name.\n",
 					devname);
-			continue;
+			goto loop;
 		}
 		if (ident->super_minor != UnSet &&
-		    (!super || ident->super_minor != info.array.md_minor)) {
+		    (!tst || !tst->sb ||
+		     ident->super_minor != info.array.md_minor)) {
 			if ((inargv && verbose >= 0) || verbose > 0)
 				fprintf(stderr, Name ": %s has wrong super-minor.\n",
 					devname);
-			continue;
+			goto loop;
 		}
 		if (ident->level != UnSet &&
-		    (!super|| ident->level != info.array.level)) {
+		    (!tst || !tst->sb ||
+		     ident->level != info.array.level)) {
 			if ((inargv && verbose >= 0) || verbose > 0)
 				fprintf(stderr, Name ": %s has wrong raid level.\n",
 					devname);
-			continue;
+			goto loop;
 		}
 		if (ident->raid_disks != UnSet &&
-		    (!super || ident->raid_disks!= info.array.raid_disks)) {
+		    (!tst || !tst->sb ||
+		     ident->raid_disks!= info.array.raid_disks)) {
 			if ((inargv && verbose >= 0) || verbose > 0)
 				fprintf(stderr, Name ": %s requires wrong number of drives.\n",
 					devname);
-			continue;
+			goto loop;
 		}
 		if (mdfd < 0) {
-			if (tst == NULL || super == NULL)
+			if (tst == NULL || tst->sb == NULL)
 				continue;
 			if (update == NULL &&
-			    tst->ss->match_home(super, homehost)==0) {
+			    tst->ss->match_home(tst, homehost)==0) {
 				if ((inargv && verbose >= 0) || verbose > 0)
 					fprintf(stderr, Name ": %s is not built for host %s.\n",
 						devname, homehost);
 				/* Auto-assemble, and this is not a usable host */
 				/* if update != NULL, we are updating the host
 				 * name... */
-				continue;
+				goto loop;
 			}
 		}
 		/* If we are this far, then we are nearly commited to this device.
@@ -316,35 +312,37 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		 * the other isn't that can disambiguate.
 		 */
 
-		if (!super) {
+		if (!tst || !tst->sb) {
 			fprintf(stderr, Name ": %s has no superblock - assembly aborted\n",
 				devname);
-			free(first_super);
+			st->ss->free_super(st);
 			return 1;
 		}
 
 		if (st == NULL)
-			st = tst;
+			st = dup_super(tst);
+		if (st->minor_version == -1)
+			st->minor_version = tst->minor_version;
 		if (st->ss != tst->ss ||
 		    st->minor_version != tst->minor_version ||
-		    st->ss->compare_super(&first_super, super) != 0) {
+		    st->ss->compare_super(st, tst) != 0) {
 			/* Some mismatch. If exactly one array matches this host,
 			 * we can resolve on that one.
 			 * Or, if we are auto assembling, we just ignore the second
 			 * for now.
 			 */
 			if (mdfd < 0)
-				continue;
+				goto loop;
 			if (homehost) {
-				int first = st->ss->match_home(first_super, homehost);
-				int last = tst->ss->match_home(super, homehost);
+				int first = st->ss->match_home(st, homehost);
+				int last = tst->ss->match_home(tst, homehost);
 				if (first+last == 1) {
 					/* We can do something */
 					if (first) {/* just ignore this one */
 						if ((inargv && verbose >= 0) || verbose > 0)
 							fprintf(stderr, Name ": %s misses out due to wrong homehost\n",
 								devname);
-						continue;
+						goto loop;
 					} else { /* reject all those sofar */
 						mddev_dev_t td;
 						if ((inargv && verbose >= 0) || verbose > 0)
@@ -354,18 +352,21 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 							if (td->used == 1)
 								td->used = 0;
 						tmpdev->used = 1;
-						continue;
+						goto loop;
 					}
 				}
 			}
 			fprintf(stderr, Name ": superblock on %s doesn't match others - assembly aborted\n",
 				devname);
-			free(super);
-			free(first_super);
+			tst->ss->free_super(tst);
+			st->ss->free_super(st);
 			return 1;
 		}
 
 		tmpdev->used = 1;
+
+	loop:
+		tst->ss->free_super(tst);
 	}
 
 	if (mdfd < 0) {
@@ -375,10 +376,10 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		 */
 		mdu_array_info_t inf;
 		char *c;
-		if (!first_super) {
+		if (!st->sb) {
 			return 2;
 		}
-		st->ss->getinfo_super(&info, first_super);
+		st->ss->getinfo_super(st, &info);
 		c = strchr(info.name, ':');
 		if (c) c++; else c= info.name;
 		if (isdigit(*c) && ((ident->autof & 7)==4 || (ident->autof&7)==6))
@@ -388,9 +389,8 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			asprintf(&mddev, "/dev/md/%s", c);
 		mdfd = open_mddev(mddev, ident->autof);
 		if (mdfd < 0) {
-			free(first_super);
+			st->ss->free_super(st);
 			free(devices);
-			first_super = NULL;
 			goto try_again;
 		}
 		vers = md_get_version(mdfd);
@@ -405,9 +405,8 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 					mddev, tmpdev->devname);
 			close(mdfd);
 			mdfd = -1;
-			free(first_super);
+			st->ss->free_super(st);
 			free(devices);
-			first_super = NULL;
 			goto try_again;
 		}
 		must_close = 1;
@@ -424,6 +423,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			int dfd;
 			/* prepare useful information in info structures */
 			struct stat stb2;
+			struct supertype *tst;
 			fstat(mdfd, &stb2);
 
 			if (strcmp(update, "uuid")==0 &&
@@ -442,20 +442,17 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 
 			remove_partitions(dfd);
 
-			if (super) {
-				free(super);
-				super = NULL;
-			}
-
-			st->ss->load_super(st, dfd, &super, NULL);
-			st->ss->getinfo_super(&info, super);
+			tst = dup_super(st);
+			tst->ss->load_super(tst, dfd, NULL);
+			tst->ss->getinfo_super(tst, &info);
 
 			memcpy(info.uuid, ident->uuid, 16);
 			strcpy(info.name, ident->name);
 			info.array.md_minor = minor(stb2.st_rdev);
 
-			st->ss->update_super(&info, super, update, devname, verbose,
-					     ident->uuid_set, homehost);
+			tst->ss->update_super(tst, &info, update,
+					      devname, verbose,
+					      ident->uuid_set, homehost);
 			if (strcmp(update, "uuid")==0 &&
 			    !ident->uuid_set) {
 				ident->uuid_set = 1;
@@ -464,7 +461,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			if (dfd < 0)
 				fprintf(stderr, Name ": Cannot open %s for superblock update\n",
 					devname);
-			else if (st->ss->store_super(st, dfd, super))
+			else if (tst->ss->store_super(tst, dfd))
 				fprintf(stderr, Name ": Could not re-write superblock on %s.\n",
 					devname);
 			if (dfd >= 0)
@@ -472,26 +469,26 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 
 			if (strcmp(update, "uuid")==0 &&
 			    ident->bitmap_fd >= 0 && !bitmap_done) {
-				if (bitmap_update_uuid(ident->bitmap_fd, info.uuid, st->ss->swapuuid) != 0)
+				if (bitmap_update_uuid(ident->bitmap_fd,
+						       info.uuid,
+						       tst->ss->swapuuid) != 0)
 					fprintf(stderr, Name ": Could not update uuid on external bitmap.\n");
 				else
 					bitmap_done = 1;
 			}
+			tst->ss->free_super(tst);
 		} else
 #endif
 		{
+			struct supertype *tst = dup_super(st);;
 			int dfd;
 			dfd = dev_open(devname, O_RDWR|O_EXCL);
 
 			remove_partitions(dfd);
 
-			if (super) {
-				free(super);
-				super = NULL;
-			}
-
-			st->ss->load_super(st, dfd, &super, NULL);
-			st->ss->getinfo_super(&info, super);
+			tst->ss->load_super(tst, dfd, NULL);
+			tst->ss->getinfo_super(tst, &info);
+			tst->ss->free_super(tst);
 			close(dfd);
 		}
 
@@ -501,25 +498,20 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			fprintf(stderr, Name ": %s is identified as a member of %s, slot %d.\n",
 				devname, mddev, info.disk.raid_disk);
 		devices[devcnt].devname = devname;
-		devices[devcnt].major = major(stb.st_rdev);
-		devices[devcnt].minor = minor(stb.st_rdev);
-		devices[devcnt].oldmajor = info.disk.major;
-		devices[devcnt].oldminor = info.disk.minor;
-		devices[devcnt].events = info.events;
-		devices[devcnt].raid_disk = info.disk.raid_disk;
-		devices[devcnt].disk_nr = info.disk.number;
 		devices[devcnt].uptodate = 0;
-		devices[devcnt].state = info.disk.state;
+		devices[devcnt].i = info;
+		devices[devcnt].i.disk.major = major(stb.st_rdev);
+		devices[devcnt].i.disk.minor = minor(stb.st_rdev);
 		if (most_recent < devcnt) {
-			if (devices[devcnt].events
-			    > devices[most_recent].events)
+			if (devices[devcnt].i.events
+			    > devices[most_recent].i.events)
 				most_recent = devcnt;
 		}
 		if (info.array.level == -4)
 			/* with multipath, the raid_disk from the superblock is meaningless */
 			i = devcnt;
 		else
-			i = devices[devcnt].raid_disk;
+			i = devices[devcnt].i.disk.raid_disk;
 		if (i+1 == 0) {
 			if (nextspare < info.array.raid_disks)
 				nextspare = info.array.raid_disks;
@@ -544,10 +536,12 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 				bestcnt = newbestcnt;
 			}
 			if (best[i] >=0 &&
-			    devices[best[i]].events == devices[devcnt].events &&
-			    devices[best[i]].minor != devices[devcnt].minor &&
-			    st->ss->major == 0 &&
-			    info.array.level != -4) {
+			    devices[best[i]].i.events
+			    == devices[devcnt].i.events
+			    && (devices[best[i]].i.disk.minor
+				!= devices[devcnt].i.disk.minor)
+			    && st->ss->major == 0
+			    && info.array.level != -4) {
 				/* two different devices with identical superblock.
 				 * Could be a mis-detection caused by overlapping
 				 * partitions.  fail-safe.
@@ -566,15 +560,12 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 				return 1;
 			}
 			if (best[i] == -1
-			    || devices[best[i]].events < devices[devcnt].events)
+			    || (devices[best[i]].i.events
+				< devices[devcnt].i.events))
 				best[i] = devcnt;
 		}
 		devcnt++;
 	}
-
-	if (super)
-		free(super);
-	super = NULL;
 
 	if (update && strcmp(update, "byteorder")==0)
 		st->minor_version = 90;
@@ -582,12 +573,12 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 	if (devcnt == 0) {
 		fprintf(stderr, Name ": no devices found for %s\n",
 			mddev);
-		free(first_super);
+		st->ss->free_super(st);
 		if (must_close) close(mdfd);
 		return 1;
 	}
 
-	st->ss->getinfo_super(&info, first_super);
+	st->ss->getinfo_super(st, &info);
 	clean = info.array.state & 1;
 
 	/* now we have some devices that might be suitable.
@@ -607,13 +598,14 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		 * as they don't make sense
 		 */
 		if (info.array.level != -4)
-			if (!(devices[j].state & (1<<MD_DISK_SYNC))) {
-				if (!(devices[j].state & (1<<MD_DISK_FAULTY)))
+			if (!(devices[j].i.disk.state & (1<<MD_DISK_SYNC))) {
+				if (!(devices[j].i.disk.state
+				      & (1<<MD_DISK_FAULTY)))
 					sparecnt++;
 				continue;
 			}
-		if (devices[j].events+event_margin >=
-		    devices[most_recent].events) {
+		if (devices[j].i.events+event_margin >=
+		    devices[most_recent].i.events) {
 			devices[j].uptodate = 1;
 			if (i < info.array.raid_disks) {
 				okcnt++;
@@ -630,59 +622,63 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		 * and add it.
 		 */
 		int fd;
+		struct supertype *tst;
 		long long current_events;
 		chosen_drive = -1;
 		for (i=0; i<info.array.raid_disks && i < bestcnt; i++) {
 			int j = best[i];
 			if (j>=0 &&
 			    !devices[j].uptodate &&
-			    devices[j].events > 0 &&
+			    devices[j].i.events > 0 &&
 			    (chosen_drive < 0 ||
-			     devices[j].events > devices[chosen_drive].events))
+			     devices[j].i.events
+			     > devices[chosen_drive].i.events))
 				chosen_drive = j;
 		}
 		if (chosen_drive < 0)
 			break;
-		current_events = devices[chosen_drive].events;
+		current_events = devices[chosen_drive].i.events;
 	add_another:
 		if (verbose >= 0)
 			fprintf(stderr, Name ": forcing event count in %s(%d) from %d upto %d\n",
-				devices[chosen_drive].devname, devices[chosen_drive].raid_disk,
-				(int)(devices[chosen_drive].events),
-				(int)(devices[most_recent].events));
+				devices[chosen_drive].devname,
+				devices[chosen_drive].i.disk.raid_disk,
+				(int)(devices[chosen_drive].i.events),
+				(int)(devices[most_recent].i.events));
 		fd = dev_open(devices[chosen_drive].devname, O_RDWR|O_EXCL);
 		if (fd < 0) {
 			fprintf(stderr, Name ": Couldn't open %s for write - not updating\n",
 				devices[chosen_drive].devname);
-			devices[chosen_drive].events = 0;
+			devices[chosen_drive].i.events = 0;
 			continue;
 		}
-		if (st->ss->load_super(st,fd, &super, NULL)) {
+		tst = dup_super(st);
+		if (tst->ss->load_super(st,fd, NULL)) {
 			close(fd);
 			fprintf(stderr, Name ": RAID superblock disappeared from %s - not updating.\n",
 				devices[chosen_drive].devname);
-			devices[chosen_drive].events = 0;
+			devices[chosen_drive].i.events = 0;
 			continue;
 		}
-		info.events = devices[most_recent].events;
-		st->ss->update_super(&info, super, "force-one",
+		info.events = devices[most_recent].i.events;
+		tst->ss->update_super(tst, &info, "force-one",
 				     devices[chosen_drive].devname, verbose,
 				     0, NULL);
 
-		if (st->ss->store_super(st, fd, super)) {
+		if (tst->ss->store_super(tst, fd)) {
 			close(fd);
 			fprintf(stderr, Name ": Could not re-write superblock on %s\n",
 				devices[chosen_drive].devname);
-			devices[chosen_drive].events = 0;
-			free(super);
+			devices[chosen_drive].i.events = 0;
+			tst->ss->free_super(tst);
 			continue;
 		}
 		close(fd);
-		devices[chosen_drive].events = devices[most_recent].events;
+		devices[chosen_drive].i.events = devices[most_recent].i.events;
 		devices[chosen_drive].uptodate = 1;
 		avail[chosen_drive] = 1;
 		okcnt++;
-		free(super);
+		tst->ss->free_super(tst);
 
 		/* If there are any other drives of the same vintage,
 		 * add them in as well.  We can't lose and we might gain
@@ -691,8 +687,8 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			int j = best[i];
 			if (j >= 0 &&
 			    !devices[j].uptodate &&
-			    devices[j].events > 0 &&
-			    devices[j].events == current_events) {
+			    devices[j].i.events > 0 &&
+			    devices[j].i.events == current_events) {
 				chosen_drive = j;
 				goto add_another;
 			}
@@ -706,7 +702,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 	 * superblock.
 	 */
 	chosen_drive = -1;
-	super = NULL;
+	st->ss->free_super(st);
 	for (i=0; chosen_drive < 0 && i<bestcnt; i++) {
 		int j = best[i];
 		int fd;
@@ -722,7 +718,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			if (must_close) close(mdfd);
 			return 1;
 		}
-		if (st->ss->load_super(st,fd, &super, NULL)) {
+		if (st->ss->load_super(st,fd, NULL)) {
 			close(fd);
 			fprintf(stderr, Name ": RAID superblock has disappeared from %s\n",
 				devices[j].devname);
@@ -731,12 +727,12 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		}
 		close(fd);
 	}
-	if (super == NULL) {
+	if (st->sb == NULL) {
 		fprintf(stderr, Name ": No suitable drives found for %s\n", mddev);
 		if (must_close) close(mdfd);
 		return 1;
 	}
-	st->ss->getinfo_super(&info, super);
+	st->ss->getinfo_super(st, &info);
 	for (i=0; i<bestcnt; i++) {
 		int j = best[i];
 		unsigned int desired_state;
@@ -750,12 +746,11 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			continue;
 		if (!devices[j].uptodate)
 			continue;
-		info.disk.number = devices[j].disk_nr;
-		info.disk.raid_disk = i;
-		info.disk.state = desired_state;
 
-		if (devices[j].uptodate &&
-		    st->ss->update_super(&info, super, "assemble", NULL, verbose, 0, NULL)) {
+		devices[j].i.disk.state = desired_state;
+
+		if (st->ss->update_super(st, &devices[j].i, "assemble", NULL,
+					 verbose, 0, NULL)) {
 			if (force) {
 				if (verbose >= 0)
 					fprintf(stderr, Name ": "
@@ -770,8 +765,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			}
 		}
 #if 0
-		if (!devices[j].uptodate &&
-		    !(super.disks[i].state & (1 << MD_DISK_FAULTY))) {
+		if (!(super.disks[i].i.disk.state & (1 << MD_DISK_FAULTY))) {
 			fprintf(stderr, Name ": devices %d of %s is not marked FAULTY in superblock, but cannot be found\n",
 				i, mddev);
 		}
@@ -781,7 +775,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 	    !enough(info.array.level, info.array.raid_disks,
 		    info.array.layout, clean,
 		    avail, okcnt)) {
-		change += st->ss->update_super(&info, super, "force-array",
+		change += st->ss->update_super(st, &info, "force-array",
 					devices[chosen_drive].devname, verbose,
 					       0, NULL);
 		clean = 1;
@@ -796,7 +790,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 			if (must_close) close(mdfd);
 			return 1;
 		}
-		if (st->ss->store_super(st, fd, super)) {
+		if (st->ss->store_super(st, fd)) {
 			close(fd);
 			fprintf(stderr, Name ": Could not re-write superblock on %s\n",
 				devices[chosen_drive].devname);
@@ -898,27 +892,29 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 				j = chosen_drive;
 
 			if (j >= 0 /* && devices[j].uptodate */) {
-				mdu_disk_info_t disk;
-				memset(&disk, 0, sizeof(disk));
-				disk.major = devices[j].major;
-				disk.minor = devices[j].minor;
-				if (ioctl(mdfd, ADD_NEW_DISK, &disk)!=0) {
-					fprintf(stderr, Name ": failed to add %s to %s: %s\n",
+				if (ioctl(mdfd, ADD_NEW_DISK,
+					  &devices[j].i.disk)!=0) {
+					fprintf(stderr, Name ": failed to add "
+						        "%s to %s: %s\n",
 						devices[j].devname,
 						mddev,
 						strerror(errno));
-					if (i < info.array.raid_disks || i == bestcnt)
+					if (i < info.array.raid_disks
+					    || i == bestcnt)
 						okcnt--;
 					else
 						sparecnt--;
 				} else if (verbose > 0)
-					fprintf(stderr, Name ": added %s to %s as %d\n",
-						devices[j].devname, mddev, devices[j].raid_disk);
+					fprintf(stderr, Name ": added %s "
+						        "to %s as %d\n",
+						devices[j].devname, mddev,
+						devices[j].i.disk.raid_disk);
 			} else if (verbose > 0 && i < info.array.raid_disks)
-				fprintf(stderr, Name ": no uptodate device for slot %d of %s\n",
+				fprintf(stderr, Name ": no uptodate device for "
+					        "slot %d of %s\n",
 					i, mddev);
 		}
-		
+
 		if (runstop == 1 ||
 		    (runstop <= 0 &&
 		     ( enough(info.array.level, info.array.raid_disks,
@@ -1020,13 +1016,13 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		 * so we can just start the array
 		 */
 		unsigned long dev;
-		dev = makedev(devices[chosen_drive].major,
-			    devices[chosen_drive].minor);
+		dev = makedev(devices[chosen_drive].i.disk.major,
+			    devices[chosen_drive].i.disk.minor);
 		if (ioctl(mdfd, START_ARRAY, dev)) {
 		    fprintf(stderr, Name ": Cannot start array: %s\n",
 			    strerror(errno));
 		}
-		
+
 	}
 	if (must_close) close(mdfd);
 	return 0;

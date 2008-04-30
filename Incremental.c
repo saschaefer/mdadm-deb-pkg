@@ -32,7 +32,7 @@
 
 static int count_active(struct supertype *st, int mdfd, char **availp,
 			struct mdinfo *info);
-static void find_reject(int mdfd, struct supertype *st, struct sysarray *sra,
+static void find_reject(int mdfd, struct supertype *st, struct mdinfo *sra,
 			int number, __u64 events, int verbose,
 			char *array_name);
 
@@ -74,7 +74,6 @@ int Incremental(char *devname, int verbose, int runstop,
 	 *   start the array (auto-readonly).
 	 */
 	struct stat stb;
-	void *super, *super2;
 	struct mdinfo info, info2;
 	struct mddev_ident_s *array_list, *match;
 	char chosen_name[1024];
@@ -134,14 +133,14 @@ int Incremental(char *devname, int verbose, int runstop,
 		close(dfd);
 		return 1;
 	}
-	if (st->ss->load_super(st, dfd, &super, NULL)) {
+	if (st->ss->load_super(st, dfd, NULL)) {
 		if (verbose >= 0)
 			fprintf(stderr, Name ": no RAID superblock on %s.\n",
 				devname);
 		close(dfd);
 		return 1;
 	}
-	st->ss->getinfo_super(&info, super);
+	st->ss->getinfo_super(st, &info);
 	close (dfd);
 
 	/* 3/ Check if there is a match in mdadm.conf */
@@ -207,7 +206,7 @@ int Incremental(char *devname, int verbose, int runstop,
 	/* 3a/ if not, check for homehost match.  If no match, reject. */
 	if (!match) {
 		if (homehost == NULL ||
-		    st->ss->match_home(super, homehost) == 0) {
+		    st->ss->match_home(st, homehost) == 0) {
 			if (verbose >= 0)
 				fprintf(stderr, Name
 	      ": not found in mdadm.conf and not identified by homehost.\n");
@@ -280,7 +279,7 @@ int Incremental(char *devname, int verbose, int runstop,
 		mdu_array_info_t ainf;
 		mdu_disk_info_t disk;
 		char md[20];
-		struct sysarray *sra;
+		struct mdinfo *sra;
 
 		memset(&ainf, 0, sizeof(ainf));
 		ainf.major_version = st->ss->major;
@@ -307,7 +306,7 @@ int Incremental(char *devname, int verbose, int runstop,
 			return 2;
 		}
 		sra = sysfs_read(mdfd, devnum, GET_DEVS);
-		if (!sra || !sra->devs || sra->devs->role >= 0) {
+		if (!sra || !sra->devs || sra->devs->disk.raid_disk >= 0) {
 			/* It really should be 'none' - must be old buggy
 			 * kernel, and mdadm -I may not be able to complete.
 			 * So reject it.
@@ -329,23 +328,28 @@ int Incremental(char *devname, int verbose, int runstop,
 		int dfd2;
 		mdu_disk_info_t disk;
 		int err;
-		struct sysarray *sra;
+		struct mdinfo *sra;
+		struct supertype *st2;
 		sra = sysfs_read(mdfd, devnum, (GET_VERSION | GET_DEVS |
 						GET_STATE));
-		if (sra->major_version != st->ss->major ||
-		    sra->minor_version != st->minor_version) {
+
+		if (sra->array.major_version != st->ss->major ||
+		    sra->array.minor_version != st->minor_version) {
 			if (verbose >= 0)
 				fprintf(stderr, Name
 	      ": %s has different metadata to chosen array %s %d.%d %d.%d.\n",
 					devname, chosen_name,
-					sra->major_version, sra->minor_version,
+					sra->array.major_version,
+					sra->array.minor_version,
 					st->ss->major, st->minor_version);
 			close(mdfd);
 			return 1;
 		}
-		sprintf(dn, "%d:%d", sra->devs->major, sra->devs->minor);
+		sprintf(dn, "%d:%d", sra->devs->disk.major,
+			sra->devs->disk.minor);
 		dfd2 = dev_open(dn, O_RDONLY);
-		if (st->ss->load_super(st, dfd2,&super2, NULL)) {
+		st2 = dup_super(st);
+		if (st2->ss->load_super(st2, dfd2, NULL)) {
 			fprintf(stderr, Name
 				": Strange error loading metadata for %s.\n",
 				chosen_name);
@@ -354,7 +358,8 @@ int Incremental(char *devname, int verbose, int runstop,
 			return 2;
 		}
 		close(dfd2);
-		st->ss->getinfo_super(&info2, super2);
+		st2->ss->getinfo_super(st2, &info2);
+		st2->ss->free_super(st2);
 		if (info.array.level != info2.array.level ||
 		    memcmp(info.uuid, info2.uuid, 16) != 0 ||
 		    info.array.raid_disks != info2.array.raid_disks) {
@@ -424,7 +429,7 @@ int Incremental(char *devname, int verbose, int runstop,
 	}
 }
 	if (runstop > 0 || active_disks >= info.array.working_disks) {
-		struct sysarray *sra;
+		struct mdinfo *sra;
 		/* Let's try to start it */
 		if (match && match->bitmap_file) {
 			int bmfd = open(match->bitmap_file, O_RDWR);
@@ -474,14 +479,14 @@ int Incremental(char *devname, int verbose, int runstop,
 	return rv;
 }
 
-static void find_reject(int mdfd, struct supertype *st, struct sysarray *sra,
+static void find_reject(int mdfd, struct supertype *st, struct mdinfo *sra,
 			int number, __u64 events, int verbose,
 			char *array_name)
 {
-	/* Find an device attached to this array with a disk.number of number
+	/* Find a device attached to this array with a disk.number of number
 	 * and events less than the passed events, and remove the device.
 	 */
-	struct sysdev *d;
+	struct mdinfo *d;
 	mdu_array_info_t ra;
 
 	if (ioctl(mdfd, GET_ARRAY_INFO, &ra) == 0)
@@ -491,31 +496,30 @@ static void find_reject(int mdfd, struct supertype *st, struct sysarray *sra,
 	for (d = sra->devs; d ; d = d->next) {
 		char dn[10];
 		int dfd;
-		void *super;
 		struct mdinfo info;
-		sprintf(dn, "%d:%d", d->major, d->minor);
+		sprintf(dn, "%d:%d", d->disk.major, d->disk.minor);
 		dfd = dev_open(dn, O_RDONLY);
 		if (dfd < 0)
 			continue;
-		if (st->ss->load_super(st, dfd, &super, NULL)) {
+		if (st->ss->load_super(st, dfd, NULL)) {
 			close(dfd);
 			continue;
 		}
-		st->ss->getinfo_super(&info, super);
-		free(super);
+		st->ss->getinfo_super(st, &info);
+		st->ss->free_super(st);
 		close(dfd);
 
 		if (info.disk.number != number ||
 		    info.events >= events)
 			continue;
 
-		if (d->role > -1)
+		if (d->disk.raid_disk > -1)
 			sysfs_set_str(sra, d, "slot", "none");
 		if (sysfs_set_str(sra, d, "state", "remove") == 0)
 			if (verbose >= 0)
 				fprintf(stderr, Name
 					": removing old device %s from %s\n",
-					d->name+4, array_name);
+					d->sys_name+4, array_name);
 	}
 }
 
@@ -523,29 +527,27 @@ static int count_active(struct supertype *st, int mdfd, char **availp,
 			struct mdinfo *bestinfo)
 {
 	/* count how many devices in sra think they are active */
-	struct sysdev *d;
+	struct mdinfo *d;
 	int cnt = 0, cnt1 = 0;
 	__u64 max_events = 0;
-	void *best_super = NULL;
-	struct sysarray *sra = sysfs_read(mdfd, -1, GET_DEVS | GET_STATE);
+	struct mdinfo *sra = sysfs_read(mdfd, -1, GET_DEVS | GET_STATE);
 	char *avail = NULL;
 
 	for (d = sra->devs ; d ; d = d->next) {
 		char dn[30];
 		int dfd;
-		void *super;
 		int ok;
 		struct mdinfo info;
 
-		sprintf(dn, "%d:%d", d->major, d->minor);
+		sprintf(dn, "%d:%d", d->disk.major, d->disk.minor);
 		dfd = dev_open(dn, O_RDONLY);
 		if (dfd < 0)
 			continue;
-		ok =  st->ss->load_super(st, dfd, &super, NULL);
+		ok =  st->ss->load_super(st, dfd, NULL);
 		close(dfd);
 		if (ok != 0)
 			continue;
-		st->ss->getinfo_super(&info, super);
+		st->ss->getinfo_super(st, &info);
 		if (info.disk.state & (1<<MD_DISK_SYNC))
 		{
 			if (avail == NULL) {
@@ -556,7 +558,7 @@ static int count_active(struct supertype *st, int mdfd, char **availp,
 				cnt++;
 				max_events = info.events;
 				avail[info.disk.raid_disk] = 2;
-				best_super = super; super = NULL;
+				st->ss->getinfo_super(st, bestinfo);
 			} else if (info.events == max_events) {
 				cnt++;
 				avail[info.disk.raid_disk] = 2;
@@ -574,24 +576,15 @@ static int count_active(struct supertype *st, int mdfd, char **availp,
 					if (avail[i])
 						avail[i]--;
 				avail[info.disk.raid_disk] = 2;
-				free(best_super);
-				best_super = super;
-				super = NULL;
+				st->ss->getinfo_super(st, bestinfo);
 			} else { /* info.events much bigger */
 				cnt = 1; cnt1 = 0;
 				memset(avail, 0, info.disk.raid_disk);
 				max_events = info.events;
-				free(best_super);
-				best_super = super;
-				super = NULL;
+				st->ss->getinfo_super(st, bestinfo);
 			}
 		}
-		if (super)
-			free(super);
-	}
-	if (best_super) {
-		st->ss->getinfo_super(bestinfo,best_super);
-		free(best_super);
+		st->ss->free_super(st);
 	}
 	return cnt + cnt1;
 }
@@ -604,8 +597,8 @@ void RebuildMap(void)
 	int mdp = get_mdp_major();
 
 	for (md = mdstat ; md ; md = md->next) {
-		struct sysarray *sra = sysfs_read(-1, md->devnum, GET_DEVS);
-		struct sysdev *sd;
+		struct mdinfo *sra = sysfs_read(-1, md->devnum, GET_DEVS);
+		struct mdinfo *sd;
 
 		for (sd = sra->devs ; sd ; sd = sd->next) {
 			char dn[30];
@@ -613,10 +606,9 @@ void RebuildMap(void)
 			int ok;
 			struct supertype *st;
 			char *path;
-			void *super;
 			struct mdinfo info;
 
-			sprintf(dn, "%d:%d", sd->major, sd->minor);
+			sprintf(dn, "%d:%d", sd->disk.major, sd->disk.minor);
 			dfd = dev_open(dn, O_RDONLY);
 			if (dfd < 0)
 				continue;
@@ -624,11 +616,11 @@ void RebuildMap(void)
 			if ( st == NULL)
 				ok = -1;
 			else
-				ok = st->ss->load_super(st, dfd, &super, NULL);
+				ok = st->ss->load_super(st, dfd, NULL);
 			close(dfd);
 			if (ok != 0)
 				continue;
-			st->ss->getinfo_super(&info, super);
+			st->ss->getinfo_super(st, &info);
 			if (md->devnum > 0)
 				path = map_dev(MD_MAJOR, md->devnum, 0);
 			else
@@ -636,7 +628,7 @@ void RebuildMap(void)
 			map_add(&map, md->devnum, st->ss->major,
 				st->minor_version,
 				info.uuid, path ? : "/unknown");
-			free(super);
+			st->ss->free_super(st);
 			break;
 		}
 	}
@@ -664,7 +656,7 @@ int IncrementalScan(int verbose)
 		char path[1024];
 		mdu_array_info_t array;
 		mdu_bitmap_file_t bmf;
-		struct sysarray *sra;
+		struct mdinfo *sra;
 		int mdfd = open_mddev_devnum(me->path, me->devnum, NULL, path);
 		if (mdfd < 0)
 			continue;

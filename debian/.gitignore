@@ -1,2 +1,7 @@
-mdadm-startall.8
+/mdadm-startall.8
 .*.sw?
+/*.substvars
+/files
+/mdadm
+/mdadm-udeb
+/*.debhelper
