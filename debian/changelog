@@ -1,7 +1,8 @@
 mdadm (2.6.4-3) unstable; urgency=low
 
   * Updated debconf translations:
-    * Spanish; thanks to Javier Fernández-Sanguino (closes: #477920)
+    * Spanish; thanks to Javier Fernández-Sanguino (closes: #477920).
+    * Basque; thanks to Piarres Beobide (closes: #478676).
 
  -- martin f. krafft <madduck@debian.org>  Sat, 26 Apr 2008 07:55:19 +0400
 
