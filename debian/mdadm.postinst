@@ -173,7 +173,15 @@ esac
 if [ "${1:-}" = "configure" ] && [ "${2:-}" = "1.9.0-2.1" ] \
    && test -L /etc/rcS.d/S04mdadm-raid;
 then 
-	update-rc.d -f mdadm-raid remove
+  update-rc.d -f mdadm-raid remove
+fi
+
+if [ "${1:-}" = "configure" ] && dpkg --compare-versions ${2:-2.6.7-1} lt 2.6.7-1; then
+  # stop RAIDs a bit later, see #486012
+  for i in 0 6; do
+    test -L /etc/rc${i}.d/S50mdadm-raid && test ! -L /etc/rc${i}.d/S60mdadm-raid \
+      && mv /etc/rc${i}.d/S50mdadm-raid /etc/rc${i}.d/S60mdadm-raid
+  done
 fi
 
 # See #369953
