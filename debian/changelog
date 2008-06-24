@@ -4,6 +4,7 @@ mdadm (2.6.7-1) UNRELEASED; urgency=low
     - fixes a segfault when reading /proc/mdstat (closes: #462154).
     - fixes a possible bug with v1 bitmap space allocation (closes: #474548).
     - supports large files for loop assembly (closes: #463769).
+  * Fixed a typo in checkarray; thanks to Helmut Grohne (closes: #445540).
   * Updated debconf translations:
     - Spanish; thanks to Javier Fernández-Sanguino (closes: #477920).
     - Basque; thanks to Piarres Beobide (closes: #478676).

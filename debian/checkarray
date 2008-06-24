@@ -79,7 +79,7 @@ for opt in $@; do
     /dev/md*|md*) arrays="${arrays:+$arrays }${opt#/dev/}";;
     /sys/block/md*) arrays="${arrays:+$arrays }${opt#/sys/block/}";;
     --) :;;
-    *) echo "$PROGNAME: E: invalid option: $opt" >&2; usage >&2; exit0;;
+    *) echo "$PROGNAME: E: invalid option: $opt" >&2; usage >&2; exit 0;;
   esac
 done
 
