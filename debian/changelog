@@ -8,6 +8,8 @@ mdadm (2.6.7-1) UNRELEASED; urgency=low
   * Updated debconf translations:
     - Spanish; thanks to Javier Fernández-Sanguino (closes: #477920).
     - Basque; thanks to Piarres Beobide (closes: #478676).
+  * Updated logcheck rule so that it matches mdadm log entries with and without
+    PID (2.6.5 introduces PIDs in the messages).
 
  -- martin f. krafft <madduck@debian.org>  Tue, 29 Apr 2008 13:43:02 +0200
 
