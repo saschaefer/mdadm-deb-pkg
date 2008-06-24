@@ -84,10 +84,10 @@ struct mdinfo *sysfs_read(int fd, int devnum, unsigned long options)
 		if (ioctl(fd, RAID_VERSION, &vers) != 0)
 			return NULL;
 		if (major(stb.st_rdev)==9)
-			sprintf(sra->sys_name, "md%d", minor(stb.st_rdev));
+			sprintf(sra->sys_name, "md%d", (int)minor(stb.st_rdev));
 		else
 			sprintf(sra->sys_name, "md_d%d",
-				minor(stb.st_rdev)>>MdpMinorShift);
+				(int)minor(stb.st_rdev)>>MdpMinorShift);
 	} else {
 		if (devnum >= 0)
 			sprintf(sra->sys_name, "md%d", devnum);
@@ -103,10 +103,11 @@ struct mdinfo *sysfs_read(int fd, int devnum, unsigned long options)
 		strcpy(base, "metadata_version");
 		if (load_sys(fname, buf))
 			goto abort;
-		if (strncmp(buf, "none", 4) == 0)
+		if (strncmp(buf, "none", 4) == 0) {
 			sra->array.major_version =
 				sra->array.minor_version = -1;
-		else if (strncmp(buf, "external:", 9) == 0) {
+			strcpy(sra->text_version, "");
+		} else if (strncmp(buf, "external:", 9) == 0) {
 			sra->array.major_version = -1;
 			sra->array.minor_version = -2;
 			strcpy(sra->text_version, buf+9);
@@ -245,10 +246,10 @@ unsigned long long get_component_size(int fd)
 	if (fstat(fd, &stb)) return 0;
 	if (major(stb.st_rdev) == 9)
 		sprintf(fname, "/sys/block/md%d/md/component_size",
-			minor(stb.st_rdev));
+			(int)minor(stb.st_rdev));
 	else
 		sprintf(fname, "/sys/block/md_d%d/md/component_size",
-			minor(stb.st_rdev)>>MdpMinorShift);
+			(int)minor(stb.st_rdev)>>MdpMinorShift);
 	fd = open(fname, O_RDONLY);
 	if (fd < 0)
 		return 0;

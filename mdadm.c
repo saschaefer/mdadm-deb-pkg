@@ -199,7 +199,8 @@ int main(int argc, char *argv[])
 		case 'G': newmode = GROW;
 			shortopt = short_bitmap_options;
 			break;
-		case 'I': newmode = INCREMENTAL; break;
+		case 'I': newmode = INCREMENTAL;
+			shortopt = short_bitmap_auto_options; break;
 		case AutoDetect:
 			newmode = AUTODETECT; break;
 
@@ -511,6 +512,7 @@ int main(int argc, char *argv[])
 
 		case O(CREATE,'a'):
 		case O(BUILD,'a'):
+		case O(INCREMENTAL,'a'):
 		case O(ASSEMBLE,'a'): /* auto-creation of device node */
 			autof = parse_auto(optarg, "--auto flag", 0);
 			continue;
@@ -702,7 +704,7 @@ int main(int argc, char *argv[])
 			test = 1;
 			continue;
 		case O(MONITOR,'y'): /* log messages to syslog */
-			openlog("mdadm", 0, SYSLOG_FACILITY);
+			openlog("mdadm", LOG_PID, SYSLOG_FACILITY);
 			dosyslog = 1;
 			continue;
 
@@ -1098,11 +1100,12 @@ int main(int argc, char *argv[])
 				int acnt;
 				ident.autof = autof;
 				do {
+					mddev_dev_t devlist = conf_get_devs();
 					acnt = 0;
 					do {
 						rv2 = Assemble(ss, NULL, -1,
 							       &ident,
-							       NULL, NULL,
+							       devlist, NULL,
 							       readonly, runstop, NULL, homehost, verbose-quiet, force);
 						if (rv2==0) {
 							cnt++;
@@ -1136,7 +1139,8 @@ int main(int argc, char *argv[])
 				if (cnt == 0 && rv == 0) {
 					fprintf(stderr, Name ": No arrays found in config file or automatically\n");
 					rv = 1;
-				}
+				} else if (cnt)
+					rv = 0;
 			} else if (cnt == 0 && rv == 0) {
 				fprintf(stderr, Name ": No arrays found in config file\n");
 				rv = 1;
@@ -1200,7 +1204,9 @@ int main(int argc, char *argv[])
 			}
 			if (brief && verbose)
 				brief = 2;
-			rv = Examine(devlist, scan?(verbose>1?0:verbose+1):brief, scan, SparcAdjust, ss, homehost);
+			rv = Examine(devlist, scan?(verbose>1?0:verbose+1):brief,
+				     export, scan,
+				     SparcAdjust, ss, homehost);
 		} else {
 			if (devlist == NULL) {
 				if (devmode=='D' && scan) {

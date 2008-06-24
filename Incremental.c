@@ -246,25 +246,20 @@ int Incremental(char *devname, int verbose, int runstop,
 
 		if (devnum < 0) {
 			/* Haven't found anything yet, choose something free */
-			/* There is similar code in mdopen.c - should unify */
-			for (devnum = 127 ; devnum != 128 ;
-			     devnum = devnum ? devnum-1 : (1<<22)-1) {
-				if (mddev_busy(use_partitions ?
-					       (-1-devnum) : devnum))
-					break;
-			}
-			if (devnum == 128) {
+			devnum = find_free_devnum(use_partitions);
+
+			if (devnum == NoMdDev) {
 				fprintf(stderr, Name
 					": No spare md devices!!\n");
 				return 2;
 			}
-		}
-		devnum = use_partitions ? (-1-devnum) : devnum;
+		} else
+			devnum = use_partitions ? (-1-devnum) : devnum;
 	}
 	mdfd = open_mddev_devnum(match ? match->devname : NULL,
 				 devnum,
 				 info.name,
-				 chosen_name);
+				 chosen_name, autof >> 3);
 	if (mdfd < 0) {
 		fprintf(stderr, Name ": failed to open %s: %s.\n",
 			chosen_name, strerror(errno));
@@ -657,7 +652,8 @@ int IncrementalScan(int verbose)
 		mdu_array_info_t array;
 		mdu_bitmap_file_t bmf;
 		struct mdinfo *sra;
-		int mdfd = open_mddev_devnum(me->path, me->devnum, NULL, path);
+		int mdfd = open_mddev_devnum(me->path, me->devnum,
+					     NULL, path, 0);
 		if (mdfd < 0)
 			continue;
 		if (ioctl(mdfd, GET_ARRAY_INFO, &array) == 0 ||

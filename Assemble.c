@@ -315,7 +315,8 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		if (!tst || !tst->sb) {
 			fprintf(stderr, Name ": %s has no superblock - assembly aborted\n",
 				devname);
-			st->ss->free_super(st);
+			if (st)
+				st->ss->free_super(st);
 			return 1;
 		}
 
@@ -366,7 +367,8 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		tmpdev->used = 1;
 
 	loop:
-		tst->ss->free_super(tst);
+		if (tst)
+			tst->ss->free_super(tst);
 	}
 
 	if (mdfd < 0) {
@@ -376,7 +378,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		 */
 		mdu_array_info_t inf;
 		char *c;
-		if (!st->sb) {
+		if (!st || !st->sb) {
 			return 2;
 		}
 		st->ss->getinfo_super(st, &info);
@@ -480,7 +482,7 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		} else
 #endif
 		{
-			struct supertype *tst = dup_super(st);;
+			struct supertype *tst = dup_super(st);
 			int dfd;
 			dfd = dev_open(devname, O_RDWR|O_EXCL);
 
@@ -567,16 +569,17 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		devcnt++;
 	}
 
-	if (update && strcmp(update, "byteorder")==0)
-		st->minor_version = 90;
-
 	if (devcnt == 0) {
 		fprintf(stderr, Name ": no devices found for %s\n",
 			mddev);
-		st->ss->free_super(st);
+		if (st)
+			st->ss->free_super(st);
 		if (must_close) close(mdfd);
 		return 1;
 	}
+
+	if (update && strcmp(update, "byteorder")==0)
+		st->minor_version = 90;
 
 	st->ss->getinfo_super(st, &info);
 	clean = info.array.state & 1;
@@ -974,7 +977,10 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 					"start the array while not clean "
 					"- consider --force.\n");
 
-			if (must_close) close(mdfd);
+			if (must_close) {
+				ioctl(mdfd, STOP_ARRAY, NULL);
+				close(mdfd);
+			}
 			return 1;
 		}
 		if (runstop == -1) {
@@ -1008,7 +1014,10 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 				fprintf(stderr, " (use --run to insist).\n");
 			}
 		}
-		if (must_close) close(mdfd);
+		if (must_close) {
+			ioctl(mdfd, STOP_ARRAY, NULL);
+			close(mdfd);
+		}
 		return 1;
 	} else {
 		/* The "chosen_drive" is a good choice, and if necessary, the superblock has

@@ -252,6 +252,25 @@ static void brief_examine_super0(struct supertype *st)
 	printf("\n");
 }
 
+static void export_examine_super0(struct supertype *st)
+{
+	mdp_super_t *sb = st->sb;
+
+	printf("MD_LEVEL=%s\n", map_num(pers, sb->level));
+	printf("MD_DEVICES=%d\n", sb->raid_disks);
+	if (sb->minor_version >= 90)
+		printf("MD_UUID=%08x:%08x:%08x:%08x\n",
+		       sb->set_uuid0, sb->set_uuid1,
+		       sb->set_uuid2, sb->set_uuid3);
+	else
+		printf("MD_UUID=%08x\n", sb->set_uuid0);
+	printf("MD_UPDATE_TIME=%llu\n",
+	       __le64_to_cpu(sb->ctime) & 0xFFFFFFFFFFULL);
+	printf("MD_EVENTS=%llu\n",
+	       ((unsigned long long)sb->events_hi << 32)
+	       + sb->events_lo);
+}
+
 static void detail_super0(struct supertype *st, char *homehost)
 {
 	mdp_super_t *sb = st->sb;
@@ -283,7 +302,7 @@ static void brief_detail_super0(struct supertype *st)
 		printf("%08x", sb->set_uuid0);
 }
 
-static void export_super0(struct supertype *st)
+static void export_detail_super0(struct supertype *st)
 {
 	mdp_super_t *sb = st->sb;
 	printf("MD_UUID=");
@@ -831,12 +850,14 @@ static struct supertype *match_metadata_desc0(char *arg)
 	if (strcmp(arg, "0") == 0 ||
 	    strcmp(arg, "0.90") == 0 ||
 	    strcmp(arg, "0.91") == 0 ||
-	    strcmp(arg, "default") == 0
+	    strcmp(arg, "default") == 0 ||
+	    strcmp(arg, "") == 0 /* no metadata */
 		)
 		return st;
 
 	st->minor_version = 9; /* flag for 'byte-swapped' */
-	if (strcmp(arg, "0.swap")==0)
+	if (strcmp(arg, "0.swap")==0 ||
+	    strcmp(arg, "0.9") == 0) /* For dup_super support */
 		return st;
 
 	free(st);
@@ -974,9 +995,10 @@ struct superswitch super0 = {
 #ifndef MDASSEMBLE
 	.examine_super = examine_super0,
 	.brief_examine_super = brief_examine_super0,
+	.export_examine_super = export_examine_super0,
 	.detail_super = detail_super0,
 	.brief_detail_super = brief_detail_super0,
-	.export_super = export_super0,
+	.export_detail_super = export_detail_super0,
 #endif
 	.match_home = match_home0,
 	.uuid_from_super = uuid_from_super0,
