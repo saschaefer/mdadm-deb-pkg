@@ -26,7 +26,7 @@
  *           Sydney, 2052
  *           Australia
  *
- *    Additions for bitmap and write-behind RAID options, Copyright (C) 2003-2004, 
+ *    Additions for bitmap and write-behind RAID options, Copyright (C) 2003-2004,
  *    Paul Clements, SteelEye Technology, Inc.
  */
 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 		/* firstly, some mode-independant options */
 		switch(opt) {
 		case 'h':
-			if (option_index > 0 && 
+			if (option_index > 0 &&
 			    strcmp(long_options[option_index].name, "help-options")==0)
 				print_help = 2;
 			else
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 		}
 		/* second, figure out the mode.
 		 * Some options force the mode.  Others
-		 * set the mode if it isn't already 
+		 * set the mode if it isn't already
 		 */
 
 		switch(opt) {
@@ -199,7 +199,8 @@ int main(int argc, char *argv[])
 		case 'G': newmode = GROW;
 			shortopt = short_bitmap_options;
 			break;
-		case 'I': newmode = INCREMENTAL; break;
+		case 'I': newmode = INCREMENTAL;
+			shortopt = short_bitmap_auto_options; break;
 		case AutoDetect:
 			newmode = AUTODETECT; break;
 
@@ -232,7 +233,7 @@ int main(int argc, char *argv[])
 			mode = newmode;
 		} else {
 			/* special case of -c --help */
-			if (opt == 'c' && 
+			if (opt == 'c' &&
 			    ( strncmp(optarg, "--h", 3)==0 ||
 			      strncmp(optarg, "-h", 2)==0)) {
 				fputs(Help_config, stdout);
@@ -255,7 +256,7 @@ int main(int argc, char *argv[])
 					dv->next = NULL;
 					*devlistend = dv;
 					devlistend = &dv->next;
-			
+
 					devs_found++;
 					continue;
 				}
@@ -307,7 +308,7 @@ int main(int argc, char *argv[])
 			dv->next = NULL;
 			*devlistend = dv;
 			devlistend = &dv->next;
-			
+
 			devs_found++;
 			continue;
 		}
@@ -342,7 +343,7 @@ int main(int argc, char *argv[])
 				fprintf(stderr, Name ": metadata information already given\n");
 				exit(2);
 			}
-			for(i=0; !ss && superlist[i]; i++) 
+			for(i=0; !ss && superlist[i]; i++)
 				ss = superlist[i]->match_metadata_desc(optarg);
 
 			if (!ss) {
@@ -451,7 +452,7 @@ int main(int argc, char *argv[])
 			case -5: /* Faulty
 				  * modeNNN
 				  */
-				    
+
 			{
 				int ln = strcspn(optarg, "0123456789");
 				char *m = strdup(optarg);
@@ -511,6 +512,7 @@ int main(int argc, char *argv[])
 
 		case O(CREATE,'a'):
 		case O(BUILD,'a'):
+		case O(INCREMENTAL,'a'):
 		case O(ASSEMBLE,'a'): /* auto-creation of device node */
 			autof = parse_auto(optarg, "--auto flag", 0);
 			continue;
@@ -584,7 +586,7 @@ int main(int argc, char *argv[])
 				exit(2);
 			}
 			update = optarg;
-			if (strcmp(update, "sparc2.2")==0) 
+			if (strcmp(update, "sparc2.2")==0)
 				continue;
 			if (strcmp(update, "super-minor") == 0)
 				continue;
@@ -605,7 +607,7 @@ int main(int argc, char *argv[])
 					fprintf(stderr, Name ": must not set metadata type with --update=byteorder.\n");
 					exit(2);
 				}
-				for(i=0; !ss && superlist[i]; i++) 
+				for(i=0; !ss && superlist[i]; i++)
 					ss = superlist[i]->match_metadata_desc("0.swap");
 				if (!ss) {
 					fprintf(stderr, Name ": INTERNAL ERROR cannot find 0.swap\n");
@@ -702,7 +704,7 @@ int main(int argc, char *argv[])
 			test = 1;
 			continue;
 		case O(MONITOR,'y'): /* log messages to syslog */
-			openlog("mdadm", 0, SYSLOG_FACILITY);
+			openlog("mdadm", LOG_PID, SYSLOG_FACILITY);
 			dosyslog = 1;
 			continue;
 
@@ -941,7 +943,7 @@ int main(int argc, char *argv[])
 			exit(2);
 		}
 		if ((int)ident.super_minor == -2 && autof) {
-			fprintf(stderr, Name ": --super-minor=dev is incompatible with --auto\n");	
+			fprintf(stderr, Name ": --super-minor=dev is incompatible with --auto\n");
 			exit(2);
 		}
 		if (mode == MANAGE || mode == GROW)
@@ -1010,7 +1012,7 @@ int main(int argc, char *argv[])
 					devlist->devname);
 				rv |= 1;
 			} else {
-				mdfd = open_mddev(devlist->devname, 
+				mdfd = open_mddev(devlist->devname,
 						  array_ident->autof ? array_ident->autof : autof);
 				if (mdfd < 0)
 					rv |= 1;
@@ -1042,7 +1044,7 @@ int main(int argc, char *argv[])
 					rv |= 1;
 					continue;
 				}
-				mdfd = open_mddev(dv->devname, 
+				mdfd = open_mddev(dv->devname,
 						  array_ident->autof ?array_ident->autof : autof);
 				if (mdfd < 0) {
 					rv |= 1;
@@ -1098,11 +1100,12 @@ int main(int argc, char *argv[])
 				int acnt;
 				ident.autof = autof;
 				do {
+					mddev_dev_t devlist = conf_get_devs();
 					acnt = 0;
 					do {
 						rv2 = Assemble(ss, NULL, -1,
 							       &ident,
-							       NULL, NULL,
+							       devlist, NULL,
 							       readonly, runstop, NULL, homehost, verbose-quiet, force);
 						if (rv2==0) {
 							cnt++;
@@ -1136,7 +1139,8 @@ int main(int argc, char *argv[])
 				if (cnt == 0 && rv == 0) {
 					fprintf(stderr, Name ": No arrays found in config file or automatically\n");
 					rv = 1;
-				}
+				} else if (cnt)
+					rv = 0;
 			} else if (cnt == 0 && rv == 0) {
 				fprintf(stderr, Name ": No arrays found in config file\n");
 				rv = 1;
@@ -1200,7 +1204,9 @@ int main(int argc, char *argv[])
 			}
 			if (brief && verbose)
 				brief = 2;
-			rv = Examine(devlist, scan?(verbose>1?0:verbose+1):brief, scan, SparcAdjust, ss, homehost);
+			rv = Examine(devlist, scan?(verbose>1?0:verbose+1):brief,
+				     export, scan,
+				     SparcAdjust, ss, homehost);
 		} else {
 			if (devlist == NULL) {
 				if (devmode=='D' && scan) {
@@ -1310,7 +1316,7 @@ int main(int argc, char *argv[])
 
 	case GROW:
 		if (devs_found > 1) {
-			
+
 			/* must be '-a'. */
 			if (size >= 0 || raiddisks) {
 				fprintf(stderr, Name ": --size, --raiddisks, and --add are exclusing in --grow mode\n");

@@ -113,7 +113,6 @@ int open_mddev(char *dev, int autof)
 	int major_num = MD_MAJOR;
 	int minor_num = 0;
 	int must_remove = 0;
-	struct mdstat_ent *mdlist;
 	int num;
 	struct createinfo *ci = conf_get_create_info();
 	int parts;
@@ -193,41 +192,16 @@ int open_mddev(char *dev, int autof)
 		 * If the device name is in a 'standard' format,
 		 * intuit the minor from that, else
 		 * easiest to read /proc/mdstat, and hunt through for
-		 * an unused number 
+		 * an unused number
 		 */
 		if (num < 0) {
 			/* need to pick an unused number */
-			mdlist = mdstat_read(0, 0);
-			/* Choose a large number.  Start from 127 and search down,
-			 * but if nothing is found, start really big
-			 */
-			for (num = 127 ; num != 128 ; num = num ? num-1 : (1<<22)-1) {
-				struct mdstat_ent *me;
-				int devnum = num;
-				if (major_num != MD_MAJOR)
-					devnum = -1-num;
+			int num = find_free_devnum(major_num != MD_MAJOR);
 
-				for (me=mdlist; me; me=me->next)
-					if (me->devnum == devnum)
-						break;
-				if (!me) {
-					/* doesn't exist in mdstat.
-					 * make sure it is new to /dev too
-					 */
-					char *dn;
-					if (major_num != MD_MAJOR)
-						minor_num = num << MdpMinorShift;
-					else
-						minor_num = num;
-					dn = map_dev(major_num,minor_num, 0);
-					if (dn==NULL || is_standard(dn, NULL)) {
-						/* this number only used by a 'standard' name,
-						 * so it is safe to use
-						 */
-						break;
-					}
-				}
-			}
+			if (major_num == MD_MAJOR)
+				minor_num = num;
+			else
+				minor_num = (-1-num) << MdpMinorShift;
 		} else if (major_num == MD_MAJOR)
 			minor_num = num;
 		else
@@ -294,7 +268,8 @@ int open_mddev(char *dev, int autof)
 }
 
 
-int open_mddev_devnum(char *devname, int devnum, char *name, char *chosen_name)
+int open_mddev_devnum(char *devname, int devnum, char *name,
+		      char *chosen_name, int parts)
 {
 	/* Open the md device with number 'devnum', possibly using 'devname',
 	 * possibly constructing a name with 'name', but in any case, copying
@@ -302,6 +277,8 @@ int open_mddev_devnum(char *devname, int devnum, char *name, char *chosen_name)
 	 */
 	int major_num, minor_num;
 	struct stat stb;
+	int i;
+	struct createinfo *ci = conf_get_create_info();
 
 	if (devname)
 		strcpy(chosen_name, devname);
@@ -333,11 +310,39 @@ int open_mddev_devnum(char *devname, int devnum, char *name, char *chosen_name)
 			return -1;
 		}
 	} else {
+		/* special case: if --incremental is suggesting a name
+		 * in /dev/md/, we make sure the directory exists.
+		 */
+		if (strncmp(chosen_name, "/dev/md/", 8) == 0) {
+			if (mkdir("/dev/md",0700)==0) {
+				if (chown("/dev/md", ci->uid, ci->gid))
+					perror("chown /dev/md");
+				if (chmod("/dev/md", ci->mode|
+					          ((ci->mode>>2) & 0111)))
+					perror("chmod /dev/md");
+			}
+		}
+
 		if (mknod(chosen_name, S_IFBLK | 0600,
 			  makedev(major_num, minor_num)) != 0) {
 			return -1;
 		}
 		/* FIXME chown/chmod ?? */
 	}
-	return open(chosen_name, O_RDWR);
+
+	/* Simple locking to avoid --incr being called for the same
+	 * array multiple times in parallel.
+	 */
+	for (i = 0; i < 25 ; i++) {
+		int fd;
+
+		fd = open(chosen_name, O_RDWR|O_EXCL);
+		if (fd >= 0 || errno != EBUSY) {
+			if (devnum < 0)
+				make_parts(chosen_name, parts, ci->symlinks);
+			return fd;
+		}
+		usleep(200000);
+	}
+	return -1;
 }

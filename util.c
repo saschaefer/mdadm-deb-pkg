@@ -73,33 +73,32 @@ struct blkpg_partition {
  */
 int parse_uuid(char *str, int uuid[4])
 {
-    int hit = 0; /* number of Hex digIT */
-    int i;
-    char c;
-    for (i=0; i<4; i++) uuid[i]=0;
+	int hit = 0; /* number of Hex digIT */
+	int i;
+	char c;
+	for (i=0; i<4; i++) uuid[i]=0;
 
-    while ((c= *str++)) {
-	int n;
-	if (c>='0' && c<='9')
-	    n = c-'0';
-	else if (c>='a' && c <= 'f')
-	    n = 10 + c - 'a';
-	else if (c>='A' && c <= 'F')
-	    n = 10 + c - 'A';
-	else if (strchr(":. -", c))
-	    continue;
-	else return 0;
+	while ((c= *str++)) {
+		int n;
+		if (c>='0' && c<='9')
+			n = c-'0';
+		else if (c>='a' && c <= 'f')
+			n = 10 + c - 'a';
+		else if (c>='A' && c <= 'F')
+			n = 10 + c - 'A';
+		else if (strchr(":. -", c))
+			continue;
+		else return 0;
 
-	if (hit<32) {
-	    uuid[hit/8] <<= 4;
-	    uuid[hit/8] += n;
+		if (hit<32) {
+			uuid[hit/8] <<= 4;
+			uuid[hit/8] += n;
+		}
+		hit++;
 	}
-	hit++;
-    }
-    if (hit == 32)
-	return 1;
-    return 0;
-    
+	if (hit == 32)
+		return 1;
+	return 0;
 }
 
 
@@ -132,7 +131,6 @@ int md_get_version(int fd)
     return -1;
 }
 
-    
 int get_linux_version()
 {
 	struct utsname name;
@@ -224,7 +222,7 @@ int same_uuid(int a[4], int b[4], int swapuuid)
 	if (swapuuid) {
 		/* parse uuids are hostendian.
 		 * uuid's from some superblocks are big-ending
-		 * if there is a difference, we need to swap.. 
+		 * if there is a difference, we need to swap..
 		 */
 		unsigned char *ac = (unsigned char *)a;
 		unsigned char *bc = (unsigned char *)b;
@@ -318,25 +316,24 @@ int check_reiser(int fd, char *name)
 	fprintf(stderr, Name ": %s appears to contain a reiserfs file system\n",name);
 	size = sb[0]|(sb[1]|(sb[2]|sb[3]<<8)<<8)<<8;
 	fprintf(stderr, "    size = %luK\n", size*4);
-		
+
 	return 1;
 }
 
 int check_raid(int fd, char *name)
 {
-	void *super;
 	struct mdinfo info;
 	time_t crtime;
 	char *level;
 	struct supertype *st = guess_super(fd);
 
 	if (!st) return 0;
-	st->ss->load_super(st, fd, &super, name);
+	st->ss->load_super(st, fd, name);
 	/* Looks like a raid array .. */
 	fprintf(stderr, Name ": %s appears to be part of a raid array:\n",
 		name);
-	st->ss->getinfo_super(&info, super);
-	free(super);
+	st->ss->getinfo_super(st, &info);
+	st->ss->free_super(st);
 	crtime = info.array.ctime;
 	level = map_num(pers, info.array.level);
 	if (!level) level = "-unknown-";
@@ -391,7 +388,7 @@ int is_standard(char *dev, int *nump)
 {
 	/* tests if dev is a "standard" md dev name.
 	 * i.e if the last component is "/dNN" or "/mdNN",
-	 * where NN is a string of digits 
+	 * where NN is a string of digits
 	 */
 	char *d = strrchr(dev, '/');
 	int type=0;
@@ -546,7 +543,7 @@ unsigned long calc_csum(void *super, int bytes)
 		newcsum+= superc[i];
 	csum = (newcsum& 0xffffffff) + (newcsum>>32);
 #ifdef __alpha__
-/* The in-kernel checksum calculation is always 16bit on 
+/* The in-kernel checksum calculation is always 16bit on
  * the alpha, though it is 32 bit on i386...
  * I wonder what it is elsewhere... (it uses and API in
  * a way that it shouldn't).
@@ -592,7 +589,6 @@ char *human_size(long long bytes)
 char *human_size_brief(long long bytes)
 {
 	static char buf[30];
-	
 
 	if (bytes < 5000*1024)
 		snprintf(buf, sizeof(buf), "%ld.%02ldKiB",
@@ -696,6 +692,44 @@ void put_md_name(char *name)
 	if (strncmp(name, "/dev/.tmp.md", 12)==0)
 		unlink(name);
 }
+
+static int dev2major(int d)
+{
+	if (d >= 0)
+		return MD_MAJOR;
+	else
+		return get_mdp_major();
+}
+
+static int dev2minor(int d)
+{
+	if (d >= 0)
+		return d;
+	return (-1-d) << MdpMinorShift;
+}
+
+int find_free_devnum(int use_partitions)
+{
+	int devnum;
+	for (devnum = 127; devnum != 128;
+	     devnum = devnum ? devnum-1 : (1<<22)-1) {
+		char *dn;
+		int _devnum;
+
+		_devnum = use_partitions ? (-1-devnum) : devnum;
+		if (mddev_busy(_devnum))
+			continue;
+		/* make sure it is new to /dev too, at least as a
+		 * non-standard */
+		dn = map_dev(dev2major(_devnum), dev2minor(_devnum), 0);
+		if (dn && ! is_standard(dn, NULL))
+			continue;
+		break;
+	}
+	if (devnum == 128)
+		return NoMdDev;
+	return use_partitions ? (-1-devnum) : devnum;
+}
 #endif /* !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO) */
 
 int dev_open(char *dev, int flags)
@@ -727,21 +761,70 @@ int dev_open(char *dev, int flags)
 
 struct superswitch *superlist[] = { &super0, &super1, NULL };
 
-struct supertype *super_by_version(int vers, int minor)
+#if !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO)
+struct supertype *super_by_fd(int fd)
 {
-	struct supertype *st = malloc(sizeof(*st));
-	if (!st) return st;
-	if (vers == 0) {
-		st->ss = &super0;
-		st->max_devs = MD_SB_DISKS;
+	mdu_array_info_t array;
+	int vers;
+	int minor;
+	struct supertype *st = NULL;
+	struct mdinfo *sra;
+	char *verstr;
+	char version[20];
+	int i;
+
+	sra = sysfs_read(fd, 0, GET_VERSION);
+
+	if (sra) {
+		vers = sra->array.major_version;
+		minor = sra->array.minor_version;
+		verstr = sra->text_version;
+	} else {
+		if (ioctl(fd, GET_ARRAY_INFO, &array))
+			array.major_version = array.minor_version = 0;
+		vers = array.major_version;
+		minor = array.minor_version;
+		verstr = "";
 	}
 
-	if (vers == 1) {
-		st->ss = &super1;
-		st->max_devs = 384;
+	if (vers != -1) {
+		sprintf(version, "%d.%d", vers, minor);
+		verstr = version;
 	}
-	st->minor_version = minor;
+	for (i = 0; st == NULL && superlist[i] ; i++)
+		st = superlist[i]->match_metadata_desc(verstr);
+
+	if (sra)
+		sysfs_free(sra);
+	if (st)
+		st->sb = NULL;
 	return st;
+}
+#endif /* !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO) */
+
+
+struct supertype *dup_super(struct supertype *st)
+{
+	struct supertype *stnew = NULL;
+	char *verstr = NULL;
+	char version[20];
+	int i;
+
+	if (!st)
+		return st;
+
+	if (st->minor_version == -1)
+		sprintf(version, "%d", st->ss->major);
+	else
+		sprintf(version, "%d.%d", st->ss->major, st->minor_version);
+	verstr = version;
+
+	for (i = 0; stnew == NULL && superlist[i] ; i++)
+		stnew = superlist[i]->match_metadata_desc(verstr);
+
+	if (stnew)
+		stnew->sb = NULL;
+	return stnew;
 }
 
 struct supertype *guess_super(int fd)
@@ -753,8 +836,6 @@ struct supertype *guess_super(int fd)
 	struct supertype *st;
 	unsigned long besttime = 0;
 	int bestsuper = -1;
-	
-	void *sbp = NULL;
 	int i;
 
 	st = malloc(sizeof(*st));
@@ -763,24 +844,24 @@ struct supertype *guess_super(int fd)
 		int rv;
 		ss = superlist[i];
 		st->ss = NULL;
-		rv = ss->load_super(st, fd, &sbp, NULL);
+		rv = ss->load_super(st, fd, NULL);
 		if (rv == 0) {
 			struct mdinfo info;
-			ss->getinfo_super(&info, sbp);
+			st->ss->getinfo_super(st, &info);
 			if (bestsuper == -1 ||
 			    besttime < info.array.ctime) {
 				bestsuper = i;
 				besttime = info.array.ctime;
 			}
-			free(sbp);
+			ss->free_super(st);
 		}
 	}
 	if (bestsuper != -1) {
 		int rv;
 		st->ss = NULL;
-		rv = superlist[bestsuper]->load_super(st, fd, &sbp, NULL);
+		rv = superlist[bestsuper]->load_super(st, fd, NULL);
 		if (rv == 0) {
-			free(sbp);
+			superlist[bestsuper]->free_super(st);
 			return st;
 		}
 	}
@@ -792,6 +873,11 @@ struct supertype *guess_super(int fd)
 int get_dev_size(int fd, char *dname, unsigned long long *sizep)
 {
 	unsigned long long ldsize;
+	struct stat st;
+
+	if (fstat(fd, &st) != -1 && S_ISREG(st.st_mode))
+		ldsize = (unsigned long long)st.st_size;
+	else
 #ifdef BLKGETSIZE64
 	if (ioctl(fd, BLKGETSIZE64, &ldsize) != 0)
 #endif
@@ -819,6 +905,7 @@ void get_one_disk(int mdfd, mdu_array_info_t *ainf, mdu_disk_info_t *disk)
 		if (ioctl(mdfd, GET_DISK_INFO, disk) == 0)
 			return;
 }
+
 #ifdef __TINYC__
 /* tinyc doesn't optimize this check in ioctl.h out ... */
 unsigned int __invalid_size_argument_for_IOC = 0;

@@ -1,3 +1,5 @@
-*.o
-*.man
-mdadm
+/*.o
+/*.man
+/*-stamp
+/mdadm
+/mdadm.udeb

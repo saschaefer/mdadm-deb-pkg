@@ -1,3 +1,31 @@
+Changes Prior to 2.6.7 release
+    -   Avoid NULL reference calling free_super and elsewhere.
+    -   Remove stray semicolon (Causes compile error with gcc-2.95)
+    -   Fix autoassemble for stack arrays.
+
+Changes Prior to 2.6.6 release
+    -   "make everything" now make mdassemble.auto
+    -   fix compile problem with mdassemble.auto
+    -   Update FAQ URLs in man page again.
+
+Changes Prior to 2.6.5 release
+    -   Avoid segfault when parsing /proc/mdstat with auto-read-only
+	arrays.
+    -   Fix problem with failing to add devices to v.large (>4TB) arrays,
+	cause by problems with device-size overflow.
+    -   For v0.90 superblocks, print the 'Events' count as a real count,
+	not 2 numbers separated by a dot.
+    -   Updates some URLs in the man page.
+    -   Allow creation of a RAID6 with exactly one missing device.
+    -   Use LOG_PID for syslog, so you get the pid of mdadm in the log
+	files.
+    -   --export now works with --examine too (not just --detail)
+    -   Improve auto-creation of device special file when using
+        --incremental
+    -   Simple locking for --incremental so mdadm doesn't get confused
+	when run concurrently with itself.
+    -   Make --incremental cope better with arrays that are being reshaped.
+
 Changes Prior to 2.6.4 release
     -   Make "--create --auto=mdp" work for non-standard device names.
     -   Fix restarting of a 'reshape' if it was stopped in the middle.

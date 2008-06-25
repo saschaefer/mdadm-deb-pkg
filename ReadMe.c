@@ -24,7 +24,7 @@
 
 #include "mdadm.h"
 
-char Version[] = Name " - v2.6.4 - 19th October 2007\n";
+char Version[] = Name " - v2.6.7 - 6th June 2008\n";
 
 /*
  * File: ReadMe.c
@@ -110,7 +110,7 @@ struct option long_options[] = {
 
     /* synonyms */
     {"monitor",   0, 0, 'F'},
-	    
+
     /* after those will normally come the name of the md device */
     {"help",      0, 0, 'h'},
     {"help-options",0,0,'h'},
