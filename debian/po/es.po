@@ -39,8 +39,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mdadm 2.5.6-6\n"
 "Report-Msgid-Bugs-To: mdadm@packages.debian.org\n"
-"POT-Creation-Date: 2008-04-11 15:03+0200\n"
-"PO-Revision-Date: 2006-12-09 00:38+0100\n"
+"POT-Creation-Date: 2008-02-06 18:49+0100\n"
+"PO-Revision-Date: 2008-04-25 17:47+0200\n"
 "Last-Translator: Javier Fernández-Sanguino <jfs@debian.org>\n"
 "Language-Team: Debian Spanish <debian-l10n-spanish@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
@@ -50,8 +50,6 @@ msgstr ""
 #. Type: string
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
-#| msgid "MD arrays needed for the root filesystem:"
 msgid "MD arrays needed for the root file system:"
 msgstr "Arrays MD necesarios para el sistema de ficheros raíz:"
 
@@ -59,18 +57,10 @@ msgstr "Arrays MD necesarios para el sistema de ficheros raíz:"
 #. Type: string
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
-#| msgid ""
-#| "Please enter a space-separated list of devices, 'all', or 'none'. You may "
-#| "omit the leading '/dev/' and just enter e.g. \"md0 md1\", or \"md/1 md/d0"
-#| "\"."
 msgid ""
 "Please enter 'all', 'none', or a space-separated list of devices such as "
 "'md0 md1' or 'md/1 md/d0' (the leading '/dev/' can be omitted)."
-msgstr ""
-"Introduzca una lista de dispositivos separados por espacios, «all» (todos) o "
-"«none» (ninguno). No tiene que preceder los nombres de dispositivos con «/"
-"dev», puede sólo introducir, por ejemplo: «md0 md1» o «md/1 md/d0»."
+msgstr "Introduzca «all» (todos),  «none» (ninguno) o una lista de dispositivos separados por espacios como por ejemplo puede sólo introducir «md0 md1» o «md/1 md/d0» (no tiene que preceder los nombres de dispositivos con «/dev»)."
 
 #. Type: text
 #. Description
@@ -81,31 +71,15 @@ msgstr "para uso interno. Sólo se utiliza la descripción larga."
 #. Type: text
 #. Description
 #: ../mdadm.templates:3001
-#, fuzzy
-#| msgid ""
-#| "If your system has its root filesystem on an MD array (RAID), it needs to "
-#| "be started early during the boot sequence. If your root filesystem is on "
-#| "a logical volume (LVM), which is on MD, all constituent arrays need to be "
-#| "started."
 msgid ""
 "If the system's root file system is located on an MD array (RAID), it needs "
 "to be started early during the boot sequence. If it is located on a logical "
 "volume (LVM), which is on MD, all constituent arrays need to be started."
-msgstr ""
-"Si su sistema tiene su sistema de ficheros raíz en un array MD (RAID) tiene "
-"que inicializarse antes durante de la secuencia de arranque. Si su sistema "
-"de ficheros raíz está en un volumen lógico (LVM) que está definido sobre un "
-"MD, todos los arrays que lo forman tienen que haberse inicializado."
+msgstr "Si el sistema de ficheros raíz de su sistema está en un array MD (RAID) tiene que inicializarse antes durante de la secuencia de arranque. Si está en un volumen lógico (LVM), que está definido sobre un MD, todos los arrays que lo forman tienen que haberse inicializado."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:3001
-#, fuzzy
-#| msgid ""
-#| "If you know exactly which arrays are needed to bring up the root "
-#| "filesystem, and you want to postpone starting all other arrays to a later "
-#| "point in the boot sequence, enter the arrays to start here. "
-#| "Alternatively, enter 'all' to simply start all available arrays."
 msgid ""
 "If you know exactly which arrays are needed to bring up the root file "
 "system, and you want to postpone starting all other arrays to a later point "
@@ -121,11 +95,6 @@ msgstr ""
 #. Type: text
 #. Description
 #: ../mdadm.templates:3001
-#, fuzzy
-#| msgid ""
-#| "If you do not need or want to start any arrays for the root filesystem, "
-#| "leave the answer blank (or enter 'none'). This may be the case if you are "
-#| "using kernel autostart or do not need any arrays to boot."
 msgid ""
 "If you do not need or want to start any arrays for the root file system, "
 "leave the answer blank (or enter 'none'). This may be the case if you are "
@@ -165,21 +134,12 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
-#| msgid "Proceed with starting arrays not listed in mdadm.conf?"
 msgid "Start arrays not listed in mdadm.conf?"
-msgstr ""
-"¿Desea proceder con el arranque de los arrays no listados en mdadm.conf?"
+msgstr "¿Desea arrancar los arrays no listados en mdadm.conf?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
-#| msgid ""
-#| "The array you have specified (${array}) is not listed in the "
-#| "configuration file ${config}. Therefore it cannot be started during boot, "
-#| "unless you correct the configuration file and recreate the initial "
-#| "ramdisk."
 msgid ""
 "The specified array (${array}) is not listed in the configuration file "
 "(${config}). Therefore, it cannot be started during boot, unless you correct "
@@ -226,28 +186,13 @@ msgstr "¿Desea iniciar los arrays MD de forma automática?"
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
-#, fuzzy
-#| msgid ""
-#| "Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
-#| "specified in /etc/mdadm/mdadm.conf, which have not yet been started. "
-#| "Unless you have compiled multiple device (MD) support into the kernel and "
-#| "marked all partitions part of MD arrays with type 0xfd (as those and only "
-#| "those will be started automatically by the kernel), this is probably what "
-#| "you want."
 msgid ""
 "Once the base system has booted, mdadm can start all MD arrays (RAIDs) "
 "specified in /etc/mdadm/mdadm.conf which have not yet been started. This is "
 "recommended unless multiple device (MD) support is compiled into the kernel "
 "and all partitions are marked as belonging to MD arrays, with type 0xfd (as "
 "those and only those will be started automatically by the kernel)."
-msgstr ""
-"Mdadm puede iniciar todos los arrays MD (RAIDs) especificados en «/etc/mdadm/"
-"mdadm.conf» una vez se haya arrancado el sistema base, siempre que éstos no "
-"se hayan arrancado aún. Esto es probablemente lo que desea a no ser que haya "
-"compilado el soporte de dispositivos múltiples (MD, «multiple devices») en el "
-"núcleo y marcado todas las particiones que son parte de los arrays MD con el "
-"tipo «0xfd» (ya que éstas, y sólo éstas, se arrancarán de forma automática "
-"por el núcleo."
+msgstr "Mdadm puede iniciar todos los arrays MD (RAIDs) especificados en «/etc/mdadm/mdadm.conf» una vez se haya arrancado el sistema base, siempre que éstos no se hayan arrancado aún. Esto es probablemente lo que desea a no ser que haya compilado el soporte de dispositivos múltiples (MD, «multiple devices») en el núcleo y marcado todas las particiones que son parte de los arrays MD con el tipo «0xfd» (ya que éstas, y sólo éstas, se arrancarán de forma automática por el núcleo)."
 
 #. Type: boolean
 #. Description
@@ -260,14 +205,6 @@ msgstr ""
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
-#| msgid ""
-#| "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
-#| "redundancy of your MD arrays (RAIDs). This may be a resource-intensive "
-#| "process, depending on your setup, but it could help prevent rare cases of "
-#| "data loss. Note that this is a read-only check unless errors are found; "
-#| "if errors are found, mdadm will try to correct them, which may result in "
-#| "write access to the media."
 msgid ""
 "If the kernel supports it (versions greater than 2.6.14), mdadm can "
 "periodically check the redundancy of MD arrays (RAIDs). This may be a "
@@ -275,29 +212,15 @@ msgid ""
 "prevent rare cases of data loss. Note that this is a read-only check unless "
 "errors are found; if errors are found, mdadm will try to correct them, which "
 "may result in write access to the media."
-msgstr ""
-"Mdadm puede comprobar de forma periódica la redundancia de sus arrays MD "
-"(RAIDs) si su núcleo lo soporta (si su versión es superior a la 2.6.14). "
-"Esto puede ser un proceso que consuma muchos recursos, dependiendo de su "
-"configuración, pero podría ayudar a prevenir casos raros de pérdida de "
-"datos. Tenga en cuenta que estas comprobaciones se hacen en modo lectura "
-"salvo que se detecten errores, en cuyo caso mdadm necesitará corregirlos, lo "
-"que significa que será necesario tener acceso de escritura a los medios "
-"físicos."
+msgstr "Mdadm puede comprobar de forma periódica la redundancia de sus arrays MD (RAIDs) si el núcleo lo soporta (si su versión es superior a la 2.6.14). Esto puede ser un proceso que consuma muchos recursos, dependiendo de su configuración, pero podría ayudar a prevenir casos raros de pérdida de datos. Tenga en cuenta que estas comprobaciones se hacen en modo lectura salvo que se detecten errores, en cuyo caso mdadm necesitará corregirlos, lo que significa que será necesario tener acceso de escritura a los medios físicos."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
-#| msgid ""
-#| "The default, if turned on, is to run the checks on the first Sunday of "
-#| "every month at 01:06 o'clock."
 msgid ""
 "The default, if turned on, is to check on the first Sunday of every month at "
 "01:06."
-msgstr ""
-"Si se activa, por omisión, ejecutará las comprobaciones el primer Domingo de "
-"cada mes a las 01:06 am."
+msgstr "El valor por omisio, si se activa, es comprobar el primer Domingo de cada mes a las 01:06 am."
 
 #. Type: boolean
 #. Description
@@ -308,25 +231,16 @@ msgstr "¿Desea arrancar el demonio de monitorización MD?"
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:11001
-#, fuzzy
-#| msgid ""
-#| "The MD (RAID) monitor daemon sends email notifications in response to "
-#| "important MD events (such as a disk failure). You probably want to enable "
-#| "it."
 msgid ""
 "The MD (RAID) monitor daemon sends email notifications in response to "
 "important MD events (such as a disk failure)."
-msgstr ""
-"El demonio de monitorización MD (RAID) envía notificaciones por correo "
-"electrónico cuando se producen eventos importantes en los dispositivos MD "
-"(como pueda ser el caso de un fallo de un disco). Posiblemente desee "
-"habilitarlo."
+msgstr "El demonio de monitorización MD (RAID) envía notificaciones por correo electrónico cuando se producen eventos importantes en los dispositivos MD (como pueda ser el caso de un fallo de un disco)."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:11001
 msgid "Enabling this option is recommended."
-msgstr ""
+msgstr "Es opcional habilitar esta opción."
 
 #. Type: string
 #. Description
@@ -337,10 +251,6 @@ msgstr "Destinatario de las notificaciones por correo:"
 #. Type: string
 #. Description
 #: ../mdadm.templates:12001
-#, fuzzy
-#| msgid ""
-#| "Please enter the email address of the user who should get the email "
-#| "notification for important MD events."
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notifications for important MD events."
