@@ -6,18 +6,8 @@
 #
 set -eu
 
-PREREQ="udev_helper"
-
-prereqs()
-{
-  echo "$PREREQ"
-}
-
 case ${1:-} in
-  prereqs)
-    prereqs
-    exit 0
-    ;;
+  prereqs) exit 0;;
 esac
 
 . /scripts/functions
