@@ -41,7 +41,7 @@ verbose()
 
 MD_DEVS=all
 MD_MODULES='linear multipath raid0 raid1 raid456 raid5 raid6 raid10'
-[ -s /conf/md.conf ] && . /conf/md.conf
+[ -s /conf/conf.d/md ] && . /conf/conf.d/md
 
 verbose && log_begin_msg Loading MD modules
 for module in ${MD_MODULES:-}; do

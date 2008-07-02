@@ -89,7 +89,7 @@ INITRDSTART=all
 [ -z "$INITRDSTART" ] && INITRDSTART=none
 
 DESTMDADMCONF=$DESTDIR/etc/mdadm/mdadm.conf
-DESTCONFIG=$DESTDIR/conf/md.conf
+DESTCONFIG=$DESTDIR/conf/conf.d/md
 
 # save the homehost for now, even if we don't use it yet
 if [ -f $CONFIG ]; then
