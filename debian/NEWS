@@ -1,3 +1,17 @@
+mdadm (2.6.7-2) unstable; urgency=low
+
+  This version removes mdrun once and for all.
+
+  If you are still using mdrun, please ensure that you have a valid
+  /etc/mdadm/mdadm.conf file (run /usr/share/mdadm/mkconf --generate to get
+  one), and use
+
+    mdadm --assemble --scan --auto=yes
+
+  instead of mdrun.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 02 Jul 2008 10:57:32 +0200
+
 mdadm (2.5.3.git200608201206-1) unstable; urgency=low
 
   This version makes mdadm.conf mandatory. If you do not have such a file, it

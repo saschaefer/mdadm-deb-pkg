@@ -129,12 +129,6 @@ VERBOSE=${VERBOSE:-false}
 # MAIL_TO:
 #   this variable is now managed in /etc/mdadm/mdadm.conf (MAILADDR).
 #   Please see mdadm.conf(5).
-
-# USE_DEPRECATED_MDRUN:
-#   mdrun is deprecated. If you still want to use it without a warning, set
-#   the following to true.
-#
-USE_DEPRECATED_MDRUN=${USE_DEPRECATED_MDRUN:-false}
 _eof
 
     db_stop

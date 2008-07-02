@@ -57,8 +57,8 @@ fi
 
 if [ -e /etc/initramfs-tools/hooks/md ]; then
   warn "I found /etc/initramfs-tools/hooks/md, which may conflict"
-  warn "with this version of mdadm. Please see /usr/share/doc/mdadm/README.mdrun"
-  warn "and /usr/share/initramfs-tools/hooks/mdadm for reference and update"
+  warn "with this version of mdadm. Please use"
+  warn "/usr/share/initramfs-tools/hooks/mdadm as reference and update"
   warn "(or remove) the file."
   exit 0
 fi

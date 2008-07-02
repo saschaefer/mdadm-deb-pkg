@@ -61,10 +61,7 @@ install: build
 	dh_clean -k
 	dh_installdirs
 	install -m0755 mdadm $(DESTDIR)/sbin
-	install -m0755 debian/mdrun $(DESTDIR)/sbin
-
 	install -m0755 mdadm.udeb $(DESTDIR_UDEB)/sbin/mdadm
-	install -m0755 debian/mdrun $(DESTDIR_UDEB)/sbin
 
 	install -m0755 debian/initramfs/hook \
 		$(DESTDIR)/usr/share/initramfs-tools/hooks/mdadm
