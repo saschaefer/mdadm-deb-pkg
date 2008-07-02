@@ -22,6 +22,8 @@ esac
 
 . /scripts/functions
 
+maybe_break pre-mdadm
+
 if [ -e /scripts/local-top/md ]; then
   log_warning_msg "old md initialisation script found, getting out of its way..."
   exit 1
@@ -81,7 +83,7 @@ fi
 echo 1 > /sys/module/md_mod/parameters/start_ro
 
 if [ "$MD_DEVS" = all ]; then
-  
+
   verbose && log_begin_msg "Assembling all MD arrays"
   extra_args=''
   [ -n "$MD_HOMEHOST" ] && \
@@ -107,8 +109,27 @@ elif [ "$MD_DEVS" != none ]; then
   done
 fi
 
-verbose && log_begin_msg "Executing udevtrigger again"
-/sbin/udevtrigger
-verbose && log_end_msg
+maybe_break post-mdadm
+
+case "$ROOT" in
+  /dev/disk/by-id/md-*)
+    MAXWAIT=10
+    if [ ! -L "$ROOT" ]; then
+      verbose && log_begin_msg "Waiting for udev array link to $ROOT "
+      while [ ! -L "$ROOT" ] && [ $MAXWAIT -gt 0 ]; do
+        verbose && echo -n . >&2
+        sleep 1
+        MAXWAIT=$((MAXWAIT - 1))
+      done
+
+      if [ ! -L "$ROOT" ]; then
+        verbose && log_failure_msg "timed out after $MAXWAIT seconds."
+        exit 1
+      else
+        verbose && log_success_msg "udev array link to $ROOT appeared."
+      fi
+    fi
+    ;;
+esac
 
 exit 0
