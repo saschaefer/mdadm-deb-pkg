@@ -1,26 +1,18 @@
 #!/bin/sh
 #
-# Copyright © 2006-2007 Martin F. Krafft <madduck@debian.org>
+# Copyright © 2006-2008 Martin F. Krafft <madduck@debian.org>
 # based on the scripts in the initramfs-tools package.
 # released under the terms of the Artistic Licence.
 #
 set -eu
 
-PREREQ="udev_helper"
-
-prereqs()
-{
-  echo "$PREREQ"
-}
-
 case ${1:-} in
-  prereqs)
-    prereqs
-    exit 0
-    ;;
+  prereqs) exit 0;;
 esac
 
 . /scripts/functions
+
+maybe_break pre-mdadm
 
 if [ -e /scripts/local-top/md ]; then
   log_warning_msg "old md initialisation script found, getting out of its way..."
@@ -41,7 +33,7 @@ verbose()
 
 MD_DEVS=all
 MD_MODULES='linear multipath raid0 raid1 raid456 raid5 raid6 raid10'
-[ -s /conf/md.conf ] && . /conf/md.conf
+[ -s /conf/conf.d/md ] && . /conf/conf.d/md
 
 verbose && log_begin_msg Loading MD modules
 for module in ${MD_MODULES:-}; do
@@ -81,7 +73,7 @@ fi
 echo 1 > /sys/module/md_mod/parameters/start_ro
 
 if [ "$MD_DEVS" = all ]; then
-  
+
   verbose && log_begin_msg "Assembling all MD arrays"
   extra_args=''
   [ -n "$MD_HOMEHOST" ] && \
@@ -107,8 +99,12 @@ elif [ "$MD_DEVS" != none ]; then
   done
 fi
 
-verbose && log_begin_msg "Executing udevtrigger again"
-/sbin/udevtrigger
-verbose && log_end_msg
+if [ -x "$(command -v udevsettle)" ]; then
+  verbose && log_begin_msg "Waiting for udev to process events"
+  udevsettle 10
+  verbose && log_end_msg
+fi
+
+maybe_break post-mdadm
 
 exit 0

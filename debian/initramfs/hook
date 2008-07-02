@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright © 2006-2007 Martin F. Krafft <madduck@debian.org>
+# Copyright © 2006-2008 Martin F. Krafft <madduck@debian.org>
 # based on the scripts in the initramfs-tools package.
 # released under the terms of the Artistic Licence.
 #
@@ -57,8 +57,8 @@ fi
 
 if [ -e /etc/initramfs-tools/hooks/md ]; then
   warn "I found /etc/initramfs-tools/hooks/md, which may conflict"
-  warn "with this version of mdadm. Please see /usr/share/doc/mdadm/README.mdrun"
-  warn "and /usr/share/initramfs-tools/hooks/mdadm for reference and update"
+  warn "with this version of mdadm. Please use"
+  warn "/usr/share/initramfs-tools/hooks/mdadm as reference and update"
   warn "(or remove) the file."
   exit 0
 fi
@@ -89,7 +89,7 @@ INITRDSTART=all
 [ -z "$INITRDSTART" ] && INITRDSTART=none
 
 DESTMDADMCONF=$DESTDIR/etc/mdadm/mdadm.conf
-DESTCONFIG=$DESTDIR/conf/md.conf
+DESTCONFIG=$DESTDIR/conf/conf.d/md
 
 # save the homehost for now, even if we don't use it yet
 if [ -f $CONFIG ]; then

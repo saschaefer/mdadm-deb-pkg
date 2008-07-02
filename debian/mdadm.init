@@ -3,10 +3,8 @@
 # Start the MD monitor daemon for all active MD arrays if desired.
 #
 # Copyright © 2001-2005 Mario Jou/3en <joussen@debian.org>
-# Copyright © 2005-2007 Martin F. Krafft <madduck@debian.org>
+# Copyright © 2005-2008 Martin F. Krafft <madduck@debian.org>
 # Distributable under the terms of the GNU GPL version 2.
-#
-# $Id$
 #
 ### BEGIN INIT INFO
 # Provides:          mdadm
@@ -21,7 +19,7 @@
 #                    administrator is alerted via email, or a custom script is
 #                    run.
 ### END INIT INFO
-
+#
 set -eu
 
 MDADM=/sbin/mdadm

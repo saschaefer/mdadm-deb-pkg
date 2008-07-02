@@ -1,11 +1,8 @@
 #! /bin/sh
 # Copyright © 2001,2002 Mario Jou/3en <joussen@debian.org>
-# Copyright © 2006-2007 Martin F. Krafft <madduck@debian.org>
+# Copyright © 2006-2008 Martin F. Krafft <madduck@debian.org>
 # Distributable under the terms of the GNU GPL version 2.
 #
-# $Id$
-#
-
 set -eu
 
 case "${1:-}" in

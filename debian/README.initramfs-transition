@@ -4,13 +4,13 @@ mdadm for Debian - initramfs transition
 If you are using monolithic kernels (no modules), you need not concern
 yourself with any of this.
 
-If you are using yaird or initrd-tools/mkinitrd, please see README.mdrun. The
-following information is irrelevant to you.
+If you are using yaird or initrd-tools/mkinitrd, then the following
+information is irrelevant to you.
 
 The following information is about #367567. The gist is that the hooks and
 scripts to take care of MD arrays (RAIDs) during boot with an initramfs have
 been improved and moved into the mdadm package. mdrun has been deprecated on
-the way (see README.mdrun).
+the way.
 
 initramfs-tools does *not* conflict with older mdadm but instead provides
 fallback code in case mdadm << 2.5-1 is installed (which does not provide the
@@ -48,5 +48,3 @@ don't want it overwritten.
 Again, please report success or failure to me.
 
  -- martin f. krafft <madduck@debian.org>  Mon, 23 Sep 2006 23:48:21 +0100
-
-$Id$

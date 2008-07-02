@@ -27,5 +27,3 @@ debian mdadm TODO list
   sentinels in $STATEDIR
 
 - manage DAEMON_OPTIONS with debconf
-
-$Id$

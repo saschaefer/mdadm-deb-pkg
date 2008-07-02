@@ -1,4 +1,2 @@
 version=3
-http://www.cse.unsw.edu.au/~neilb/source/mdadm/mdadm-([.[:digit:]]+).tgz
-
-# $Id$
+http://www.kernel.org/pub/linux/utils/raid/mdadm/mdadm-([.[:digit:]]+).tgz

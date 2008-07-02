@@ -5,9 +5,6 @@
 # Copyright © martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence 2.0
 #
-# $Id$
-#
-
 set -eu
 
 PROGNAME=${0##*/}

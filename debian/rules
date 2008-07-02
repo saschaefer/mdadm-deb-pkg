@@ -1,9 +1,7 @@
 #!/usr/bin/make -f
 # Copyright © 2001-2005 Mario Jou/3en <joussen@debian.org>
-# Copyright © 2005-2007 Martin F. Krafft <madduck@debian.org>
+# Copyright © 2005-2008 Martin F. Krafft <madduck@debian.org>
 # Distributable under the terms of the GNU GPL version 2.
-#
-# $Id$
 #
 
 #export DH_VERBOSE=1
@@ -61,10 +59,7 @@ install: build
 	dh_clean -k
 	dh_installdirs
 	install -m0755 mdadm $(DESTDIR)/sbin
-	install -m0755 debian/mdrun $(DESTDIR)/sbin
-
 	install -m0755 mdadm.udeb $(DESTDIR_UDEB)/sbin/mdadm
-	install -m0755 debian/mdrun $(DESTDIR_UDEB)/sbin
 
 	install -m0755 debian/initramfs/hook \
 		$(DESTDIR)/usr/share/initramfs-tools/hooks/mdadm
@@ -90,6 +85,7 @@ binary-arch: build install
 	dh_installexamples debian/newdisk
 	dh_installinit --init-script=mdadm-raid --no-start -- start 25 S . start 60 0 6 .
 	dh_installinit -- defaults 25
+	dh_installudev --priority=65 --name=vol_id
 	dh_installman
 	dh_installcron
 	dh_installchangelogs ChangeLog
