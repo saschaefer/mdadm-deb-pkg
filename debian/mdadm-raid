@@ -6,8 +6,6 @@
 # Copyright © 2005-2007 Martin F. Krafft <madduck@debian.org>
 # Distributable under the terms of the GNU GPL version 2.
 #
-# $Id$
-#
 ### BEGIN INIT INFO
 # Provides:          mdadm-raid
 # Required-Start:    mountkernfs
@@ -21,7 +19,7 @@
 #                    the settings in /etc/mdadm/mdadm.conf and the preferences
 #                    in /etc/default/mdadm.
 ### END INIT INFO
-
+#
 set -eu
 
 MDADM=/sbin/mdadm

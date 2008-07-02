@@ -19,5 +19,3 @@ However in the absence of read errors it is read-only.
 You can cancel a running array check with the -x option to checkarray.
 
  -- martin f. krafft <madduck@debian.org>  Mon, 08 Jan 2007 02:07:19 +0100
-
-$Id$

@@ -3,8 +3,6 @@
 # Copyright © 2005-2007 Martin F. Krafft <madduck@debian.org>
 # Distributable under the terms of the GNU GPL version 2.
 #
-# $Id$
-#
 
 #export DH_VERBOSE=1
 

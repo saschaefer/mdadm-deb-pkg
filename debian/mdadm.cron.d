@@ -4,8 +4,6 @@
 # Copyright © martin f. krafft <madduck@madduck.net>
 # distributed under the terms of the Artistic Licence 2.0
 #
-# $Id$
-#
 
 # By default, run at 00:57 on every Sunday, but do nothing unless the day of
 # the month is less than or equal to 7. Thus, only run on the first Sunday of
