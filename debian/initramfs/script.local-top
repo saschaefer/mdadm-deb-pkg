@@ -99,27 +99,12 @@ elif [ "$MD_DEVS" != none ]; then
   done
 fi
 
+if [ -x "$(command -v udevsettle)" ]; then
+  verbose && log_begin_msg "Waiting for udev to process events"
+  udevsettle 10
+  verbose && log_end_msg
+fi
+
 maybe_break post-mdadm
-
-case "$ROOT" in
-  /dev/disk/by-id/md-*)
-    MAXWAIT=10
-    if [ ! -L "$ROOT" ]; then
-      verbose && log_begin_msg "Waiting for udev array link to $ROOT "
-      while [ ! -L "$ROOT" ] && [ $MAXWAIT -gt 0 ]; do
-        verbose && echo -n . >&2
-        sleep 1
-        MAXWAIT=$((MAXWAIT - 1))
-      done
-
-      if [ ! -L "$ROOT" ]; then
-        verbose && log_failure_msg "timed out after $MAXWAIT seconds."
-        exit 1
-      else
-        verbose && log_success_msg "udev array link to $ROOT appeared."
-      fi
-    fi
-    ;;
-esac
 
 exit 0
