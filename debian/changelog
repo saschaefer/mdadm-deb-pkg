@@ -16,6 +16,36 @@ mdadm (2.6.7-1) unstable; urgency=low
 
  -- martin f. krafft <madduck@debian.org>  Wed, 25 Jun 2008 17:31:15 +0200
 
+mdadm (2.6.4-2ubuntu1) intrepid; urgency=low
+
+  * Merge from debian unstable, remaining changes:
+   * md activation:
+    - We now have a single udev rule for both the real system and the
+      initramfs, since doing things differently there will only result in bugs
+      and confusion.
+    - This rule runs "mdadm --assemble --scan --no-degraded", automatically
+      activating any non-degraded device as their components are detected.
+    - Drop the mdadm-raid init script, since this does the same thing.
+    - Also drop mdadm-startall which uses the mdadm-raid init script, and its
+      associated sgml file (thus dropping the build-dep on docbook-to-man)
+    - Simplify the configuration, since we always autostart all devices so do
+      not need to specify any required root devices, etc.
+    - Drop the deprecated mdrun entirely.
+    - Since udev autostarts arrays, much of the initramfs script can be
+      dropped.
+   * Install a new udev rule at 65 which runs vol_id on clean raid arrays.
+     This will cause lvm, etc. to be run (since there is vol_id information
+     present for the enclosed filesystem).
+   * Depend on initramfs-tools, specifically a version that doesn't ship
+     the mdrun script. and a version that supports the mountfail functionality,
+     see below. This way we can clean out a lot of the upgrade handling
+     from the initramfs hook.
+   * Just get initramfs to load the modules for us
+   * Create init-premount hook script for the initramfs, to provide
+     information at boot, if the root device is not functional.
+
+ -- Luke Yelavich <luke.yelavich@canonical.com>  Tue, 03 Jun 2008 14:59:18 +1000
+
 mdadm (2.6.4-2) unstable; urgency=low
 
   * Adjusted logcheck rules to follow kernel changes; thanks to Frédéric
@@ -55,6 +85,48 @@ mdadm (2.6.4-1) unstable; urgency=low
   * Bump Standards-Version to 3.7.3; no changes needed.
 
  -- martin f. krafft <madduck@debian.org>  Mon, 14 Jan 2008 12:47:14 +0100
+
+mdadm (2.6.3+200709292116+4450e59-3ubuntu3) hardy; urgency=low
+
+  * debian/initramfs/init-premount: Make sure the script exists when it is called
+    with mountfail.
+
+ -- Luke Yelavich <luke.yelavich@canonical.com>  Mon, 18 Feb 2008 12:10:40 +1100
+
+mdadm (2.6.3+200709292116+4450e59-3ubuntu2) hardy; urgency=low
+
+  * Create init-premount hook script for the initramfs, to provide
+    information at boot, if the root device is not functional.
+  * Tightened initramfs-tools dependency.
+
+ -- Luke Yelavich <themuso@ubuntu.com>  Tue, 05 Feb 2008 14:41:18 +1100
+
+mdadm (2.6.3+200709292116+4450e59-3ubuntu1) hardy; urgency=low
+
+  * Merge from debian unstable, remaining changes:
+   * md activation:
+    - We now have a single udev rule for both the real system and the
+      initramfs, since doing things differently there will only result in bugs
+      and confusion.
+    - This rule runs "mdadm --assemble --scan --no-degraded", automatically
+      activating any non-degraded device as their components are detected.
+    - Drop the mdadm-raid init script, since this does the same thing.
+    - Also drop mdadm-startall which uses the mdadm-raid init script, and its
+      associated sgml file (thus dropping the build-dep on docbook-to-man)
+    - Simplify the configuration, since we always autostart all devices so do
+      not need to specify any required root devices, etc.
+    - Drop the deprecated mdrun entirely.
+    - Since udev autostarts arrays, much of the initramfs script can be
+      dropped.
+   * Install a new udev rule at 65 which runs vol_id on clean raid arrays.
+     This will cause lvm, etc. to be run (since there is vol_id information
+     present for the enclosed filesystem).
+   * Depend on initramfs-tools, specifically a version that doesn't ship
+     the mdrun script.  This way we can clean out a lot of the upgrade handling
+     from the initramfs hook.
+   * Just get initramfs to load the modules for us
+
+ -- Scott James Remnant <scott@ubuntu.com>  Wed, 12 Dec 2007 22:35:09 +0000
 
 mdadm (2.6.3+200709292116+4450e59-3) unstable; urgency=low
 
@@ -107,6 +179,45 @@ mdadm (2.6.2-2) unstable; urgency=low
     Sackville-West for spotting this and helping me with the fix.
 
  -- martin f. krafft <madduck@debian.org>  Tue, 10 Jul 2007 09:59:45 +0200
+
+mdadm (2.6.2-1ubuntu2) gutsy; urgency=low
+
+  * Install 65-mdadm.vol_id.rules into the udeb so that we have UUID
+    symlinks in the installer.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Fri, 13 Jul 2007 10:13:51 +0100
+
+mdadm (2.6.2-1ubuntu1) gutsy; urgency=low
+
+  * Merge from debian unstable:
+    - various Debian and Ubuntu changes dropped in favour of the changes
+      outlined below.
+
+  * md activation:
+    - We now have a single udev rule for both the real system and the
+      initramfs, since doing things differently there will only result in bugs
+      and confusion.
+    - This rule runs "mdadm --assemble --scan --no-degraded", automatically
+      activating any non-degraded device as their components are detected.
+    - Drop the mdadm-raid init script, since this does the same thing.
+    - Also drop mdadm-startall which uses the mdadm-raid init script, and its
+      associated sgml file (thus dropping the build-dep on docbook-to-man)
+    - Simplify the configuration, since we always autostart all devices so do
+      not need to specify any required root devices, etc.
+    - Drop the deprecated mdrun entirely.
+    - Since udev autostarts arrays, much of the initramfs script can be
+      dropped.
+
+  * Install a new udev rule at 65 which runs vol_id on clean raid arrays.
+    This will cause lvm, etc. to be run (since there is vol_id information
+    present for the enclosed filesystem).
+
+  * Depend on initramfs-tools, specifically a version that doesn't ship
+    the mdrun script.  This way we can clean out a lot of the upgrade handling
+    from the initramfs hook.
+  * Just get initramfs to load the modules for us
+
+ -- Scott James Remnant <scott@ubuntu.com>  Wed, 11 Jul 2007 10:31:39 +0100
 
 mdadm (2.6.2-1) unstable; urgency=low
 
@@ -196,6 +307,47 @@ mdadm (2.5.6-8) unstable; urgency=low
 
  -- martin f. krafft <madduck@debian.org>  Mon,  8 Jan 2007 02:04:25 +0100
 
+mdadm (2.5.6-7ubuntu5) feisty; urgency=low
+
+  * Rename 70-mdadm.rules to 85-mdadm.rules
+
+ -- Scott James Remnant <scott@ubuntu.com>  Fri, 30 Mar 2007 18:04:30 +0100
+
+mdadm (2.5.6-7ubuntu4) feisty; urgency=low
+
+  * Specify --no-degraded argument to mdadm in initramfs; this
+    can be overridden by setting MD_DEGRADED_ARGS to some nonempty value
+    (eg, a single space).  This ought to fix race problems where RAIDs are
+    assembled in degraded mode far too much. (LP #75681 and many dupes.)
+
+ -- Ian Jackson <iwj@ubuntu.com>  Mon, 12 Feb 2007 18:14:39 +0000
+
+mdadm (2.5.6-7ubuntu3) feisty; urgency=low
+
+  * Provide udev rules for md devices, to run mdadm -As.
+  * Rerun local-top in initramfs at relevant points when md devices seen,
+    from udev.  (Instead of the normal rule, above.)  This is a bit
+    heavyweight but at least it means that all of the existing logic for
+    deciding which arrays to activate should still work.
+  * Revert 2.5.6-7ubuntu2.  This udev-event-based approach is the correct
+    fix.
+
+ -- Ian Jackson <iwj@ubuntu.com>  Tue,  6 Feb 2007 22:07:25 +0000
+
+mdadm (2.5.6-7ubuntu2) feisty; urgency=low
+
+  * Make sure to call udevsettle in the initramfs script so devices have a
+    chance of appearing.
+
+ -- Tollef Fog Heen <tfheen@ubuntu.com>  Tue,  6 Feb 2007 15:31:25 +0100
+
+mdadm (2.5.6-7ubuntu1) feisty; urgency=low
+
+  * Merge from debian unstable, remaining changes:
+    - same as 2.5.6-6ubuntu1.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Sun, 17 Dec 2006 21:37:23 -0800
+
 mdadm (2.5.6-7) unstable; urgency=low
 
   * Only parse ARRAY lines from configuration file when collecting the array
@@ -215,6 +367,24 @@ mdadm (2.5.6-7) unstable; urgency=low
 
  -- martin f. krafft <madduck@debian.org>  Tue, 12 Dec 2006 11:49:52 +0100
 
+mdadm (2.5.6-6ubuntu1) feisty; urgency=low
+  
+  * Merge from debian unstable:
+    * debian/control: Depends: udev (>= 0.79-0ubuntu22).
+      (see 1.12.0-1ubuntu4)
+    * debian/mdadm.postinst: clean up mdadm-raid rcS.d symlinks.
+      (see 1.12.0-1ubuntu2)
+    * debian/mdadm-raid: log_problem -> log_dev change (workaround that needs
+      to be reverted).
+      (see 2.5.5-1ubuntu2)
+    * use lstat in mdopen.c.
+      (see 2.4.1-6ubuntu1)
+    * debian/mdrun: mknod only if devices have not been created yet.
+    * debian/initramfs/hook: prereq udev.
+    * debian/initramfs/script.local-top: prereq udev instead of udev_helper.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Tue, 21 Nov 2006 06:41:32 +0100
+
 mdadm (2.5.6-6) unstable; urgency=medium
 
   * Fixed a typo in the debconf control script which would cause failures with
@@ -222,6 +392,21 @@ mdadm (2.5.6-6) unstable; urgency=medium
     Andreas Metzeler for providing a solution (closes: #399315).
 
  -- martin f. krafft <madduck@debian.org>  Mon, 20 Nov 2006 15:02:34 +0800
+
+mdadm (2.5.6-5ubuntu2) feisty; urgency=low
+
+  * Use bash in maintainer scripts:
+    * mdadm.config requires it at the moment due to "echo -e" usage that is
+      not standard across all shell implementations.
+    * mdadm.* for failsafe.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Tue, 21 Nov 2006 06:15:04 +0100
+
+mdadm (2.5.6-5ubuntu1) feisty; urgency=low
+
+  * Merge from debian unstable.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Mon, 20 Nov 2006 06:56:19 +0100
 
 mdadm (2.5.6-5) unstable; urgency=low
 
@@ -270,6 +455,20 @@ mdadm (2.5.6-1) unstable; urgency=low
     (closes: #396400).
 
  -- martin f. krafft <madduck@debian.org>  Thu,  9 Nov 2006 00:47:45 +0100
+
+mdadm (2.5.5-1ubuntu2) feisty; urgency=low
+
+  * Make mdadm-raid not to fail if executed and there are no raids to start,
+    ya know.. we might want to install or upgrade before creating 31337 raid
+    devices.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Thu, 16 Nov 2006 11:53:09 -0800
+
+mdadm (2.5.5-1ubuntu1) feisty; urgency=low
+
+  * Merge from debian unstable.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Wed, 15 Nov 2006 12:35:19 -0800
 
 mdadm (2.5.5-1) unstable; urgency=low
 
@@ -754,6 +953,108 @@ mdadm (2.5-1) experimental; urgency=low
 
  -- martin f. krafft <madduck@debian.org>  Thu,  1 Jun 2006 02:20:22 +0200
 
+mdadm (2.4.1-6ubuntu5) edgy; urgency=low
+  
+  * Modify initrafms scripts to wait for devices to appear if they are not there
+    yet when the script is executed on boot:
+    - copy generated mdadm.conf in the initramfs (we need the UUIDs)
+    - modify local-top script to wait for all UUIDs to appear before executing
+      mdrun or wait a max of 3 minutes before giving up.
+  (Closes Ubuntu: #52740)
+
+  As a side effects of the above fix:
+  
+  * Avoid FileSystem corruption if root is on lvm on raid and raid is not
+    started. LVM will find the devices that are part of the raid and use them
+    bringing the data off-sync.
+
+  Limitations:
+
+  * It might require initramfs updates if raid UUIDs are changed. This is
+    a rare corner case of relocating raids and usually who does that knows
+    what he is doing.
+
+  * We do not check if all devices for a certain raids are available but
+    the machine might be booting in degraded mode for recovery and we
+    shouldn't be blocking on that. Given that there is no way to know that
+    this check will not be performed.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Tue, 26 Sep 2006 09:56:01 +0200
+
+mdadm (2.4.1-6ubuntu4) edgy; urgency=low
+  
+  * Do not invoke init scripts with -u. Fixes dist upgrade from dapper to edgy
+    mostlikely caused by /bin/sh pointing to dash.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Thu, 21 Sep 2006 20:09:41 +0200
+
+mdadm (2.4.1-6ubuntu3) edgy; urgency=low
+  
+  * Do not attempt to stop raids on upgrade.
+  (Closes Ubuntu: #60623)
+
+  * Make sure to update the initramfs in postinst and postrm.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Mon, 18 Sep 2006 06:02:31 +0200
+
+mdadm (2.4.1-6ubuntu2) edgy; urgency=low
+  
+  * Fix md local-top script to kick udev a bit harder to make sure that
+    disk/by-uuid will have md devices too or root on md* will break.
+  (Closes Ubuntu: #57607)
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Thu, 14 Sep 2006 12:10:04 +0200
+
+mdadm (2.4.1-6ubuntu1) edgy; urgency=low
+
+  * Merge from debian unstable, remaining changes:
+    - integration with initramfs-tools,
+    - autocreate devices when udev is in use,
+    - use lstat in mdopen.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Tue, 11 Jul 2006 17:23:21 +0100
+
+mdadm (2.4.1-6) unstable; urgency=low
+
+  * The "Larry Wall doesn't use strict;" release.
+  * Recommends mail-transport-agent, or the monitor daemon won't be able to
+    send anything.
+  * Ignores failures from modprobe in postinst when RAID modules are not
+    available (closes: #370582).
+
+ -- martin f. krafft <madduck@debian.org>  Tue,  6 Jun 2006 12:45:41 +0200
+
+mdadm (2.4.1-5) unstable; urgency=low
+
+  * The "never check for errors you don't know how to handle" release.
+  * Now does not require RAID support from the kernel just for package
+    installation; that was silly of me, sorry (closes: Bug#370115).
+  * Instead of backporting single init.d fixes from the 2.5/experimental
+    package, I backported both init.d scripts and therewith added
+    LSB-compliant output and major improvements to the scripts. Enjoy.
+
+ -- martin f. krafft <madduck@debian.org>  Sat,  3 Jun 2006 20:38:51 +0200
+
+mdadm (2.4.1-4) unstable; urgency=low
+
+  * Work around a minor debconf bug related to strict variable handling (see
+    #369953, fixes: Bug#369935).
+  * Fixes a typo in postinst script (closes: Bug#369935, Bug#369954).
+
+ -- martin f. krafft <madduck@debian.org>  Fri,  2 Jun 2006 15:01:58 +0200
+
+mdadm (2.4.1-3) unstable; urgency=low
+
+  * Bug-fix release for unstable only; changes will be folded into the next
+    experimental release.
+  * Added a patch (incorporating lib/mm/xlate.h from lvm2) to prevent direct
+    access to kernel headers from userspace (closes: Bug#369765).
+  * Disabled strict aliasing compiler checks until we find a better
+    implementation for linked lists in C (closes: Bug#369779, Bug#356153).
+  * Really decreased the size of the udeb mdadm binary (closes: Bug#314370).
+
+ -- martin f. krafft <madduck@debian.org>  Thu,  1 Jun 2006 13:12:44 +0200
+
 mdadm (2.4.1-2) unstable; urgency=low
 
   * The "this took way longer than I thought" release.
@@ -807,6 +1108,42 @@ mdadm (2.4.1-1) experimental; urgency=low
 
  -- martin f. krafft <madduck@debian.org>  Tue, 16 May 2006 18:21:36 -0500
 
+mdadm (1.12.0-1ubuntu5) dapper; urgency=low
+
+  * Ship a hook for initramfs-tools as well, so we don't need to copy_exec
+    from mkinitramfs itself anymore for scripts it doesn't ship.
+  * Add a versioned conflict against versions of initramfs-tools that
+    didn't have a "check if the hook exists before running our own version
+    and exploding" check, so that upgrades don't fail as a result of this.
+
+ -- Adam Conrad <adconrad@ubuntu.com>  Tue, 16 May 2006 16:31:07 +1000
+
+mdadm (1.12.0-1ubuntu4) dapper; urgency=low
+
+  * Declare a versioned-dependency on udev with the local-top script,
+    just in case someone tries a partial upgrade.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Fri,  7 Apr 2006 14:56:35 +0100
+
+mdadm (1.12.0-1ubuntu3) dapper; urgency=low
+
+  * Ship the initramfs script ourselves.
+
+ -- Scott James Remnant <scott@ubuntu.com>  Thu, 23 Mar 2006 18:02:42 +0000
+
+mdadm (1.12.0-1ubuntu2) dapper; urgency=low
+
+  * Move mdadm-raid init script to S25, so it happens before other filesystems
+    are mounted but after /dev is actually available
+
+ -- Scott James Remnant <scott@ubuntu.com>  Wed,  4 Jan 2006 17:05:49 +0000
+
+mdadm (1.12.0-1ubuntu1) dapper; urgency=low
+
+  * Resyncronize with Debian.
+
+ -- Fabio M. Di Nitto <fabbione@ubuntu.com>  Mon, 28 Nov 2005 07:35:36 +0100
+
 mdadm (1.12.0-1) unstable; urgency=low
 
   * New upstream release.
@@ -815,6 +1152,12 @@ mdadm (1.12.0-1) unstable; urgency=low
   * Fixed typo in mdadm.conf(5) manpage (closes: Bug#321152).
 
  -- martin f. krafft <madduck@debian.org>  Sun, 24 Jul 2005 19:20:01 +0200
+
+mdadm (1.11.0-0ubuntu1) breezy; urgency=low
+
+  * New Upstream Release, fixes segfault with --config=partitions
+
+ -- Jeff Bailey <jbailey@ubuntu.com>  Wed,  8 Jun 2005 00:33:00 +0000
 
 mdadm (1.9.0-5) unstable; urgency=low
 
@@ -901,6 +1244,12 @@ mdadm (1.9.0-2.2) unstable; urgency=high
 
  -- martin f. krafft <madduck@debian.org>  Sun, 22 May 2005 12:57:56 +0200
 
+mdadm (1.9.0-2.1ubuntu1) breezy; urgency=low
+
+  * Merge Debian changes (#9476).
+
+ -- Martin Pitt <martin.pitt@ubuntu.com>  Fri, 15 Apr 2005 10:29:03 +0200
+
 mdadm (1.9.0-2.1) unstable; urgency=high
 
   * Non-maintainer upload.
@@ -929,6 +1278,12 @@ mdadm (1.9.0-2) unstable; urgency=low
 
  -- Mario Joussen <joussen@debian.org>  Sun,  6 Mar 2005 14:22:24 +0100
 
+mdadm (1.9.0-1ubuntu2) hoary; urgency=low
+
+  * Fix /dev/md/* handling in check for standard md device names.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Thu, 24 Feb 2005 14:19:21 +0000
+
 mdadm (1.9.0-1) unstable; urgency=high
 
   * New upstream release.
@@ -940,6 +1295,31 @@ mdadm (1.9.0-1) unstable; urgency=high
     (closes: Bug#287638)
 
  -- Mario Joussen <joussen@debian.org>  Sun,  6 Feb 2005 12:25:03 +0100
+
+mdadm (1.8.1-1ubuntu3) hoary; urgency=low
+
+  * debian/mdrun:
+    - Remove Ubuntu-specific 'shift' in the /.dev case that broke at least
+      with busybox sh.
+    - $BASE was being unnecessarily set twice if $AUTOCREATE, and the second
+      time this overwrote the previous check for a /dev/md directory; remove
+      the duplication.
+
+ -- Colin Watson <cjwatson@ubuntu.com>  Tue, 15 Feb 2005 19:31:59 +0000
+
+mdadm (1.8.1-1ubuntu2) hoary; urgency=low
+
+  * debian/mdadm.init:
+    - Only run if md devices are present, whether they're active for not.
+      Fixes Ubuntu bug #966.
+
+ -- Jeff Waugh <jeff.waugh@canonical.com>  Sat, 15 Jan 2005 10:00:29 +1100
+
+mdadm (1.8.1-1ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Scott James Remnant <scott@canonical.com>  Tue, 28 Dec 2004 12:46:44 +0000
 
 mdadm (1.8.1-1) unstable; urgency=low
 
@@ -954,6 +1334,12 @@ mdadm (1.8.1-1) unstable; urgency=low
   * Fixed missing variable initialization causing segfaults.
 
  -- Mario Joussen <joussen@debian.org>  Sun, 26 Dec 2004 14:44:31 +0100
+
+mdadm (1.7.0-2ubuntu1) hoary; urgency=low
+
+  * Resynchronise with Debian.
+
+ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Fri, 29 Oct 2004 14:10:44 +0200
 
 mdadm (1.7.0-2) unstable; urgency=high
 
@@ -1020,6 +1406,44 @@ mdadm (1.6.0-1) unstable; urgency=low
     (closes: Bug#253339)
 
  -- Mario Joussen <joussen@debian.org>  Tue, 20 Jul 2004 21:40:33 +0200
+
+mdadm (1.5.0-2ubuntu6) warty; urgency=low
+
+  * Respect users modification preseeding configuration answers
+    in mdadm.config. (Closes: #1916/#274208)
+
+ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Fri, 01 Oct 2004 06:23:38 +0200
+
+mdadm (1.5.0-2ubuntu5) warty; urgency=low
+
+  * Added versioned depend on lsb-base
+
+ -- Nathaniel McCallum <npmccallum@canonical.com>  Fri,  3 Sep 2004 14:56:45-0400
+
+mdadm (1.5.0-2ubuntu4) warty; urgency=low
+
+  * debian/mdadm-raid,mdadm.init: pretty initscripts
+
+ -- Nathaniel McCallum <npmccallum@canonical.com>  Fri,  3 Sep 2004 11:13:25-0400
+
+mdadm (1.5.0-2ubuntu3) warty; urgency=low
+
+  * Don't try to create device nodes which already exist
+
+ -- Matt Zimmerman <mdz@alcor.net>  Wed, 25 Aug 2004 09:10:38 -0700
+
+mdadm (1.5.0-2ubuntu2) warty; urgency=low
+
+  * Fix mdrun <-> udev interaction. (Closes: #259491/#486)
+
+ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Thu, 12 Aug 2004 18:00:51 +0200
+
+mdadm (1.5.0-2ubuntu1) warty; urgency=low
+
+  * Add little kludge to fix mdrun for kernel 2.6
+    (Closes: #231823)
+
+ -- Fabio M. Di Nitto <fabbione@fabbione.net>  Tue, 29 Jun 2004 09:50:59 +0200
 
 mdadm (1.5.0-2) unstable; urgency=low
 
@@ -1178,3 +1602,8 @@ mdctl (0.5-1) unstable; urgency=low
     (closes: Bug#126610)
 
  -- Mario Joussen <mario@joussen.org>  Wed, 26 Dec 2001 17:07:09 +0100
+
+Local variables:
+mode: debian-changelog
+End:
+

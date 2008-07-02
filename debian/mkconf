@@ -15,6 +15,8 @@ MDADM=/sbin/mdadm
 DEBIANCONFIG=/etc/default/mdadm
 CONFIG=/etc/mdadm/mdadm.conf
 
+PROGRAM=
+
 test -r $DEBIANCONFIG && . $DEBIANCONFIG
 
 if [ -n "${MDADM_MAILADDR__:-}" ]; then

@@ -1,0 +1,48 @@
+#!/bin/sh
+
+# init-premount script for mdadm.
+
+PREREQS="udev"
+
+prereqs()
+{
+	echo $PREREQS
+}
+
+mountroot_fail()
+{
+	if ! mdadm --misc --scan --detail 2> /dev/null ; then
+		cat <<EOF
+There appears to be one or more degraded RAID devices, and your root device
+may depend on the RAID devices being online. One or more of the following RAID
+devices are degraded:
+EOF
+		cat /proc/mdstat
+
+		cat <<EOF
+If you want to attempt to boot with the RAID in degraded mode, type:
+  mdadm -R /dev/mdX
+where X is the number of the md device listed above.
+EOF
+		exit 1
+	fi
+}
+
+case $1 in
+# get pre-requisites
+prereqs)
+	prereqs
+	exit 0
+	;;
+mountfail)
+	mountroot_fail
+	exit 0
+	;;
+esac
+
+. /scripts/functions
+
+add_mountroot_fail_hook
+
+exit 0
+ 

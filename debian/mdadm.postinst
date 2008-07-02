@@ -77,10 +77,6 @@ case "${1:-}" in
     fi
     unset MDADM_MAILADDR__
 
-    db_get mdadm/initrdstart
-    INITRDSTART="${RET:-all}"
-    db_get mdadm/autostart
-    AUTOSTART="${RET:-true}"
     db_get mdadm/autocheck
     AUTOCHECK="${RET:-true}"
     db_get mdadm/start_daemon
@@ -96,17 +92,6 @@ case "${1:-}" in
 # Do note that only the values are preserved; the rest of the file is
 # rewritten.
 #
-
-# INITRDSTART:
-#   list of arrays (or 'all') to start automatically when the initial ramdisk
-#   loads. This list *must* include the array holding your root filesystem. Use
-#   'none' to prevent any array from being started from the initial ramdisk.
-INITRDSTART='$INITRDSTART'
-
-# AUTOSTART:
-#   should mdadm start arrays listed in /etc/mdadm/mdadm.conf automatically
-#   during boot?
-AUTOSTART=$AUTOSTART
 
 # AUTOCHECK:
 #   should mdadm run periodic redundancy checks over your arrays? See
@@ -129,12 +114,6 @@ VERBOSE=${VERBOSE:-false}
 # MAIL_TO:
 #   this variable is now managed in /etc/mdadm/mdadm.conf (MAILADDR).
 #   Please see mdadm.conf(5).
-
-# USE_DEPRECATED_MDRUN:
-#   mdrun is deprecated. If you still want to use it without a warning, set
-#   the following to true.
-#
-USE_DEPRECATED_MDRUN=${USE_DEPRECATED_MDRUN:-false}
 _eof
 
     db_stop
@@ -161,40 +140,14 @@ _eof
       fi
     fi
 
-    command -v update-initramfs >/dev/null 2>&1 && update-initramfs -u
+    # Remove old init script
+    update-rc.d mdadm-raid remove
+
+    update-initramfs -u
     ;;
 esac
-
-# remove S04 installed as a fix to #294404 as it does not work
-# we only remove the startup links if the previous version was 1.9.0-2.1 (the
-# one with the erroneous fix) and the S04 link exists to make sure that
-# chances are minimised to overwrite admin changes (even though this would
-# not affect woody upgraders)
-if [ "${1:-}" = "configure" ] && [ "${2:-}" = "1.9.0-2.1" ] \
-   && test -L /etc/rcS.d/S04mdadm-raid;
-then 
-  update-rc.d -f mdadm-raid remove
-fi
-
-if [ "${1:-}" = "configure" ] && dpkg --compare-versions ${2:-2.6.7-1} lt 2.6.7-1; then
-  # stop RAIDs a bit later, see #486012
-  for i in 0 6; do
-    test -L /etc/rc${i}.d/S50mdadm-raid && test ! -L /etc/rc${i}.d/S60mdadm-raid \
-      && mv /etc/rc${i}.d/S50mdadm-raid /etc/rc${i}.d/S60mdadm-raid
-  done
-fi
 
 # See #369953
 set +u
 #DEBHELPER#
 set -u
-
-# do start mdadm-raid, but don't use dh_installinit to do so, to prevent
-# stopping raids on remove/upgrade.
-if [ -x /etc/init.d/mdadm-raid ]; then
-  if [ -x "$(command -v invoke-rc.d)" ]; then
-    invoke-rc.d mdadm-raid start || exit $?
-  else
-    /etc/init.d/mdadm-raid start || exit $?
-  fi
-fi
