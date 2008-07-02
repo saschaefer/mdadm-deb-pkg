@@ -34,10 +34,9 @@ _eof
 # apt-get update; apt-get upgrade
 ---8<---
 
-Alternatively, you can just download the package for i386[0] or amd64[1]:
+Alternatively, you can just download the packages from the pool[0].
 
-  0. http://debian.madduck.net/repo/dists/sid/main/binary-i386/admin/
-  1. http://debian.madduck.net/repo/dists/sid/main/binary-amd64/admin/
+  0. http://debian.madduck.net/repo/pool/main/m/mdadm
 
 If you're running etch and are willing to test, that would be great! I've
 prepared backports, which you can use like so:
@@ -69,21 +68,19 @@ _eof
 ---8<---
 
 For sarge, just replace each occurrence of etch with sarge (s/etch/sarge/g),
-and add the debconf and lsb-base backports from backports.org [2]; see also
+and add the debconf and lsb-base backports from backports.org[1]; see also
 further down for direct links):
 
-  2. http://backports.org/dokuwiki/doku.php?id=instructions
+  1. http://backports.org/dokuwiki/doku.php?id=instructions
 
-The mdadm backport can also be directly downloaded for i386[3] or amd64[4],
-the needed debconf[5] and lsb-base[6] reside in the backports.org archive.
+The mdadm backport can also be directly downloaded from the above pool[0]
+the needed debconf[2] and lsb-base[3] reside in the backports.org archive.
 
-  3. http://debian.madduck.net/repo/dists/etch-backports/main/binary-i386/admin/
-  4. http://debian.madduck.net/repo/dists/etch-backports/main/binary-amd64/admin/
-  5. http://backports.org/debian/pool/main/d/debconf/
-  6. http://backports.org/debian/pool/main/l/lsb/
+  2. http://backports.org/debian/pool/main/d/debconf/
+  3. http://backports.org/debian/pool/main/l/lsb/
 
 Much appreciated!
 
- -- martin f. krafft <madduck@debian.org>  Thu, 09 Nov 2006 16:16:21 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed, 02 Jul 2008 11:10:02 +0200
 
 $Id$
