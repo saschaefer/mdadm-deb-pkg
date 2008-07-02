@@ -4,6 +4,7 @@ mdadm (2.6.7-2) unstable; urgency=low
   * Import udev vol_id handling from Ubuntu, and thus finally export
     /dev/disk/by-id/* and /dev/disk/by-uuid symlinks (closes: #435983).
   * Update upstream URLs in copyright and watch file (closes: #488364).
+  * Bump Standards-Version to 3.8.0; no changes required.
 
  -- martin f. krafft <madduck@debian.org>  Wed, 02 Jul 2008 11:13:18 +0200
 
