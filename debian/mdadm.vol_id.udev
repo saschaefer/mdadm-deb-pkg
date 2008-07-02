@@ -1,6 +1,7 @@
-# This file causes Linux RAID (mdadm) block devices to be checked for
-# further filesystems if the array is active.
-# See udev(8) for syntax
+# This file causes Linux RAID (md) block devices to be checked for further
+# filesystems if the array is active. See udev(8) for syntax.
+#
+# Based on Suse's udev rule file for md
 
 SUBSYSTEM!="block", GOTO="mdadm_end"
 KERNEL!="md[0-9]*", GOTO="mdadm_end"
@@ -16,7 +17,7 @@ ENV{MD_UUID}=="?*", SYMLINK+="disk/by-id/md-uuid-$env{MD_UUID}"
 
 # by-uuid and by-label symlinks
 IMPORT{program}="vol_id --export $tempnode"
-OPTIONS="link_priority=-100"
+OPTIONS="link_priority=100"
 ENV{ID_FS_USAGE}=="filesystem|other|crypto", ENV{ID_FS_UUID_ENC}=="?*", \
                        SYMLINK+="disk/by-uuid/$env{ID_FS_UUID_ENC}"
 ENV{ID_FS_USAGE}=="filesystem|other", ENV{ID_FS_LABEL_ENC}=="?*", \

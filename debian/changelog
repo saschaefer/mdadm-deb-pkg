@@ -1,7 +1,7 @@
 mdadm (2.6.7-2) unstable; urgency=low
 
   * Remove mdrun completely.
-  * Import udev vol_id handling from Ubuntu, and thus finally export
+  * Import udev vol_id handling from Suse, and thus finally export
     /dev/disk/by-id/* and /dev/disk/by-uuid symlinks (closes: #435983).
   * Update upstream URLs in copyright and watch file (closes: #488364).
   * Bump Standards-Version to 3.8.0; no changes required.
