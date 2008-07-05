@@ -3,8 +3,8 @@ mdadm (2.6.7-2) unstable; urgency=low
   /dev/disk symlinks:
     mdadm now creates symlinks in /dev/disk/by-id, using the template
     md-uuid-* for the array UUIDs and md-name-* for any names assigned to
-    arrays (version-1 superblocks only). Thanks to Ubuntu, where I swiped the
-    udev rules file.
+    arrays (version-1 superblocks only). Thanks to Suse for the udev rules
+    file.
 
   mdrun removed:
     This version also removes mdrun once and for all. If you are still using
