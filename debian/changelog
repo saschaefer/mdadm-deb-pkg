@@ -1,3 +1,10 @@
+mdadm (2.6.7-3) unstable; urgency=low
+
+  * Correct credits in the NEWS file: Suse authored the udev rules, not Ubuntu
+    (who use the same file without credit).
+
+ -- martin f. krafft <madduck@debian.org>  Sat, 05 Jul 2008 12:22:58 +0200
+
 mdadm (2.6.7-2) unstable; urgency=low
 
   * Remove mdrun completely.
