@@ -29,6 +29,7 @@
 
 #include	"mdadm.h"
 #include	<ctype.h>
+#include	<assert.h>
 
 static int name_matches(char *found, char *required, char *homehost)
 {
@@ -384,11 +385,15 @@ int Assemble(struct supertype *st, char *mddev, int mdfd,
 		st->ss->getinfo_super(st, &info);
 		c = strchr(info.name, ':');
 		if (c) c++; else c= info.name;
-		if (isdigit(*c) && ((ident->autof & 7)==4 || (ident->autof&7)==6))
+		if (isdigit(*c) && ((ident->autof & 7)==4 || (ident->autof&7)==6)) {
 			/* /dev/md/d0 style for partitionable */
-			asprintf(&mddev, "/dev/md/d%s", c);
-		else
-			asprintf(&mddev, "/dev/md/%s", c);
+			int ret = asprintf(&mddev, "/dev/md/d%s", c);
+			assert(ret >= 0);
+		}
+		else {
+			int ret = asprintf(&mddev, "/dev/md/%s", c);
+			assert(ret >= 0);
+		}
 		mdfd = open_mddev(mddev, ident->autof);
 		if (mdfd < 0) {
 			st->ss->free_super(st);

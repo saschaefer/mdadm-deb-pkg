@@ -35,6 +35,7 @@
 #include	<ctype.h>
 #include	<pwd.h>
 #include	<grp.h>
+#include	<assert.h>
 
 /*
  * Read the config file
@@ -559,7 +560,8 @@ void mailfromline(char *line)
 			alert_mail_from = strdup(w);
 		else {
 			char *t= NULL;
-			asprintf(&t, "%s %s", alert_mail_from, w);
+			int ret = asprintf(&t, "%s %s", alert_mail_from, w);
+			assert(ret >= 0);
 			free(alert_mail_from);
 			alert_mail_from = t;
 		}
