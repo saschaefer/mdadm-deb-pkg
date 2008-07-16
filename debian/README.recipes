@@ -102,12 +102,15 @@ The latest version of this document is available here:
     mount /dev/md0 /home    # also change /etc/fstab
     mdadm --add /dev/md0 /dev/sda1
 
+    Warren Togami has a document explaining how to convert a filesystem on
+    a remote system via SSH: http://togami.com/~warren/guides/remoteraidcrazies/
+
 10b. convert existing filesystem to RAID 1 in-place
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     In-place conversion of /dev/sda1 to /dev/md0 is effectively
       mdadm --create /dev/md0 -l1 -n2 /dev/sda1 missing
     however, do NOT do this, as you risk filesystem corruption.
-  
+
     If you need to do this, first unmount and shrink the filesystem by
     a megabyte (if supported). Then run the above command, then (optionally)
     again grow the filesystem as much as possible.
