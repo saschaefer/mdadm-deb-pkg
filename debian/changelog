@@ -3,6 +3,8 @@ mdadm (2.6.7-4) unstable; urgency=low
   * Add David Pashley's Rebuilding RAID blog post.
   * Add new (bugfix) version 1.40 of the newdisk script
     (/usr/share/doc/mdadm/examples/newdisk.gz) (closes: #490955).
+  * Add link to Warren Togami's writeup about remote RAID-1 conversion to
+    README.recipes.
 
  -- martin f. krafft <madduck@debian.org>  Sat, 12 Jul 2008 23:37:20 +0200
 
