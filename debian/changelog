@@ -5,8 +5,10 @@ mdadm (2.6.7-4) unstable; urgency=low
     (/usr/share/doc/mdadm/examples/newdisk.gz) (closes: #490955).
   * Add link to Warren Togami's writeup about remote RAID-1 conversion to
     README.recipes.
+  * Updated debconf translations:
+    - Swedish by Martin Ågren (closes: #492074).
 
- -- martin f. krafft <madduck@debian.org>  Sat, 12 Jul 2008 23:37:20 +0200
+ -- martin f. krafft <madduck@debian.org>  Wed, 23 Jul 2008 20:12:28 +0200
 
 mdadm (2.6.7-3) unstable; urgency=low
 

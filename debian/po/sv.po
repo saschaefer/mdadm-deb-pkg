@@ -1,3 +1,4 @@
+# translation of mdadm_2.6.7-3_sv.po to Swedish
 # Translators, if you are not familiar with the PO format, gettext
 # documentation is worth reading, especially sections dedicated to
 # this format, e.g. by running:
@@ -7,44 +8,37 @@
 # /usr/share/doc/po-debconf/README-trans
 # or http://www.debian.org/intl/l10n/po-debconf/README-trans
 # Developers do not need to manually edit POT or PO files.
-# , fuzzy
 #
-#
+# Martin Ågren <martin.agren@gmail.com>, 2008.
 msgid ""
 msgstr ""
-"Project-Id-Version: mdadm 1.12.0-1\n"
+"Project-Id-Version: mdadm_2.6.7-3_sv\n"
 "Report-Msgid-Bugs-To: mdadm@packages.debian.org\n"
 "POT-Creation-Date: 2008-04-11 15:03+0200\n"
-"PO-Revision-Date: 2006-09-23 16:37+0100\n"
-"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
-"Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
+"PO-Revision-Date: 2008-07-23 18:34+0200\n"
+"Last-Translator: Martin Ågren <martin.agren@gmail.com>\n"
+"Language-Team: Swedish <debian-l10n-swedish@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=iso-8859-1\n"
+"Content-Type: text/plain; charset=ISO-8859-1\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms:  nplurals=2; plural=(n != 1);\n"
 
 #. Type: string
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
-#| msgid "MD arrays needed for the root filesystem:"
 msgid "MD arrays needed for the root file system:"
 msgstr "MD-kedjor som behövs för rotfilsystemet:"
 
 #. Type: string
 #. Description
 #: ../mdadm.templates:2001
-#, fuzzy
-#| msgid ""
-#| "Please enter a space-separated list of devices, 'all', or 'none'. You may "
-#| "omit the leading '/dev/' and just enter e.g. \"md0 md1\", or \"md/1 md/d0"
-#| "\"."
 msgid ""
 "Please enter 'all', 'none', or a space-separated list of devices such as "
 "'md0 md1' or 'md/1 md/d0' (the leading '/dev/' can be omitted)."
 msgstr ""
-"Ange en blankstegsseparerad lista på enheter, \"all\" eller \"none\". Du kan "
-"utesluta den inledande \"/dev\" och bara ange t.ex. \"md0 md1\", eller "
-"\"md/1 md/d0\"."
+"Ange \"all\", \"none\" eller en blankstegsseparerad lista på enheter, såsom "
+"\"md0 md1\" eller \"md/1 md/0\" (det inledande \"/dev\" kan uteslutas)."
 
 #. Type: text
 #. Description
@@ -55,12 +49,6 @@ msgstr "för intern användning - endast den långa beskrivningen behövs."
 #. Type: text
 #. Description
 #: ../mdadm.templates:3001
-#, fuzzy
-#| msgid ""
-#| "If your system has its root filesystem on an MD array (RAID), it needs to "
-#| "be started early during the boot sequence. If your root filesystem is on "
-#| "a logical volume (LVM), which is on MD, all constituent arrays need to be "
-#| "started."
 msgid ""
 "If the system's root file system is located on an MD array (RAID), it needs "
 "to be started early during the boot sequence. If it is located on a logical "
@@ -74,12 +62,6 @@ msgstr ""
 #. Type: text
 #. Description
 #: ../mdadm.templates:3001
-#, fuzzy
-#| msgid ""
-#| "If you know exactly which arrays are needed to bring up the root "
-#| "filesystem, and you want to postpone starting all other arrays to a later "
-#| "point in the boot sequence, enter the arrays to start here. "
-#| "Alternatively, enter 'all' to simply start all available arrays."
 msgid ""
 "If you know exactly which arrays are needed to bring up the root file "
 "system, and you want to postpone starting all other arrays to a later point "
@@ -87,26 +69,21 @@ msgid ""
 "'all' to simply start all available arrays."
 msgstr ""
 "Om du vet exakt vilka kedjor som behövs för att ta upp rotfilsystemet, och "
-"du vill skjuta upp uppstarten för alla andra kedjor till en senaste "
-"tidspunkt i uppstartssekvens, ange vilka kedjor som ska starta här. "
+"du vill skjuta upp uppstarten för alla andra kedjor till en senare "
+"tidspunkt i uppstartssekvensen, ange vilka kedjor som ska starta här. "
 "Alternativt, ange \"all\" för att helt enkelt starta alla tillgängliga "
 "kedjor."
 
 #. Type: text
 #. Description
 #: ../mdadm.templates:3001
-#, fuzzy
-#| msgid ""
-#| "If you do not need or want to start any arrays for the root filesystem, "
-#| "leave the answer blank (or enter 'none'). This may be the case if you are "
-#| "using kernel autostart or do not need any arrays to boot."
 msgid ""
 "If you do not need or want to start any arrays for the root file system, "
 "leave the answer blank (or enter 'none'). This may be the case if you are "
 "using kernel autostart or do not need any arrays to boot."
 msgstr ""
 "Om du inte behöver eller vill starta några kedjor för rotfilsystemet, lämna "
-"svaret blankt (eller ange \"none\"). Det kan vara så om du använder kärnans "
+"svaret blankt (eller ange \"none\"). Detta kan vara fallet om du använder kärnans "
 "automatstart eller inte behöver några kedjor för att starta upp."
 
 #. Type: text
@@ -136,27 +113,19 @@ msgstr "Ett fel inträffade: kedjan är inte listad i filen mdadm.conf"
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
-#| msgid "Proceed with starting arrays not listed in mdadm.conf?"
 msgid "Start arrays not listed in mdadm.conf?"
-msgstr "Fortsätt med uppstarten av kedjor som inte är listade i mdadm.conf?"
+msgstr "Starta kedjor som inte är listade i mdadm.conf?"
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:8001
-#, fuzzy
-#| msgid ""
-#| "The array you have specified (${array}) is not listed in the "
-#| "configuration file ${config}. Therefore it cannot be started during boot, "
-#| "unless you correct the configuration file and recreate the initial "
-#| "ramdisk."
 msgid ""
 "The specified array (${array}) is not listed in the configuration file "
 "(${config}). Therefore, it cannot be started during boot, unless you correct "
 "the configuration file and recreate the initial ramdisk."
 msgstr ""
 "Kedjan du har angivit (${array}) är inte listad i konfigurationsfilen "
-"${config}. Därför kan den inte startas under systemets uppstart, såvida du "
+"(${config}). Därför kan den inte startas under systemets uppstart, såvida du "
 "inte rättar till konfigurationsfilen och återskapar den initiala ramdisken."
 
 #. Type: boolean
@@ -195,14 +164,6 @@ msgstr "Vill du starta MD-kedjor automatiskt?"
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:9001
-#, fuzzy
-#| msgid ""
-#| "Once the base system has come up, mdadm can start all MD arrays (RAIDs) "
-#| "specified in /etc/mdadm/mdadm.conf, which have not yet been started. "
-#| "Unless you have compiled multiple device (MD) support into the kernel and "
-#| "marked all partitions part of MD arrays with type 0xfd (as those and only "
-#| "those will be started automatically by the kernel), this is probably what "
-#| "you want."
 msgid ""
 "Once the base system has booted, mdadm can start all MD arrays (RAIDs) "
 "specified in /etc/mdadm/mdadm.conf which have not yet been started. This is "
@@ -210,12 +171,12 @@ msgid ""
 "and all partitions are marked as belonging to MD arrays, with type 0xfd (as "
 "those and only those will be started automatically by the kernel)."
 msgstr ""
-"När grundsystemet har startats upp kan mdadm starta alla MD-kedjor som har "
-"angivits i /etc/mdadm/mdadm.conf och som ännu inte har startats. Såvida du "
-"har byggt in stöd för multipla enheter (MD) i kärnan och markerat alla "
-"partitioner som del av MD-kedjor med typen 0xfd (och de och endast de kommer "
-"att startas upp automatiskt av kärnan), är antagligen detta något som du "
-"vill göra."
+"När grundsystemet har startats upp kan mdadm starta alla MD-kedjor (RAID) som har "
+"angivits i /etc/mdadm/mdadm.conf och som ännu inte har startats. "
+"Detta rekommenderas såvida inte stöd för multipla enheter (MD) har byggts in "
+"i kärnan och alla partitioner markerats "
+"som del av MD-kedjor med typen 0xfd (eftersom de och endast de kommer "
+"att startas upp automatiskt av kärnan)."
 
 #. Type: boolean
 #. Description
@@ -226,14 +187,6 @@ msgstr "Ska mdadm köra månatliga redundanskontroller av MD-kedjorna?"
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
-#| msgid ""
-#| "If your kernel supports it (>> 2.6.14), mdadm can periodically check the "
-#| "redundancy of your MD arrays (RAIDs). This may be a resource-intensive "
-#| "process, depending on your setup, but it could help prevent rare cases of "
-#| "data loss. Note that this is a read-only check unless errors are found; "
-#| "if errors are found, mdadm will try to correct them, which may result in "
-#| "write access to the media."
 msgid ""
 "If the kernel supports it (versions greater than 2.6.14), mdadm can "
 "periodically check the redundancy of MD arrays (RAIDs). This may be a "
@@ -242,25 +195,21 @@ msgid ""
 "errors are found; if errors are found, mdadm will try to correct them, which "
 "may result in write access to the media."
 msgstr ""
-"Om din kärna (>> 2.6.14) har stöd för det kan mdadm periodvis kontrollera "
+"Om din kärna har stöd för det (versioner senare än 2.6.14), kan mdadm periodvis kontrollera "
 "redundansen för dina MD-kedjor (RAID). Det här kan vara en resurskrävande "
 "process, beroende på din konfiguration, men den kan hjälpa till att "
 "förhindra ovanliga fall av dataförluster. Observera att det är en "
-"skrivskyddad kontroll såvida inte fel påträffas; om fel hittas kan mdadm "
+"skrivskyddad kontroll såvida inte fel påträffas; om fel hittas kommer mdadm "
 "försöka att rätta till dem, vilket kan leda till skrivåtkomst till mediet."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
-#, fuzzy
-#| msgid ""
-#| "The default, if turned on, is to run the checks on the first Sunday of "
-#| "every month at 01:06 o'clock."
 msgid ""
 "The default, if turned on, is to check on the first Sunday of every month at "
 "01:06."
 msgstr ""
-"Standardvärdet, om påslagen, är att köra kontrollerna på den första söndagen "
+"Standardvärdet, om påslagen, är att kontrollera på den första söndagen "
 "i varje månad klockan 01.06."
 
 #. Type: boolean
@@ -272,23 +221,18 @@ msgstr "Vill du starta MD-övervakningsdemonen?"
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:11001
-#, fuzzy
-#| msgid ""
-#| "The MD (RAID) monitor daemon sends email notifications in response to "
-#| "important MD events (such as a disk failure). You probably want to enable "
-#| "it."
 msgid ""
 "The MD (RAID) monitor daemon sends email notifications in response to "
 "important MD events (such as a disk failure)."
 msgstr ""
 "MD-övervakningsdemonen (RAID) skickar e-postnotifieringar för viktiga MD-"
-"händelser (såsom ett diskfel). Du vill antagligen aktivera denna funktion."
+"händelser (såsom ett diskfel)."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:11001
 msgid "Enabling this option is recommended."
-msgstr ""
+msgstr "Att aktivera denna funktion rekommenderas."
 
 #. Type: string
 #. Description
@@ -299,10 +243,6 @@ msgstr "Mottagare av e-postnotifieringar:"
 #. Type: string
 #. Description
 #: ../mdadm.templates:12001
-#, fuzzy
-#| msgid ""
-#| "Please enter the email address of the user who should get the email "
-#| "notification for important MD events."
 msgid ""
 "Please enter the email address of the user who should get the email "
 "notifications for important MD events."
@@ -310,59 +250,3 @@ msgstr ""
 "Ange e-postadressen till den användare som ska ta emot e-postnotifieringar "
 "för dessa viktiga MD-händelser."
 
-#~ msgid "${msg}"
-#~ msgstr "${msg}"
-
-#~ msgid "Initialise the superblock if you reuse hard disks"
-#~ msgstr "Initiera superblocket om du ?teranv?nder h?rddiskar"
-
-#~ msgid ""
-#~ "WARNING! If you are using hard disks which have RAID superblocks from "
-#~ "earlier installations in different RAID arrays, you MUST zero each "
-#~ "superblock *before* activating the autostart feature."
-#~ msgstr ""
-#~ "VARNING! Om du anv?nder h?rddiskar som har RAID-superblock fr?n tidigare "
-#~ "installationer i andra RAID-kedjor M?STE du nollst?lla superblocket "
-#~ "*innan* du aktiverar autostartfunktionen."
-
-#~ msgid ""
-#~ "To do this, do not start the RAID devices automatically. First, zero the "
-#~ "superblock (mdadm --zero-superblock /dev/mdX). Next, use `dpkg-"
-#~ "reconfigure mdadm` to reactivate the autostart feature."
-#~ msgstr ""
-#~ "F?r att g?ra detta, starta inte RAID-enheterna automatiskt. Nollst?ll f?"
-#~ "rst superblocket (mdadm --zero-superblock /dev/mdX), anv?nd sedan \"dpkg-"
-#~ "reconfigure mdadm\" f?r att ?teraktivera autostartfunktionen."
-
-#~ msgid ""
-#~ "You have the option to start all other arrays (those not needed for the "
-#~ "root filesystem) later in the boot sequence. Doing so will give you "
-#~ "greater control over the arrays with the mdadm configuration file. "
-#~ "Starting all arrays at boot-time may be safer though."
-#~ msgstr ""
-#~ "Du har alternativet att starta alla andra kedjor (de som inte beh?vs f?r "
-#~ "rotfilsystemet) senare i uppstartssekvensen. Att g?ra det ger dig st?rre "
-#~ "kontroll ?ver kedjorna med mdadms konfigurationsfil. Starta alla kedjor "
-#~ "vid uppstart kan dock vara s?krare."
-
-#~ msgid ""
-#~ "If RAID devices are started automatically, all RAID devices are "
-#~ "discovered and assembled automatically at system startup. This option "
-#~ "should only be used if the md driver is compiled as a module. If it is "
-#~ "compiled into your kernel, the automatic startup will be performed at "
-#~ "boot time by the kernel and therefore you should not choose this option."
-#~ msgstr ""
-#~ "Om RAID-enheter startas automatiskt kommer alla RAID-enheter att uppt?"
-#~ "ckas och s?ttas ihop automatiskt vid systemets uppstart. Denna funktion b?"
-#~ "r bara anv?ndas om md-drivaren ?r byggd som en modul. Om den ?r inbyggd i "
-#~ "din k?rna kommer den automatiska uppstarten att g?ras av k?rnan vid "
-#~ "systemets uppstart och d?rf?r b?r du inte v?lja denna funktion h?r."
-
-#~ msgid ""
-#~ "When the RAID monitor daemon runs, email notifications are sent when a "
-#~ "disk belonging to a RAID array fails or changes its status for some "
-#~ "reason."
-#~ msgstr ""
-#~ "N?r RAID-?vervakningsdaemonen k?r kommer e-postnotifieringar att skickas "
-#~ "n?r en disk som tillh?r en RAID-array fallerar eller ?ndrar status av n?"
-#~ "gon anledning."
