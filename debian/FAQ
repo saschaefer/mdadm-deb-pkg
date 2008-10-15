@@ -137,8 +137,8 @@ The latest version of this FAQ is available here:
   I am assuming that you are talking about a setup with two copies of each
   block, so --layout=near2/far2/offset2:
 
-  In half of the cases, yes [0], and it does not matter which layout you use.
-  When you assemble 4 disks into a RAID10, you essentially stripe a RAID0
+  In two thirds of the cases, yes[0], and it does not matter which layout you
+  use. When you assemble 4 disks into a RAID10, you essentially stripe a RAID0
   across two RAID1, so the four disks A,B,C,D become two pairs: A,B and C,D.
   If A fails, the RAID6 can only survive if the second failing disk is either
   C or D; If B fails, your array is dead.
@@ -151,8 +151,11 @@ The latest version of this FAQ is available here:
 
   See also question 18 further down.
 
-  0. it's actually 1/(n-1), where n is the number of disks. I am not
-     a mathematician, see http://aput.net/~jheiss/raid10/
+  0. it's actually (n-2)/(n-1), where n is the number of disks. I am not
+     a mathematician, see http://aput.net/~jheiss/raid10/, which gives the
+     chance of *failure* as 1/(n-1), so the chance of success is 1-1/(n-1), or
+     (n-2)/(n-1), or 2/3 in the four disk example.
+     (Thanks to Per Olofsson for clarifying this in #493577).
 
 5. How to convert RAID5 to RAID10?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

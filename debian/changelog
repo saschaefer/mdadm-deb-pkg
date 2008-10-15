@@ -1,12 +1,34 @@
+mdadm (2.6.7.1-1) unstable; urgency=low
+
+  * New upstream release, specifically created for Debian lenny to fix the RC
+    bugs, which
+    - fixes typo in forced assembly code (closes: #496334, #499643, #498505).
+    - fixes array component size detection (closes: 500309).
+    Thanks Neil Brown, mdadm upstream: you are spoiling me. :)
+
+  * Minor fixes to documentation:
+    - Add David Pashley's Rebuilding RAID blog post.
+    - Add new (bugfix) version 1.40 of the newdisk script
+      (/usr/share/doc/mdadm/examples/newdisk.gz) (closes: #490955).
+    - Add link to Warren Togami's writeup about remote RAID-1 conversion to
+      README.recipes.
+    - Fix probability of survival in FAQ 4b, since I erroneously labeled the
+      chance of failure as the chance of survival; thanks to Per Olofssen for
+      clarification (closes: #493577).
+    - Cherry-picked 6d6de2e from Neil, which adds HOMEHOST to the manpage and
+      closes: #489257.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 15 Oct 2008 10:27:23 +0200
+
 mdadm (2.6.7-3.1) unstable; urgency=low
 
   * Non-maintainer upload with permission.
   * Ask mdadm/initrdstart at medium priority in chrooted environment.
     (Closes: #493099)
-  * Update Swedish debconf translations.  Thanks Martin Ågren.
+  * Update Swedish debconf translations.  Thanks Martin Ã…gren.
     (Closes: #492074)
 
- -- Jérémy Bobbio <lunar@debian.org>  Mon, 25 Aug 2008 22:28:53 +0200
+ -- JÃ©rÃ©my Bobbio <lunar@debian.org>  Mon, 25 Aug 2008 22:28:53 +0200
 
 mdadm (2.6.7-3) unstable; urgency=low
 
