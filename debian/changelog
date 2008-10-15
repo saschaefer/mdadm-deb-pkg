@@ -5,6 +5,9 @@ mdadm (2.6.7-4) unstable; urgency=low
     (/usr/share/doc/mdadm/examples/newdisk.gz) (closes: #490955).
   * Add link to Warren Togami's writeup about remote RAID-1 conversion to
     README.recipes.
+  * Fix probability of survival in FAQ 4b, since I erroneously labeled the
+    chance of failure as the chance of survival; thanks to Per Olofssen for
+    clarification (closes: #493577).
 
  -- martin f. krafft <madduck@debian.org>  Wed, 23 Jul 2008 20:12:28 +0200
 
