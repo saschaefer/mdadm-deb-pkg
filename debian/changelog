@@ -1,9 +1,12 @@
-mdadm (2.6.7-4~~lunar1) UNRELEASED; urgency=low
+mdadm (2.6.7-3.1) unstable; urgency=low
 
+  * Non-maintainer upload with permission.
   * Ask mdadm/initrdstart at medium priority in chrooted environment.
     (Closes: #493099)
+  * Update Swedish debconf translations.  Thanks Martin Ågren.
+    (Closes: #492074)
 
- -- Jérémy Bobbio <lunar@debian.org>  Sat, 16 Aug 2008 12:10:21 +0200
+ -- Jérémy Bobbio <lunar@debian.org>  Mon, 25 Aug 2008 22:28:53 +0200
 
 mdadm (2.6.7-3) unstable; urgency=low
 
