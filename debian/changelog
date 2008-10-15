@@ -1,3 +1,10 @@
+mdadm (2.6.7.1-2) UNRELEASED; urgency=low
+
+  * Actually install David Pashley's blog post added in 2.6.7.1-1, and
+    register it with doc-base.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 15 Oct 2008 12:33:29 +0200
+
 mdadm (2.6.7.1-1) unstable; urgency=low
 
   * New upstream release, specifically created for Debian lenny to fix the RC
