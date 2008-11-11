@@ -1,7 +1,11 @@
 mdadm (2.6.7.1-2) UNRELEASED; urgency=low
 
-  * Actually install David Pashley's blog post added in 2.6.7.1-1, and
-    register it with doc-base.
+  * Documentation updates:
+    - Actually install David Pashley's blog post added in 2.6.7.1-1, and
+      register it with doc-base.
+    - Update md.txt to version 2.6.26 (the lenny kernel).
+    - Add a dump of a website detailing md superblock formats.
+    - Register FAQ, md.txt, RAID5-vs-RAID10, README.recipes with doc-base
 
  -- martin f. krafft <madduck@debian.org>  Wed, 15 Oct 2008 12:33:29 +0200
 
