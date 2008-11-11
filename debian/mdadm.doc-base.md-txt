@@ -1,9 +1,9 @@
 Document: mdadm-md-txt
-Title: Linux kernel documentation on the md driver
+Title: Linux kernel documentation on the md driver (2.6.26)
 Author: Neil Brown
 Abstract: The document comes from the Linux kernel sources' Documentation/
  directory and contains notes and other information about the md kernel
- driver (which mdadm uses).
+ driver (which mdadm uses). It is current for version 2.6.26 of the kernel.
 Section: System/Administration
 
 Format: text
