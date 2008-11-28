@@ -12,6 +12,8 @@ mdadm (2.6.7.2-1) UNRELEASED; urgency=low
     - Update md.txt to version 2.6.26 (the lenny kernel).
     - Add a dump of a website detailing md superblock formats.
     - Register FAQ, md.txt, RAID5-vs-RAID10, README.recipes with doc-base
+    - Cherry-picked UID/UUID typo in mdadm.conf(5) manpage fix (commit
+      0e69da7) (closes: #506245).
 
  -- martin f. krafft <madduck@debian.org>  Wed, 15 Oct 2008 12:33:29 +0200
 
