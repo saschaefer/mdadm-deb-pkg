@@ -24,7 +24,7 @@
 
 #include "mdadm.h"
 
-char Version[] = Name " - v2.6.7.1 - 15th October 2008\n";
+char Version[] = Name " - v2.6.7.2 - 14th November 2008\n";
 
 /*
  * File: ReadMe.c
@@ -518,9 +518,11 @@ char Help_grow[] =
 "  --size=        -z   : Change the active size of devices in an array.\n"
 "                      : This is useful if all devices have been replaced\n"
 "                      : with larger devices.\n"
-"  --raid-disks=  -n   : Change the number of active devices in an array.\n"
-"                      : array.\n"
+"  --raid-devices= -n  : Change the number of active devices in an array.\n"
 "  --bitmap=      -b   : Add or remove a write-intent bitmap.\n"
+"  --backup-file= file : A file on a differt device to store data for a\n"
+"                      : short time while increasing raid-devices on a\n"
+"                      : RAID4/5/6 array. Not needed when a spare is present.\n"
 ;
 
 char Help_incr[] =
