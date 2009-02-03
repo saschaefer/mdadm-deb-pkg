@@ -1,4 +1,4 @@
-mdadm (2.6.7.2-1) UNRELEASED; urgency=low
+mdadm (2.6.7.2-1) unstable; urgency=low
 
   * New upstream release, created for Debian lenny:
     - fixes assembly of arrays that are being reshaped (closes: #512475)
@@ -17,7 +17,7 @@ mdadm (2.6.7.2-1) UNRELEASED; urgency=low
 
   * Added Italian debconf translation; thanks Luca Monducci (closes: #506572).
 
- -- martin f. krafft <madduck@debian.org>  Wed, 15 Oct 2008 12:33:29 +0200
+ -- martin f. krafft <madduck@debian.org>  Tue, 03 Feb 2009 21:28:34 +0100
 
 mdadm (2.6.7.1-1) unstable; urgency=low
 
