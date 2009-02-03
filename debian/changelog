@@ -15,6 +15,8 @@ mdadm (2.6.7.2-1) UNRELEASED; urgency=low
     - Cherry-picked UID/UUID typo in mdadm.conf(5) manpage fix (commit
       0e69da7) (closes: #506245).
 
+  * Added Italian debconf translation; thanks Luca Monducci (closes: #506572).
+
  -- martin f. krafft <madduck@debian.org>  Wed, 15 Oct 2008 12:33:29 +0200
 
 mdadm (2.6.7.1-1) unstable; urgency=low
