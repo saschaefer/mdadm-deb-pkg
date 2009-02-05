@@ -1,3 +1,11 @@
+# linux-2.6/Documentation/md.txt
+#
+# From http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=blob_plain;f=Documentation/md.txt;hb=v2.6.26
+#
+# This is md.txt for Linux kernel 2.6.26, which is current in Debian lenny.
+# The latest version of this document is at
+# http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=blob_plain;f=Documentation/md.txt;hb=HEAD
+
 Tools that manage md devices can be found at
    http://www.<country>.kernel.org/pub/linux/utils/raid/....
 
@@ -62,7 +70,7 @@ be reconstructed (due to no parity).
 
 For this reason, md will normally refuse to start such an array.  This
 requires the sysadmin to take action to explicitly start the array
-desipite possible corruption.  This is normally done with
+despite possible corruption.  This is normally done with
    mdadm --assemble --force ....
 
 This option is not really available if the array has the root
@@ -154,11 +162,12 @@ contains further md-specific information about the device.
 
 All md devices contain:
   level
-     a text file indicating the 'raid level'.  This may be a standard
-     numerical level prefixed by "RAID-" - e.g. "RAID-5", or some
-     other name such as "linear" or "multipath".
+     a text file indicating the 'raid level'. e.g. raid0, raid1,
+     raid5, linear, multipath, faulty.
      If no raid level has been set yet (array is still being
-     assembled), this file will be empty.
+     assembled), the value will reflect whatever has been written
+     to it, which may be a name like the above, or may be a number
+     such as '0', '5', etc.
 
   raid_disks
      a text file with a simple number indicating the number of devices
@@ -174,8 +183,23 @@ All md devices contain:
      raid levels that involve striping (1,4,5,6,10). The address space
      of the array is conceptually divided into chunks and consecutive
      chunks are striped onto neighbouring devices.
-     The size should be atleast PAGE_SIZE (4k) and should be a power
+     The size should be at least PAGE_SIZE (4k) and should be a power
      of 2.  This can only be set while assembling an array
+
+  layout
+     The "layout" for the array for the particular level.  This is
+     simply a number that is interpretted differently by different
+     levels.  It can be written while assembling an array.
+
+  reshape_position
+     This is either "none" or a sector number within the devices of
+     the array where "reshape" is up to.  If this is set, the three
+     attributes mentioned above (raid_disks, chunk_size, layout) can
+     potentially have 2 values, an old and a new value.  If these
+     values differ, reading the attribute returns
+        new (old)
+     and writing will effect the 'new' value, leaving the 'old'
+     unchanged.
 
   component_size
      For arrays with data redundancy (i.e. not raid0, linear, faulty,
@@ -192,13 +216,11 @@ All md devices contain:
      1.2 (newer format in varying locations) or "none" indicating that
      the kernel isn't managing metadata at all.
 
-  level
-     The raid 'level' for this array.  The name will often (but not
-     always) be the same as the name of the module that implements the
-     level.  To be auto-loaded the module must have an alias
-        md-$LEVEL  e.g. md-raid5
-     This can be written only while the array is being assembled, not
-     after it is started.
+  resync_start
+     The point at which resync should start.  If no resync is needed,
+     this will be a very large number.  At array creation it will
+     default to 0, though starting the array as 'clean' will
+     set it much larger.
 
    new_dev
      This file can be written but not read.  The value written should
@@ -207,27 +229,52 @@ All md devices contain:
      available.  It will then appear at md/dev-XXX (depending on the
      name of the device) and further configuration is then possible.
 
-   sync_speed_min
-   sync_speed_max
-     This are similar to /proc/sys/dev/raid/speed_limit_{min,max}
-     however they only apply to the particular array.
-     If no value has been written to these, of if the word 'system'
-     is written, then the system-wide value is used.  If a value,
-     in kibibytes-per-second is written, then it is used.
-     When the files are read, they show the currently active value
-     followed by "(local)" or "(system)" depending on whether it is
-     a locally set or system-wide value.
+   safe_mode_delay
+     When an md array has seen no write requests for a certain period
+     of time, it will be marked as 'clean'.  When another write
+     request arrives, the array is marked as 'dirty' before the write
+     commences.  This is known as 'safe_mode'.
+     The 'certain period' is controlled by this file which stores the
+     period as a number of seconds.  The default is 200msec (0.200).
+     Writing a value of 0 disables safemode.
 
-   sync_completed
-     This shows the number of sectors that have been completed of
-     whatever the current sync_action is, followed by the number of
-     sectors in total that could need to be processed.  The two
-     numbers are separated by a '/'  thus effectively showing one
-     value, a fraction of the process that is complete.
+   array_state
+     This file contains a single word which describes the current
+     state of the array.  In many cases, the state can be set by
+     writing the word for the desired state, however some states
+     cannot be explicitly set, and some transitions are not allowed.
 
-   sync_speed
-     This shows the current actual speed, in K/sec, of the current
-     sync_action.  It is averaged over the last 30 seconds.
+     clear
+         No devices, no size, no level
+         Writing is equivalent to STOP_ARRAY ioctl
+     inactive
+         May have some settings, but array is not active
+            all IO results in error
+         When written, doesn't tear down array, but just stops it
+     suspended (not supported yet)
+         All IO requests will block. The array can be reconfigured.
+         Writing this, if accepted, will block until array is quiessent
+     readonly
+         no resync can happen.  no superblocks get written.
+         write requests fail
+     read-auto
+         like readonly, but behaves like 'clean' on a write request.
+
+     clean - no pending writes, but otherwise active.
+         When written to inactive array, starts without resync
+         If a write request arrives then
+           if metadata is known, mark 'dirty' and switch to 'active'.
+           if not known, block and switch to write-pending
+         If written to an active array that has pending writes, then fails.
+     active
+         fully active: IO and resync can be happening.
+         When written to inactive array, starts with resync
+
+     write-pending
+         clean, but writes are blocked waiting for 'active' to be written.
+
+     active-idle
+         like active, but no writes have been seen for a while (safe_mode_delay).
 
 
 As component devices are added to an md array, they appear in the 'md'
@@ -250,10 +297,18 @@ Each directory contains:
 	      faulty   - device has been kicked from active use due to
                          a detected fault
 	      in_sync  - device is a fully in-sync member of the array
+	      writemostly - device will only be subject to read
+		         requests if there are no other options.
+			 This applies only to raid1 arrays.
 	      spare    - device is working, but not a full member.
 			 This includes spares that are in the process
-			 of being recoverred to
-	This list make grow in future.
+			 of being recovered to
+	This list may grow in future.
+	This can be written to.
+	Writing "faulty"  simulates a failure on the device.
+	Writing "remove" removes the device from the array.
+	Writing "writemostly" sets the writemostly flag.
+	Writing "-writemostly" clears the writemostly flag.
 
       errors
 	An approximate count of read errors that have been detected on
@@ -270,7 +325,7 @@ Each directory contains:
         This gives the role that the device has in the array.  It will
 	either be 'none' if the device is not active in the array
         (i.e. is a spare or has failed) or an integer less than the
-	'raid_disks' number for the array indicating which possition
+	'raid_disks' number for the array indicating which position
 	it currently fills.  This can only be set while assembling an
 	array.  A device for which this is set is assumed to be working.
 
@@ -293,7 +348,7 @@ in the array.  These are named
 
     rdNN
 
-where 'NN' is the possition in the array, starting from 0.
+where 'NN' is the position in the array, starting from 0.
 So for a 3 drive array there will be rd0, rd1, rd2.
 These are symbolic links to the appropriate 'dev-XXX' entry.
 Thus, for example,
@@ -343,6 +398,54 @@ also have
       than sectors, this my be larger than the number of actual errors
       by a factor of the number of sectors in a page.
 
+   bitmap_set_bits
+      If the array has a write-intent bitmap, then writing to this
+      attribute can set bits in the bitmap, indicating that a resync
+      would need to check the corresponding blocks. Either individual
+      numbers or start-end pairs can be written.  Multiple numbers
+      can be separated by a space.
+      Note that the numbers are 'bit' numbers, not 'block' numbers.
+      They should be scaled by the bitmap_chunksize.
+
+   sync_speed_min
+   sync_speed_max
+     This are similar to /proc/sys/dev/raid/speed_limit_{min,max}
+     however they only apply to the particular array.
+     If no value has been written to these, of if the word 'system'
+     is written, then the system-wide value is used.  If a value,
+     in kibibytes-per-second is written, then it is used.
+     When the files are read, they show the currently active value
+     followed by "(local)" or "(system)" depending on whether it is
+     a locally set or system-wide value.
+
+   sync_completed
+     This shows the number of sectors that have been completed of
+     whatever the current sync_action is, followed by the number of
+     sectors in total that could need to be processed.  The two
+     numbers are separated by a '/'  thus effectively showing one
+     value, a fraction of the process that is complete.
+     A 'select' on this attribute will return when resync completes,
+     when it reaches the current sync_max (below) and possibly at
+     other times.
+
+   sync_max
+     This is a number of sectors at which point a resync/recovery
+     process will pause.  When a resync is active, the value can
+     only ever be increased, never decreased.  The value of 'max'
+     effectively disables the limit.
+
+
+   sync_speed
+     This shows the current actual speed, in K/sec, of the current
+     sync_action.  It is averaged over the last 30 seconds.
+
+   suspend_lo
+   suspend_hi
+     The two values, given as numbers of sectors, indicate a range
+     within the array where IO will be blocked.  This is currently
+     only supported for raid4/5/6.
+
+
 Each active md device may also have attributes specific to the
 personality module that manages it.
 These are specific to the implementation of the module and could
@@ -355,3 +458,9 @@ These currently include
       there are upper and lower limits (32768, 16).  Default is 128.
   strip_cache_active (currently raid5 only)
       number of active entries in the stripe cache
+  preread_bypass_threshold (currently raid5 only)
+      number of times a stripe requiring preread will be bypassed by
+      a stripe that does not require preread.  For fairness defaults
+      to 1.  Setting this to 0 disables bypass accounting and
+      requires preread stripes to wait until all full-width stripe-
+      writes are complete.  Valid values are 0 to stripe_cache_size.

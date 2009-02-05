@@ -1,3 +1,24 @@
+mdadm (2.6.7.2-1) unstable; urgency=low
+
+  * New upstream release, created for Debian lenny:
+    - fixes assembly of arrays that are being reshaped (closes: #512475)
+    - this bug was also responsible for other assembly problems
+      (closes: #498505, #499643, #496334)
+    Again, many thanks to Neil Brown for being such an awesome upstream.
+
+  * Documentation updates:
+    - Actually install David Pashley's blog post added in 2.6.7.1-1, and
+      register it with doc-base.
+    - Update md.txt to version 2.6.26 (the lenny kernel).
+    - Add a dump of a website detailing md superblock formats.
+    - Register FAQ, md.txt, RAID5-vs-RAID10, README.recipes with doc-base
+    - Cherry-picked UID/UUID typo in mdadm.conf(5) manpage fix (commit
+      0e69da7) (closes: #506245).
+
+  * Added Italian debconf translation; thanks Luca Monducci (closes: #506572).
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 03 Feb 2009 21:28:34 +0100
+
 mdadm (2.6.7.1-1) unstable; urgency=low
 
   * New upstream release, specifically created for Debian lenny to fix the RC
