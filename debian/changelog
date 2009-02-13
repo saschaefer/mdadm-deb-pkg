@@ -1,3 +1,10 @@
+mdadm (2.6.7.2-2) unstable; urgency=low
+
+  * Fix start/stop runlevels in header of mdadm monitor init.d script
+    (closes: #514923)
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 13 Feb 2009 16:03:40 +0100
+
 mdadm (2.6.7.2-1) unstable; urgency=low
 
   * New upstream release, created for Debian lenny:
