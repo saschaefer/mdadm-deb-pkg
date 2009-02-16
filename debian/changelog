@@ -1,3 +1,10 @@
+mdadm (2.6.8-12-gb47dff6-2) unstable; urgency=low
+
+  * Brown paper bag release: I built from the wrong branch which caused some
+    Debian-specific changes not to get into the package. Thus build fixes it.
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 16 Feb 2009 12:15:37 +0100
+
 mdadm (2.6.8-12-gb47dff6-1) unstable; urgency=low
 
   * New upstream release.
