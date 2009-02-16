@@ -1,8 +1,11 @@
-mdadm (2.6.8-1) unstable; urgency=low
+mdadm (2.6.8-12-gb47dff6-1) unstable; urgency=low
 
-  * New upstream release
+  * New upstream release.
+    - better checks asprintf() return codes, thanks to patch from Dustin
+      Kirkland (closes: #509167).
   * Fix start/stop runlevels in header of mdadm monitor init.d script
-    (closes: #514923)
+    (closes: #514923).
+  * Use modprobe -q instead of --syslog from initramfs (closes: #502988).
 
  -- martin f. krafft <madduck@debian.org>  Mon, 16 Feb 2009 11:07:18 +0100
 
