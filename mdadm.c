@@ -643,6 +643,7 @@ int main(int argc, char *argv[])
 			continue;
 
 		case O(ASSEMBLE,'c'): /* config file */
+		case O(INCREMENTAL, 'c'):
 		case O(MISC, 'c'):
 		case O(MONITOR,'c'):
 			if (configfile) {
@@ -1216,6 +1217,7 @@ int main(int argc, char *argv[])
 							     export, test, homehost);
 						put_md_name(name);
 					}
+					free_mdstat(ms);
 				} else	if (devmode == 'S' && scan) {
 					/* apply --stop to all devices in /proc/mdstat */
 					/* Due to possible stacking of devices, repeat until
@@ -1248,6 +1250,7 @@ int main(int argc, char *argv[])
 
 							put_md_name(name);
 						}
+						free_mdstat(ms);
 					} while (!last && err);
 					if (err) rv |= 1;
 				} else {

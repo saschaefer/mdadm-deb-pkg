@@ -383,8 +383,11 @@ struct stat64;
 #define HAVE_NFTW  we assume
 #define HAVE_FTW
 
-#ifdef UCLIBC
+#ifdef __UCLIBC__
 # include <features.h>
+# ifndef __UCLIBC_HAS_LFS__
+#  define lseek64 lseek
+# endif
 # ifndef  __UCLIBC_HAS_FTW__
 #  undef HAVE_FTW
 #  undef HAVE_NFTW
@@ -528,6 +531,17 @@ extern int open_mddev(char *dev, int autof);
 extern int open_mddev_devnum(char *devname, int devnum, char *name,
 			     char *chosen_name, int parts);
 
+#include <assert.h>
+#include <stdarg.h>
+static inline int xasprintf(char **strp, const char *fmt, ...) {
+	va_list ap;
+	int ret;
+	va_start(ap, fmt);
+	ret = vasprintf(strp, fmt, ap);
+	va_end(ap);
+	assert(ret >= 0);
+	return ret;
+}
 
 #define	LEVEL_MULTIPATH		(-4)
 #define	LEVEL_LINEAR		(-1)
