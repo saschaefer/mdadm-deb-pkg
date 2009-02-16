@@ -37,7 +37,7 @@ MD_MODULES='linear multipath raid0 raid1 raid456 raid5 raid6 raid10'
 
 verbose && log_begin_msg Loading MD modules
 for module in ${MD_MODULES:-}; do
-  if modprobe --syslog "$module"; then
+  if modprobe -q "$module"; then
     verbose && log_success_msg "loaded module ${module}."
   else
     log_failure_msg "failed to load module ${module}."

@@ -106,9 +106,6 @@ mdadm.static : $(OBJS) $(STATICOBJS)
 mdadm.tcc : $(SRCS) mdadm.h
 	$(TCC) -o mdadm.tcc $(SRCS)
 
-dadm.uclibc : $(SRCS) mdadm.h
-	$(UCLIBC_GCC) -DUCLIBC -DHAVE_STDINT_H -o mdadm.uclibc $(SRCS) $(STATICSRC)
-
 mdadm.klibc : $(SRCS) mdadm.h
 	rm -f $(OBJS) 
 	gcc -nostdinc -iwithprefix include -I$(KLIBC)/klibc/include -I$(KLIBC)/linux/include -I$(KLIBC)/klibc/arch/i386/include -I$(KLIBC)/klibc/include/bits32 $(CFLAGS) $(SRCS)
@@ -202,3 +199,9 @@ testdist : everything clean
 
 TAGS :
 	etags *.h *.c
+
+DISTRO_MAKEFILE := $(wildcard distropkg/Makefile)
+ifdef DISTRO_MAKEFILE
+include $(DISTRO_MAKEFILE)
+endif
+

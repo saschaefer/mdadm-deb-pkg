@@ -173,7 +173,7 @@ int open_mddev(char *dev, int autof)
 			must_remove = 1;
 		if (stb.st_mode && !must_remove) {
 			/* looks ok, see if it is available */
-			mdfd = open(dev, O_RDWR, 0);
+			mdfd = open(dev, O_RDWR);
 			if (mdfd < 0) {
 				fprintf(stderr, Name ": error opening %s: %s\n",
 					dev, strerror(errno));
@@ -254,7 +254,7 @@ int open_mddev(char *dev, int autof)
 				make_parts(dev,parts, ci->symlinks);
 		}
 	}
-	mdfd = open(dev, O_RDWR, 0);
+	mdfd = open(dev, O_RDWR);
 	if (mdfd < 0)
 		fprintf(stderr, Name ": error opening %s: %s\n",
 			dev, strerror(errno));
@@ -282,7 +282,7 @@ int open_mddev_devnum(char *devname, int devnum, char *name,
 
 	if (devname)
 		strcpy(chosen_name, devname);
-	else if (name && strchr(name,'/') == NULL) {
+	else if (name && *name && strchr(name,'/') == NULL) {
 		char *n = strchr(name, ':');
 		if (n) n++; else n = name;
 		if (isdigit(*n) && devnum < 0)

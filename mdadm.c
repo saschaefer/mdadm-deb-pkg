@@ -360,6 +360,12 @@ int main(int argc, char *argv[])
 			writemostly = 1;
 			continue;
 
+		case O(MANAGE,'w'):
+			/* clear write-mostly for following devices */
+			writemostly = 2;
+			continue;
+
+
 		case O(GROW,'z'):
 		case O(CREATE,'z'): /* size */
 			if (size >= 0) {
@@ -637,6 +643,7 @@ int main(int argc, char *argv[])
 			continue;
 
 		case O(ASSEMBLE,'c'): /* config file */
+		case O(INCREMENTAL, 'c'):
 		case O(MISC, 'c'):
 		case O(MONITOR,'c'):
 			if (configfile) {
@@ -743,21 +750,6 @@ int main(int argc, char *argv[])
 				exit(2);
 			}
 			runstop = -1;
-			continue;
-
-		case O(MANAGE,'o'):
-			if (readonly < 0) {
-				fprintf(stderr, Name ": Cannot have both readonly and readwrite\n");
-				exit(2);
-			}
-			readonly = 1;
-			continue;
-		case O(MANAGE,'w'):
-			if (readonly > 0) {
-				fprintf(stderr, Name ": Cannot have both readwrite and readonly.\n");
-				exit(2);
-			}
-			readonly = -1;
 			continue;
 
 		case O(MISC,'Q'):
@@ -1225,6 +1217,7 @@ int main(int argc, char *argv[])
 							     export, test, homehost);
 						put_md_name(name);
 					}
+					free_mdstat(ms);
 				} else	if (devmode == 'S' && scan) {
 					/* apply --stop to all devices in /proc/mdstat */
 					/* Due to possible stacking of devices, repeat until
@@ -1257,6 +1250,7 @@ int main(int argc, char *argv[])
 
 							put_md_name(name);
 						}
+						free_mdstat(ms);
 					} while (!last && err);
 					if (err) rv |= 1;
 				} else {

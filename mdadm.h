@@ -232,7 +232,7 @@ typedef struct mddev_dev_s {
 	char disposition;	/* 'a' for add, 'r' for remove, 'f' for fail.
 				 * Not set for names read from .config
 				 */
-	char writemostly;
+	char writemostly;	/* 1 for 'set writemostly', 2 for 'clear writemostly' */
 	char re_add;
 	char used;		/* set when used */
 	struct mddev_dev_s *next;
@@ -383,8 +383,11 @@ struct stat64;
 #define HAVE_NFTW  we assume
 #define HAVE_FTW
 
-#ifdef UCLIBC
+#ifdef __UCLIBC__
 # include <features.h>
+# ifndef __UCLIBC_HAS_LFS__
+#  define lseek64 lseek
+# endif
 # ifndef  __UCLIBC_HAS_FTW__
 #  undef HAVE_FTW
 #  undef HAVE_NFTW
@@ -513,7 +516,8 @@ extern void remove_partitions(int fd);
 
 
 extern char *human_size(long long bytes);
-char *human_size_brief(long long bytes);
+extern char *human_size_brief(long long bytes);
+extern void print_r10_layout(int layout);
 
 #define NoMdDev (1<<23)
 extern int find_free_devnum(int use_partitions);
@@ -527,6 +531,17 @@ extern int open_mddev(char *dev, int autof);
 extern int open_mddev_devnum(char *devname, int devnum, char *name,
 			     char *chosen_name, int parts);
 
+#include <assert.h>
+#include <stdarg.h>
+static inline int xasprintf(char **strp, const char *fmt, ...) {
+	va_list ap;
+	int ret;
+	va_start(ap, fmt);
+	ret = vasprintf(strp, fmt, ap);
+	va_end(ap);
+	assert(ret >= 0);
+	return ret;
+}
 
 #define	LEVEL_MULTIPATH		(-4)
 #define	LEVEL_LINEAR		(-1)

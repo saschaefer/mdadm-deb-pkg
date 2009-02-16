@@ -93,7 +93,7 @@ static void examine_super0(struct supertype *st, char *homehost)
 	char *c;
 
 	printf("          Magic : %08x\n", sb->md_magic);
-	printf("        Version : %02d.%02d.%02d\n", sb->major_version, sb->minor_version,
+	printf("        Version : %d.%02d.%02d\n", sb->major_version, sb->minor_version,
 	       sb->patch_version);
 	if (sb->minor_version >= 90) {
 		printf("           UUID : %08x:%08x:%08x:%08x", sb->set_uuid0, sb->set_uuid1,
@@ -188,10 +188,9 @@ static void examine_super0(struct supertype *st, char *homehost)
 		printf("         Layout : %s\n", c?c:"-unknown-");
 	}
 	if (sb->level == 10) {
-		printf("         Layout : near=%d, %s=%d\n",
-		       sb->layout&255,
-		       (sb->layout&0x10000)?"offset":"far",
-		       (sb->layout>>8)&255);
+		printf("         Layout :");
+		print_r10_layout(sb->layout);
+		printf("\n");
 	}
 	switch(sb->level) {
 	case 0:
@@ -847,6 +846,9 @@ static struct supertype *match_metadata_desc0(char *arg)
 	st->minor_version = 90;
 	st->max_devs = MD_SB_DISKS;
 	st->sb = NULL;
+	/* Eliminate pointless leading 0 from some versions of mdadm -D */
+	if (strncmp(arg, "00.", 3) == 0)
+		arg++;
 	if (strcmp(arg, "0") == 0 ||
 	    strcmp(arg, "0.90") == 0 ||
 	    strcmp(arg, "default") == 0 ||

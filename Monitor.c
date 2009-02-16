@@ -156,7 +156,7 @@ int Monitor(mddev_dev_t devlist,
 			return 1;
 		}
 		close(0);
-		open("/dev/null", 3);
+		open("/dev/null", O_RDWR);
 		dup2(0,1);
 		dup2(0,2);
 		setsid();
@@ -619,7 +619,7 @@ int Wait(char *dev)
 			free_mdstat(ms);
 			return rv;
 		}
-		free(ms);
+		free_mdstat(ms);
 		rv = 0;
 		mdstat_wait(5);
 	}

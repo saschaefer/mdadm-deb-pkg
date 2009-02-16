@@ -24,7 +24,7 @@
 
 #include "mdadm.h"
 
-char Version[] = Name " - v2.6.7.2 - 14th November 2008\n";
+char Version[] = Name " - v2.6.8 - 28th November 2008\n";
 
 /*
  * File: ReadMe.c
@@ -517,7 +517,8 @@ char Help_grow[] =
 "  --layout=      -p   : For a FAULTY array, set/change the error mode.\n"
 "  --size=        -z   : Change the active size of devices in an array.\n"
 "                      : This is useful if all devices have been replaced\n"
-"                      : with larger devices.\n"
+"                      : with larger devices.   Value is in Kilobytes, or\n"
+"                      : the special word 'max' meaning 'as large as possible'.\n"
 "  --raid-devices= -n  : Change the number of active devices in an array.\n"
 "  --bitmap=      -b   : Add or remove a write-intent bitmap.\n"
 "  --backup-file= file : A file on a differt device to store data for a\n"
