@@ -38,7 +38,7 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 	 * GET_ARRAY_INFO and GET_DISK_INFO ioctl calls
 	 */
 
-	int fd = open(dev, O_RDONLY, 0);
+	int fd = open(dev, O_RDONLY);
 	int vers;
 	mdu_array_info_t array;
 	mdu_disk_info_t *disks;
@@ -138,7 +138,7 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 		if (sra && sra->array.major_version < 0)
 			printf("MD_METADATA=%s\n", sra->text_version);
 		else
-			printf("MD_METADATA=%02d.%02d\n",
+			printf("MD_METADATA=%d.%02d\n",
 			       array.major_version, array.minor_version);
 
 		if (st && st->sb)
@@ -147,21 +147,29 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 	}
 
 	if (brief) {
+		mdu_bitmap_file_t bmf;
 		printf("ARRAY %s level=%s num-devices=%d", dev,
 		       c?c:"-unknown-",
 		       array.raid_disks );
 		if (sra && sra->array.major_version < 0)
 			printf(" metadata=%s", sra->text_version);
 		else
-			printf(" metadata=%02d.%02d",
+			printf(" metadata=%d.%02d",
 			       array.major_version, array.minor_version);
+
+		/* Only try GET_BITMAP_FILE for 0.90.01 and later */
+		if (vers >= 9001 &&
+		    ioctl(fd, GET_BITMAP_FILE, &bmf) == 0 &&
+		    bmf.pathname[0]) {
+			printf(" bitmap=%s", bmf.pathname);
+		}
 	} else {
 		mdu_bitmap_file_t bmf;
 		unsigned long long larray_size;
 		struct mdstat_ent *ms = mdstat_read(0, 0);
 		struct mdstat_ent *e;
 		int devnum = array.md_minor;
-		if (major(stb.st_rdev) != MD_MAJOR)
+		if (major(stb.st_rdev) == get_mdp_major())
 			devnum = -1 - devnum;
 
 		for (e=ms; e; e=e->next)
@@ -175,7 +183,7 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 		if (sra && sra->array.major_version < 0)
 			printf("        Version : %s\n", sra->text_version);
 		else
-			printf("        Version : %02d.%02d\n",
+			printf("        Version : %d.%02d\n",
 			       array.major_version, array.minor_version);
 
 		atime = array.ctime;
@@ -231,9 +239,9 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 			printf("         Layout : %s\n", c?c:"-unknown-");
 		}
 		if (array.level == 10) {
-			printf("         Layout : near=%d, %s=%d\n",
-			       array.layout&255, (array.layout&0x10000)?"offset":"far",
-			       (array.layout>>8)&255);
+			printf("         Layout :");
+			print_r10_layout(array.layout);
+			printf("\n");
 		}
 		switch (array.level) {
 		case 0:

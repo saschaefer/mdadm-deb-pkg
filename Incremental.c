@@ -40,7 +40,7 @@ int Incremental(char *devname, int verbose, int runstop,
 		struct supertype *st, char *homehost, int autof)
 {
 	/* Add this device to an array, creating the array if necessary
-	 * and starting the array if sensibe or - if runstop>0 - if possible.
+	 * and starting the array if sensible or - if runstop>0 - if possible.
 	 *
 	 * This has several steps:
 	 *
@@ -83,12 +83,9 @@ int Incremental(char *devname, int verbose, int runstop,
 	int dfd, mdfd;
 	char *avail;
 	int active_disks;
-
-
 	struct createinfo *ci = conf_get_create_info();
+	char *name;
 
-	if (autof == 0)
-		autof = ci->autof;
 
 	/* 1/ Check if devices is permitted by mdadm.conf */
 
@@ -203,27 +200,42 @@ int Incremental(char *devname, int verbose, int runstop,
 		match = array_list;
 	}
 
-	/* 3a/ if not, check for homehost match.  If no match, reject. */
+	/* 3a/ if not, check for homehost match.  If no match, continue
+	 * but don't trust the 'name' in the array. Thus a 'random' minor
+	 * number will be assigned, and the device name will be based
+	 * on that. */
+	name = info.name;
 	if (!match) {
 		if (homehost == NULL ||
 		    st->ss->match_home(st, homehost) == 0) {
 			if (verbose >= 0)
 				fprintf(stderr, Name
 	      ": not found in mdadm.conf and not identified by homehost.\n");
-			return 2;
+			name = NULL;
 		}
 	}
 	/* 4/ Determine device number. */
-	/* - If in mdadm.conf with std name, use that */
-	/* - UUID in /var/run/mdadm.map  use that */
+	/* - If in mdadm.conf with std name, get number from name. */
+	/* - UUID in /var/run/mdadm.map  get number from mapping */
 	/* - If name is suggestive, use that. unless in use with */
 	/*           different uuid. */
 	/* - Choose a free, high number. */
 	/* - Use a partitioned device unless strong suggestion not to. */
 	/*         e.g. auto=md */
-	if (match && is_standard(match->devname, &devnum))
-		/* We have devnum now */;
-	else if ((mp = map_by_uuid(&map, info.uuid)) != NULL)
+
+	/* There are three possible sources for 'autof':  command line,
+	 * ARRAY line in mdadm.conf, or CREATE line in mdadm.conf.
+	 * ARRAY takes precedence, then command line, then
+	 * CREATE.
+	 */
+	if (match && match->autof)
+		autof = match->autof;
+	if (autof == 0)
+		autof = ci->autof;
+
+	if (match && (rv = is_standard(match->devname, &devnum))) {
+		devnum = (rv > 0) ? (-1-devnum) : devnum;
+	} else if ((mp = map_by_uuid(&map, info.uuid)) != NULL)
 		devnum = mp->devnum;
 	else {
 		/* Have to guess a bit. */
@@ -231,11 +243,11 @@ int Incremental(char *devname, int verbose, int runstop,
 		char *np, *ep;
 		if ((autof&7) == 3 || (autof&7) == 5)
 			use_partitions = 0;
-		np = strchr(info.name, ':');
+		np = name ? strchr(name, ':') : ":NONAME";
 		if (np)
 			np++;
 		else
-			np = info.name;
+			np = name;
 		devnum = strtoul(np, &ep, 10);
 		if (ep > np && *ep == 0) {
 			/* This is a number.  Let check that it is unused. */
@@ -258,7 +270,7 @@ int Incremental(char *devname, int verbose, int runstop,
 	}
 	mdfd = open_mddev_devnum(match ? match->devname : NULL,
 				 devnum,
-				 info.name,
+				 name,
 				 chosen_name, autof >> 3);
 	if (mdfd < 0) {
 		fprintf(stderr, Name ": failed to open %s: %s.\n",
@@ -446,7 +458,8 @@ int Incremental(char *devname, int verbose, int runstop,
 			close(bmfd);
 		}
 		sra = sysfs_read(mdfd, devnum, 0);
-		if (sra == NULL || active_disks >= info.array.working_disks)
+		if ((sra == NULL || active_disks >= info.array.working_disks)
+		    && name != NULL)
 			rv = ioctl(mdfd, RUN_ARRAY, NULL);
 		else
 			rv = sysfs_set_str(sra, NULL,
@@ -543,12 +556,18 @@ static int count_active(struct supertype *st, int mdfd, char **availp,
 		if (ok != 0)
 			continue;
 		st->ss->getinfo_super(st, &info);
+		if (!avail) {
+			avail = malloc(info.array.raid_disks);
+			if (!avail) {
+				fprintf(stderr, Name ": out of memory.\n");
+				exit(1);
+			}
+			memset(avail, 0, info.array.raid_disks);
+			*availp = avail;
+		}
+
 		if (info.disk.state & (1<<MD_DISK_SYNC))
 		{
-			if (avail == NULL) {
-				avail = malloc(info.array.raid_disks);
-				memset(avail, 0, info.array.raid_disks);
-			}
 			if (cnt == 0) {
 				cnt++;
 				max_events = info.events;

@@ -5,7 +5,7 @@
 .\"   the Free Software Foundation; either version 2 of the License, or
 .\"   (at your option) any later version.
 .\" See file COPYING in distribution for details.
-.TH MDADM 8 "" v2.6.7.2
+.TH MDADM 8 "" v2.6.8
 .SH NAME
 mdadm \- manage MD devices
 .I aka
@@ -904,6 +904,17 @@ the system to be marked as failed.  It can then be removed.
 .BR \-\-set\-faulty
 same as
 .BR \-\-fail .
+
+.TP
+.BR \-\-write\-mostly
+Subsequent devices that are added or re-added will have the 'write-mostly'
+flag set.  This is only valid for RAID! and means that the 'md' driver
+will avoid reading from these devices if possible.
+.TP
+.BR \-\-readwrite
+Subsequent devices that are added or re-added will have the 'write-mostly'
+flag cleared.
+
 
 .P
 Each of these options require that the first device listed is the array

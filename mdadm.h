@@ -232,7 +232,7 @@ typedef struct mddev_dev_s {
 	char disposition;	/* 'a' for add, 'r' for remove, 'f' for fail.
 				 * Not set for names read from .config
 				 */
-	char writemostly;
+	char writemostly;	/* 1 for 'set writemostly', 2 for 'clear writemostly' */
 	char re_add;
 	char used;		/* set when used */
 	struct mddev_dev_s *next;
@@ -513,7 +513,8 @@ extern void remove_partitions(int fd);
 
 
 extern char *human_size(long long bytes);
-char *human_size_brief(long long bytes);
+extern char *human_size_brief(long long bytes);
+extern void print_r10_layout(int layout);
 
 #define NoMdDev (1<<23)
 extern int find_free_devnum(int use_partitions);

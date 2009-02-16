@@ -112,9 +112,14 @@ int Manage_runstop(char *devname, int fd, int runstop, int quiet)
 		struct map_ent *map = NULL;
 		struct stat stb;
 		if (ioctl(fd, STOP_ARRAY, NULL)) {
-			if (quiet==0)
+			if (quiet==0) {
 				fprintf(stderr, Name ": fail to stop array %s: %s\n",
 					devname, strerror(errno));
+				if (errno == EBUSY)
+					fprintf(stderr, "Perhaps a running "
+						"process, mounted filesystem "
+						"or active volume group?\n");
+			}
 			return 1;
 		}
 		if (quiet <= 0)
@@ -408,8 +413,10 @@ int Manage_subdevs(char *devname, int fd,
 						disc.number = mdi.disk.number;
 						disc.raid_disk = mdi.disk.raid_disk;
 						disc.state = mdi.disk.state;
-						if (dv->writemostly)
+						if (dv->writemostly == 1)
 							disc.state |= 1 << MD_DISK_WRITEMOSTLY;
+						if (dv->writemostly == 2)
+							disc.state &= ~(1 << MD_DISK_WRITEMOSTLY);
 						if (ioctl(fd, ADD_NEW_DISK, &disc) == 0) {
 							if (verbose >= 0)
 								fprintf(stderr, Name ": re-added %s\n", dv->devname);
@@ -447,7 +454,7 @@ int Manage_subdevs(char *devname, int fd,
 			disc.number =j;
 			disc.state = 0;
 			if (array.not_persistent==0) {
-				if (dv->writemostly)
+				if (dv->writemostly == 1)
 					disc.state |= 1 << MD_DISK_WRITEMOSTLY;
 				tst->ss->add_to_super(tst, &disc);
 				if (tst->ss->write_init_super(tst, &disc,
@@ -482,7 +489,7 @@ int Manage_subdevs(char *devname, int fd,
 						break;
 					}
 			}
-			if (dv->writemostly)
+			if (dv->writemostly == 1)
 				disc.state |= (1 << MD_DISK_WRITEMOSTLY);
 			if (ioctl(fd,ADD_NEW_DISK, &disc)) {
 				fprintf(stderr, Name ": add new device failed for %s as %d: %s\n",

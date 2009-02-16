@@ -398,7 +398,7 @@ int is_standard(char *dev, int *nump)
 	if (strncmp(d, "/d",2)==0)
 		d += 2, type=1; /* /dev/md/dN{pM} */
 	else if (strncmp(d, "/md_d", 5)==0)
-		d += 5, type=1; /* /dev/md_dNpM */
+		d += 5, type=1; /* /dev/md_dN{pM} */
 	else if (strncmp(d, "/md", 3)==0)
 		d += 3, type=-1; /* /dev/mdN */
 	else if (d-dev > 3 && strncmp(d-2, "md/", 3)==0)
@@ -433,8 +433,10 @@ int devlist_ready = 0;
 int add_dev(const char *name, const struct stat *stb, int flag, struct FTW *s)
 {
 	struct stat st;
+
 	if (S_ISLNK(stb->st_mode)) {
-		stat(name, &st);
+		if (stat(name, &st) != 0)
+			return 0;
 		stb = &st;
 	}
 
@@ -605,6 +607,23 @@ char *human_size_brief(long long bytes)
 			(long)(((bytes>>10)&0xfffff)+0x100000/200)/(0x100000/100)
 			);
 	return buf;
+}
+
+void print_r10_layout(int layout)
+{
+	int near = layout & 255;
+	int far = (layout >> 8) & 255;
+	int offset = (layout&0x10000);
+	char *sep = "";
+
+	if (near != 1) {
+		printf("%s near=%d", sep, near);
+		sep = ",";
+	}
+	if (far != 1)
+		printf("%s %s=%d", sep, offset?"offset":"far", far);
+	if (near*far == 1)
+		printf("NO REDUNDANCY");
 }
 #endif
 
