@@ -1,3 +1,10 @@
+mdadm (2.6.8-12-gb47dff6-3) unstable; urgency=low
+
+  * Do not set -eu in the bugscript to maximise information output in the case
+    of errors.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 17 Feb 2009 09:02:24 +0100
+
 mdadm (2.6.8-12-gb47dff6-2) unstable; urgency=low
 
   * Brown paper bag release: I built from the wrong branch which caused some
