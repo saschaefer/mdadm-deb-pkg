@@ -4,6 +4,8 @@ mdadm (2.6.7.2-2) unstable; urgency=low
     (closes: #514923)
   * Do not set -eu in the bugscript to maximise information output in the case
     of errors.
+  * Make initramfs script depend on multipath to ensure its script is run
+    before ours (closes: #516605).
 
  -- martin f. krafft <madduck@debian.org>  Fri, 13 Feb 2009 16:03:40 +0100
 
