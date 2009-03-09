@@ -86,7 +86,7 @@ The latest version of this document is available here:
 10. convert existing filesystem to RAID 1
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # The idea is to create a degraded RAID 1 on the second partition, move
-    # data, then hot add the first. This seems safer to me than simply to 
+    # data, then hot add the first. This seems safer to me than simply to
     # force-add a superblock to the existing filesystem.
     #
     # Assume /dev/sda1 holds the data (and let's assume it's mounted on

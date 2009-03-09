@@ -164,7 +164,7 @@ esac
 # not affect woody upgraders)
 if [ "${1:-}" = "configure" ] && [ "${2:-}" = "1.9.0-2.1" ] \
    && test -L /etc/rcS.d/S04mdadm-raid;
-then 
+then
   update-rc.d -f mdadm-raid remove
 fi
 

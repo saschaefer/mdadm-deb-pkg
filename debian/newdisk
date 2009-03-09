@@ -187,7 +187,7 @@ while read STRING; do
   if echo "$STRING" |grep -q "^ARRAY "; then
     MD_DEV=$(echo "$STRING" |awk '{ print $2 }')
   fi
-  
+
   if echo "$STRING" |grep -q "devices=.*$SOURCE"; then
     NO_ADD=0
     PARTITION_NR="$(echo "$STRING" |sed -e s:".*devices=.*$SOURCE":"": -e s:",.*":"":)"
