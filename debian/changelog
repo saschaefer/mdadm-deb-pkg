@@ -1179,7 +1179,7 @@ mdadm (1.2.0-1) unstable; urgency=low
 
 mdadm (1.0.1-4) unstable; urgency=low
 
-  * Changed mdrun so that it can deal with partition statistics in 
+  * Changed mdrun so that it can deal with partition statistics in
     /proc/partitions.
     (closes: Bug#174000, Bug#175130)
   * Added russian (ru) debconf template translation. Thanks to Sergey
@@ -1229,7 +1229,7 @@ mdadm (0.7.2-1) unstable; urgency=low
 mdctl (0.5-4) unstable; urgency=low
 
   * Added debconf template to ask the user if the init script links
-    should be updated. 
+    should be updated.
 
  -- Mario Joussen <joussen@debian.org>  Mon,  4 Mar 2002 22:53:37 +0100
 
@@ -1237,7 +1237,7 @@ mdctl (0.5-3) unstable; urgency=low
 
   * Splitted up init script in two parts. One starts the md array and the
     other starts the raid monitor daemon.
-    (closes: Bug#136184) 
+    (closes: Bug#136184)
 
  -- Mario Joussen <joussen@debian.org>  Thu, 28 Feb 2002 22:45:57 +0100
 
@@ -1250,7 +1250,7 @@ mdctl (0.5-2) unstable; urgency=low
   * Added an init script, which can start md arrays and the raid monitor
     daemon
   * MD devices are now created under /dev if necessary
-  * Added a sample configuration file 
+  * Added a sample configuration file
 
  -- Mario Joussen <mario@joussen.org>  Sun, 13 Jan 2002 23:43:40 +0100
 

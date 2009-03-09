@@ -40,7 +40,7 @@ case "${1:-}" in
       echo "E: $ME: $CONFIG already exists." >&2
       exit 255
     fi
-    
+
     mkdir --parent ${CONFIG%/*}
     exec >$CONFIG
     generate=1
@@ -72,7 +72,7 @@ if [ -n "${PROGRAM:-}" ]; then
   cat <<-_eof
 	# program to run when mdadm monitor detects potentially interesting events
 	PROGRAM ${PROGRAM}
-	
+
 	_eof
 fi
 

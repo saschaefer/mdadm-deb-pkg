@@ -59,11 +59,11 @@ The latest version of this FAQ is available here:
     mdadm --detail /dev/mdX | sed -ne 's,.*Version : ,,p'
 
   to determine the superblock version of a running array, or
-  
+
     mdadm --examine /dev/sdXY | sed -ne 's,.*Version : ,,p'
 
   to determine the superblock version from a component device of an array.
-  
+
   Version 0 superblocks (00.90.XX)
   ''''''''''''''''''''''''''''''''
     You need to know the preferred minor number stored in the superblock,
@@ -111,7 +111,7 @@ The latest version of this FAQ is available here:
   space. For example, if you have disks of size X, then in order to get 2X
   storage, you need 3 disks for RAID5, but 4 if you use RAID10 or RAID1+0 (or
   RAID6).
-  
+
   This gain in usable space comes at a price: performance; RAID1/10 can be up
   to four times faster than RAID4/5/6.
 
@@ -206,7 +206,7 @@ The latest version of this FAQ is available here:
   RAID1+0/10 has a greater chance to survive two disk failures, its
   performance suffers less when in degraded state, and it resyncs faster after
   replacing a failed disk.
-  
+
   See http://aput.net/~jheiss/raid10/ for more details.
 
 7. Which RAID10 layout scheme should I use
@@ -239,7 +239,7 @@ The latest version of this FAQ is available here:
     hdd4  Bb1 Db1  .... Ba2 Da2
 
   Where the second set start half-way through the drives.
-  
+
   The advantage of far= is that you can easily spread a long sequential read
   across the drives.  The cost is more seeking for writes. offset= can
   possibly get similar benefits with large enough chunk size. Neither upstream
@@ -266,7 +266,7 @@ The latest version of this FAQ is available here:
       * dm-crypt
       * EVMS
     * The array is used by a process (check with `lsof')
-  
+
 9. Should I use RAID0 (or linear)?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   No. Unless you know what you're doing and keep backups, or use it for data
@@ -290,7 +290,7 @@ The latest version of this FAQ is available here:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   In certain configurations, especially if your last partition extends all the
   way to the end of the disk, mdadm may display a warning like:
-   
+
     mdadm: WARNING /dev/hdc3 and /dev/hdc appear to have very similar
     superblocks. If they are really different, please --zero the superblock on
     one. If they are the same or overlap, please remove one from the DEVICE
@@ -313,7 +313,7 @@ The latest version of this FAQ is available here:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   In almost all cases, mdadm updates the super-minor field in an array's
   superblock when assembling the array. It does *not* do this for RAID0
-  arrays. Thus, you may end up seeing something like this when you run 
+  arrays. Thus, you may end up seeing something like this when you run
   mdadm -E or mkconf:
 
     ARRAY /dev/md0 level=raid0 num-devices=2 UUID=abcd...
@@ -438,7 +438,7 @@ The latest version of this FAQ is available here:
         2        0/0          1/1          1/1          1/1
         3        0/0          1/1          2/2          2/2
         4        0/0          1/2          2/2          3/3
-        5        0/0          1/2          2/2          3/3                         
+        5        0/0          1/2          2/2          3/3
         6        0/0          1/3          2/3          3/3
         7        0/0          1/3          2/3          3/3
         8        0/0          1/4          2/3          3/4
@@ -450,7 +450,7 @@ The latest version of this FAQ is available here:
 19. What should I do if a disk fails?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Replace it as soon as possible:
-    
+
     mdadm --remove /dev/md0 /dev/sda1
     halt
     <replace disk and start the machine>
@@ -460,7 +460,7 @@ The latest version of this FAQ is available here:
     array?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Did you read the previous question and its answer?
-  
+
   For cases when you have two copies of each block, the question is easily
   answered by looking at the output of /proc/mdstat. For instance on a four
   disk array:

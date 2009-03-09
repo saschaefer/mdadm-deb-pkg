@@ -40,16 +40,16 @@ mdadm (2.5-1) unstable; urgency=low
 
 mdadm (2.4.1-5) unstable; urgency=low
 
-  This version drops the automatic generation of the /etc/mdadm/mdadm.conf 
-  file on every boot (if it was missing). This means that you need to ensure 
+  This version drops the automatic generation of the /etc/mdadm/mdadm.conf
+  file on every boot (if it was missing). This means that you need to ensure
   that you have a valid configuration file. If none is present during package
   configuration, mdadm *will* try to generate one, but it will only contain
-  information about arrays that were running at the time of package 
-  configuration. Arrays not listed in the configuration file will *not* be 
+  information about arrays that were running at the time of package
+  configuration. Arrays not listed in the configuration file will *not* be
   started automatically after boot (with the exception of the root partition).
 
-  If you want to recreate your configuration file, either figure out what it 
-  should contain from the mdadm.conf(5) manpage, or simply assemble and run 
+  If you want to recreate your configuration file, either figure out what it
+  should contain from the mdadm.conf(5) manpage, or simply assemble and run
   all the arrays the way you like it, then run
     /usr/share/mdadm/mkconf force-generate /etc/mdadm/mdadm.conf
 
