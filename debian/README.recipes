@@ -9,7 +9,7 @@ file.
 Enjoy. Submissions welcome.
 
 The latest version of this document is available here:
-  http://svn.debian.org/wsvn/pkg-mdadm/mdadm/trunk/debian/README.recipes?op=file&rev=0&sc=0
+  http://git.debian.org/?p=pkg-mdadm/mdadm.git;a=blob;f=debian/README.recipes;hb=HEAD
 
 0. create a new array
 ~~~~~~~~~~~~~~~~~~~~~
