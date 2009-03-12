@@ -1,11 +1,12 @@
-mdadm (2.6.8-12-gb47dff6-3) unstable; urgency=low
+mdadm (2.6.9-1) unstable; urgency=low
 
+  * New upstream release.
   * Do not set -eu in the bugscript to maximise information output in the case
     of errors.
   * Make initramfs script depend on multipath to ensure its script is run
     before ours (closes: #516605).
 
- -- martin f. krafft <madduck@debian.org>  Tue, 17 Feb 2009 09:02:24 +0100
+ -- martin f. krafft <madduck@debian.org>  Thu, 12 Mar 2009 13:08:43 +0100
 
 mdadm (2.6.8-12-gb47dff6-2) unstable; urgency=low
 
