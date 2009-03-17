@@ -2,6 +2,8 @@ mdadm (2.6.9-2) unstable; urgency=low
 
   * Fix the check of whether mdadm.conf defines all devices known to the
     system; thanks Cristian Ionescu-Idbohrn (closes: #525655).
+  * No longer pass -k to modprobe, which has been deprecated for a long time;
+    thanks to Jan Hudec (closes: #519999).
 
  -- martin f. krafft <madduck@debian.org>  Sun, 26 Apr 2009 16:08:28 +0200
 

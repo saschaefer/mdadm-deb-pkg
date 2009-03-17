@@ -12,7 +12,7 @@ case "${1:-}" in
   configure|reconfigure)
 
     if [ ! -f /proc/mdstat ] && [ -x $(command -v modprobe 2>/dev/null) ]; then
-      modprobe -k md >/dev/null 2>&1 || :
+      modprobe md >/dev/null 2>&1 || :
     fi
     if [ ! -f /proc/mdstat ]; then
       echo 'W: mdadm: failed to load MD subsystem.' >&2
