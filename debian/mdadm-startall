@@ -11,7 +11,7 @@ set -eu
 CONFIG=/etc/mdadm/mdadm.conf
 ALTCONFIG=/etc/mdadm.conf
 
-modprobe -kq md 2>/dev/null || :
+modprobe -q md 2>/dev/null || :
 
 [ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG
 

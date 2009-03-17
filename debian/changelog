@@ -13,6 +13,8 @@ mdadm (2.6.7.2-2) unstable; urgency=low
   * Honour debconf pre-selection of mdadm/initrdstart (closes: #516802).
   * Make checkarray skip over arrays still marked auto-read-only
     (closes: #510641).
+  * No longer pass -k to modprobe, which has been deprecated for a long time;
+    thanks to Jan Hudec (closes: #519999).
 
  -- martin f. krafft <madduck@debian.org>  Fri, 13 Feb 2009 16:03:40 +0100
 
