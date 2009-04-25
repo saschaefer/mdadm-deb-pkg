@@ -110,7 +110,7 @@ install_config()
 
 if [ ! -f $CONFIG ]; then
   # there is no configuration file, so let's create one
-  
+
   if /usr/share/mdadm/mkconf generate $CONFIG; then
     # all is well
     install_config $CONFIG $DESTMDADMCONF
@@ -120,9 +120,9 @@ if [ ! -f $CONFIG ]; then
     warn "failed to auto-generate the mdadm.conf file."
     warn "please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ."
   fi
-  
-else 
-  
+
+else
+
   use_temp=0
   if [ -e /var/lib/mdadm/CONF-UNCHECKED ]; then
     # the file comes from an old installation and hence is not guaranteed to
@@ -230,6 +230,18 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
       *) :;;
     esac
   done
+
+  # see if /etc/mdadm/mdadm.conf looks like it's missing devices
+  if [ -x $MDADM ]; then
+    $MDADM --detail --scan | while read array device rubbish; do
+      if ! echo $devs | grep -qw $device; then
+        warn "You appear to be missing $device from /etc/mdadm/mdadm.conf"
+        warn "If this is required to boot you must add this line:"
+        rubbish=`echo $rubbish | sed 's/metadata=[^ ]* //'`
+        warn "$array $device $rubbish"
+      fi
+    done
+  fi
 
   for i in $INITRDSTART; do
     case "$INITRDSTART" in all|none|'') break;; *) :;; esac

@@ -9,7 +9,9 @@
 #
 # we need /bin/bash for readline and -n capabalities in the prompt(s)
 #
-set -eu
+
+# maximise information output even in the case of errors
+set +eu
 
 if ! command -v yesno >/dev/null; then
   if [ -r /usr/share/reportbug/handle_bugscript ]; then
@@ -50,7 +52,7 @@ echo >&3
 echo "--- /proc/mdstat:" >&3
 cat /proc/mdstat >&3 2>&3 || :
 echo >&3
-  
+
 echo "--- /proc/partitions:" >&3
 cat /proc/partitions >&3 2>&3 || :
 echo >&3

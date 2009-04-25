@@ -7,7 +7,7 @@
 set -eu
 
 case ${1:-} in
-  prereqs) exit 0;;
+  prereqs) echo "multipath";;
 esac
 
 . /scripts/functions
