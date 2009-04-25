@@ -13,6 +13,8 @@ mdadm (2.6.9-1) unstable; urgency=low
   * Incorporate patch from Adrian Bridgett: the initramfs hook now checks to
     see if all known arrays are listed in mdadm.conf and issues a warning if
     this is not the case (closes: #519328).
+  * Make checkarray skip over arrays still marked auto-read-only
+    (closes: #510641).
 
  -- martin f. krafft <madduck@debian.org>  Thu, 12 Mar 2009 13:08:43 +0100
 
