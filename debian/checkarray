@@ -150,6 +150,11 @@ for array in $arrays; do
     exit 4
   fi
 
+  if [ "$(cat /sys/block/$array/md/array_state)" = 'read-auto' ]; then
+    echo "$PROGNAME: W: array $array in auto-read-only state, skipping..." >&2
+    continue
+  fi
+
   case "$action" in
     idle)
       echo $action > $SYNC_ACTION_CTL
