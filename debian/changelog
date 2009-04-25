@@ -9,6 +9,7 @@ mdadm (2.6.9-1) unstable; urgency=low
     #522300). I chose postfix because that's the only one I could recommend,
     and since the alternative does not affect people who already have an MTA
     installed, or have a preference, it won't affect them.
+  * Honour debconf pre-selection of mdadm/initrdstart (closes: #516802).
 
  -- martin f. krafft <madduck@debian.org>  Thu, 12 Mar 2009 13:08:43 +0100
 
