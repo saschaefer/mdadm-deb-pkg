@@ -17,8 +17,9 @@ mdadm (2.6.9-1) unstable; urgency=low
     (closes: #510641).
   * Add cron.daily snippet from Paul Slootman to run one-shot scans every day
     to ensure that failed arrays don't go unnoticed (closes: #497949).
+  * Bumped Standards-Version to 3.8.1; no changes necessary.
 
- -- martin f. krafft <madduck@debian.org>  Thu, 12 Mar 2009 13:08:43 +0100
+ -- martin f. krafft <madduck@debian.org>  Sat, 25 Apr 2009 19:04:47 +0200
 
 mdadm (2.6.8-12-gb47dff6-2) unstable; urgency=low
 
