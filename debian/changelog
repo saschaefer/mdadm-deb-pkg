@@ -10,6 +10,9 @@ mdadm (2.6.9-1) unstable; urgency=low
     and since the alternative does not affect people who already have an MTA
     installed, or have a preference, it won't affect them.
   * Honour debconf pre-selection of mdadm/initrdstart (closes: #516802).
+  * Incorporate patch from Adrian Bridgett: the initramfs hook now checks to
+    see if all known arrays are listed in mdadm.conf and issues a warning if
+    this is not the case (closes: #519328).
 
  -- martin f. krafft <madduck@debian.org>  Thu, 12 Mar 2009 13:08:43 +0100
 
