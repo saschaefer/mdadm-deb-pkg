@@ -6,6 +6,10 @@ mdadm (2.6.7.2-2) unstable; urgency=low
     of errors.
   * Make initramfs script depend on multipath to ensure its script is run
     before ours (closes: #516605).
+  * Provide an alternative (postfix) for mail-transport-agent (closes:
+    #522300). I chose postfix because that's the only one I could recommend,
+    and since the alternative does not affect people who already have an MTA
+    installed, or have a preference, it won't affect them.
 
  -- martin f. krafft <madduck@debian.org>  Fri, 13 Feb 2009 16:03:40 +0100
 
