@@ -15,6 +15,8 @@ mdadm (2.6.9-1) unstable; urgency=low
     this is not the case (closes: #519328).
   * Make checkarray skip over arrays still marked auto-read-only
     (closes: #510641).
+  * Add cron.daily snippet from Paul Slootman to run one-shot scans every day
+    to ensure that failed arrays don't go unnoticed (closes: #497949).
 
  -- martin f. krafft <madduck@debian.org>  Thu, 12 Mar 2009 13:08:43 +0100
 
