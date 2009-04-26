@@ -1,3 +1,10 @@
+mdadm (2.6.9-2) unstable; urgency=low
+
+  * Fix the check of whether mdadm.conf defines all devices known to the
+    system; thanks Cristian Ionescu-Idbohrn (closes: #525655).
+
+ -- martin f. krafft <madduck@debian.org>  Sun, 26 Apr 2009 16:08:28 +0200
+
 mdadm (2.6.9-1) unstable; urgency=low
 
   * New upstream release.
