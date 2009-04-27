@@ -6,8 +6,7 @@
 #
 set -eu
 
-PREREQ=""
-
+PREREQ=
 prereqs()
 {
   echo "$PREREQ"
@@ -218,7 +217,7 @@ uniquify()
 if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   echo "MD_DEVPAIRS='${devpairs% }'" >> $DESTCONFIG
 
-  devs=''; levels=''
+  devs= levels=
   for i in $devpairs; do
     dev=${i%:*}
     level=${i##*:}
