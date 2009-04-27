@@ -231,16 +231,14 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   done
 
   # see if /etc/mdadm/mdadm.conf looks like it's missing devices
-  if [ -x $MDADM ]; then
-    $MDADM --detail --scan | while read array device rubbish; do
-      if ! echo $devpairs | grep -qw $device; then
-        warn "You appear to be missing $device from /etc/mdadm/mdadm.conf !"
-        warn "If this array is required to boot, you must add the following line:"
-        rubbish=`echo $rubbish | sed 's/metadata=[^ ]* //'`
-        warn "$array $device $rubbish"
-      fi
-    done
-  fi
+  $MDADM --detail --scan | while read array device rubbish; do
+    if ! echo $devpairs | grep -qw $device; then
+      warn "You appear to be missing $device from /etc/mdadm/mdadm.conf !"
+      warn "If this array is required to boot, you must add the following line:"
+      rubbish=`echo $rubbish | sed 's/metadata=[^ ]* //'`
+      warn "$array $device $rubbish"
+    fi
+  done
 
   for i in $INITRDSTART; do
     case "$INITRDSTART" in all|none|'') break;; *) :;; esac
