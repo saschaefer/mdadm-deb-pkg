@@ -4,6 +4,8 @@ mdadm (2.6.9-2) unstable; urgency=low
     system; thanks Cristian Ionescu-Idbohrn (closes: #525655).
   * No longer pass -k to modprobe, which has been deprecated for a long time;
     thanks to Jan Hudec (closes: #519999).
+  * Remove Mario Joußen from the uploaders list, since his email started
+    bouncing.
 
  -- martin f. krafft <madduck@debian.org>  Sun, 26 Apr 2009 16:08:28 +0200
 
