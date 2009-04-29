@@ -8,6 +8,8 @@ mdadm (2.6.9-2) unstable; urgency=low
     bouncing.
   * Prepare mdadm source to use quilt, with the long-term goal to switch to
     TopGit, once I find the time.
+  * Cherry-pick caa0f6c & 667e66d from Neil into a quilt patch to fix gcc-4.4
+    compiler issues (closes: #505375).
 
  -- martin f. krafft <madduck@debian.org>  Sun, 26 Apr 2009 16:08:28 +0200
 

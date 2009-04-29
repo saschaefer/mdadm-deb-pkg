@@ -1,0 +1,139 @@
+From 5d6b7d85d4bb671bc31adc7cbfd0802f2c982a44 Mon Sep 17 00:00:00 2001
+From: Neil Brown <neilb@suse.de>
+Date: Mon, 27 Apr 2009 19:50:44 +1000
+Subject: [PATCH 1/2] Fix gcc-4.4 compiler warning.
+
+Apparently the dereferencing of a type-punned pointer breaks strict
+aliasing rules.   And we wouldn't want to do that.
+So just make a different array of the appropriate type and use memcpy.
+
+Resolves-Debian-bug: 505375
+Signed-off-by: NeilBrown <neilb@suse.de>
+Signed-off-by: martin f. krafft <madduck@debian.org>
+---
+ Makefile |    2 +-
+ bitmap.c |   28 +++++++++++++++-------------
+ bitmap.h |    2 +-
+ super1.c |   19 +++++++------------
+ 4 files changed, 24 insertions(+), 27 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 24ad694..3fb9c78 100644
+--- a/Makefile
++++ b/Makefile
+@@ -114,7 +114,7 @@ mdadm.klibc : $(SRCS) mdadm.h
+ 	gcc -nostdinc -iwithprefix include -I$(KLIBC)/klibc/include -I$(KLIBC)/linux/include -I$(KLIBC)/klibc/arch/i386/include -I$(KLIBC)/klibc/include/bits32 $(CFLAGS) $(SRCS)
+ 
+ mdadm.Os : $(SRCS) mdadm.h
+-	gcc -o mdadm.Os $(CFLAGS)  -DHAVE_STDINT_H -Os $(SRCS)
++	$(CC) -o mdadm.Os $(CFLAGS)  -DHAVE_STDINT_H -Os $(SRCS)
+ 
+ mdadm.O2 : $(SRCS) mdadm.h
+ 	gcc -o mdadm.O2 $(CFLAGS)  -DHAVE_STDINT_H -O2 $(SRCS)
+diff --git a/bitmap.c b/bitmap.c
+index 352be5d..5618087 100644
+--- a/bitmap.c
++++ b/bitmap.c
+@@ -270,6 +270,7 @@ int ExamineBitmap(char *filename, int brief, struct supertype *st)
+ 	int rv = 1;
+ 	char buf[64];
+ 	int swap;
++	__u32 uuid32[4];
+ 
+ 	info = bitmap_file_read(filename, brief, &st);
+ 	if (!info)
+@@ -297,19 +298,20 @@ int ExamineBitmap(char *filename, int brief, struct supertype *st)
+ #else
+ 		swap = 1;
+ #endif
+-	if (swap) {
+-	printf("            UUID : %08x:%08x:%08x:%08x\n",
+-					swapl(*(__u32 *)(sb->uuid+0)),
+-					swapl(*(__u32 *)(sb->uuid+4)),
+-					swapl(*(__u32 *)(sb->uuid+8)),
+-					swapl(*(__u32 *)(sb->uuid+12)));
+-	} else {
+-	printf("            UUID : %08x:%08x:%08x:%08x\n",
+-					*(__u32 *)(sb->uuid+0),
+-					*(__u32 *)(sb->uuid+4),
+-					*(__u32 *)(sb->uuid+8),
+-					*(__u32 *)(sb->uuid+12));
+-	}
++	memcpy(uuid32, sb->uuid, 16);
++	if (swap)
++		printf("            UUID : %08x:%08x:%08x:%08x\n",
++		       swapl(uuid32[0]),
++		       swapl(uuid32[1]),
++		       swapl(uuid32[2]),
++		       swapl(uuid32[3]));
++	else
++		printf("            UUID : %08x:%08x:%08x:%08x\n",
++		       uuid32[0],
++		       uuid32[1],
++		       uuid32[2],
++		       uuid32[3]);
++
+ 	printf("          Events : %llu\n", (unsigned long long)sb->events);
+ 	printf("  Events Cleared : %llu\n", (unsigned long long)sb->events_cleared);
+ 	printf("           State : %s\n", bitmap_state(sb->state));
+diff --git a/bitmap.h b/bitmap.h
+index c8725a3..0228a15 100644
+--- a/bitmap.h
++++ b/bitmap.h
+@@ -146,7 +146,7 @@ enum bitmap_state {
+ typedef struct bitmap_super_s {
+ 	__u32 magic;        /*  0  BITMAP_MAGIC */
+ 	__u32 version;      /*  4  the bitmap major for now, could change... */
+-	__u8  uuid[16];     /*  8  128 bit uuid - must match md device uuid */
++	union {__u8  uuid[16]; __u32 uuid32[4]; };     /*  8  128 bit uuid - must match md device uuid */
+ 	__u64 events;       /* 24  event counter for the bitmap (1)*/
+ 	__u64 events_cleared;/*32  event counter when last bit cleared (2) */
+ 	__u64 sync_size;    /* 40  the size of the md device's sync range(3) */
+diff --git a/super1.c b/super1.c
+index 1342412..037c5eb 100644
+--- a/super1.c
++++ b/super1.c
+@@ -612,10 +612,8 @@ static int update_super1(struct supertype *st, struct mdinfo *info,
+ 
+ 		if ((rfd = open("/dev/urandom", O_RDONLY)) < 0 ||
+ 		    read(rfd, sb->device_uuid, 16) != 16) {
+-			*(__u32*)(sb->device_uuid) = random();
+-			*(__u32*)(sb->device_uuid+4) = random();
+-			*(__u32*)(sb->device_uuid+8) = random();
+-			*(__u32*)(sb->device_uuid+12) = random();
++			__u32 r[4] = {random(), random(), random(), random()};
++			memcpy(sb->device_uuid, r, 16);
+ 		}
+ 
+ 		sb->dev_roles[i] =
+@@ -735,10 +733,8 @@ static int init_super1(struct supertype *st, mdu_array_info_t *info,
+ 	else {
+ 		if ((rfd = open("/dev/urandom", O_RDONLY)) < 0 ||
+ 		    read(rfd, sb->set_uuid, 16) != 16) {
+-			*(__u32*)(sb->set_uuid) = random();
+-			*(__u32*)(sb->set_uuid+4) = random();
+-			*(__u32*)(sb->set_uuid+8) = random();
+-			*(__u32*)(sb->set_uuid+12) = random();
++			__u32 r[4] = {random(), random(), random(), random()};
++			memcpy(sb->set_uuid, r, 16);
+ 		}
+ 		if (rfd >= 0) close(rfd);
+ 	}
+@@ -912,11 +908,10 @@ static int write_init_super1(struct supertype *st,
+ 
+ 	if ((rfd = open("/dev/urandom", O_RDONLY)) < 0 ||
+ 	    read(rfd, sb->device_uuid, 16) != 16) {
+-		*(__u32*)(sb->device_uuid) = random();
+-		*(__u32*)(sb->device_uuid+4) = random();
+-		*(__u32*)(sb->device_uuid+8) = random();
+-		*(__u32*)(sb->device_uuid+12) = random();
++		__u32 r[4] = {random(), random(), random(), random()};
++		memcpy(sb->device_uuid, r, 16);
+ 	}
++	
+ 	if (rfd >= 0) close(rfd);
+ 	sb->events = 0;
+ 
+-- 
+1.6.2.4
+
