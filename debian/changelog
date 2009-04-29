@@ -1,3 +1,18 @@
+mdadm (2.6.9-2) unstable; urgency=low
+
+  * Fix the check of whether mdadm.conf defines all devices known to the
+    system; thanks Cristian Ionescu-Idbohrn (closes: #525655).
+  * No longer pass -k to modprobe, which has been deprecated for a long time;
+    thanks to Jan Hudec (closes: #519999).
+  * Remove Mario Joußen from the uploaders list, since his email started
+    bouncing.
+  * Prepare mdadm source to use quilt, with the long-term goal to switch to
+    TopGit, once I find the time.
+  * Cherry-pick caa0f6c & 667e66d from Neil into a quilt patch to fix gcc-4.4
+    compiler issues (closes: #505375).
+
+ -- martin f. krafft <madduck@debian.org>  Sun, 26 Apr 2009 16:08:28 +0200
+
 mdadm (2.6.9-1) unstable; urgency=low
 
   * New upstream release.

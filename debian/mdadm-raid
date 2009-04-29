@@ -94,7 +94,7 @@ case "${1:-}" in
 
     if is_true $AUTOSTART || is_true ${MDADM_FORCE_AUTOSTART__:-0}; then
       if [ ! -f /proc/mdstat ] && [ -x "$(command -v modprobe)" ] ; then
-        modprobe -kq md 2>/dev/null || :
+        modprobe -q md 2>/dev/null || :
       fi
       if [ ! -f /proc/mdstat ]; then
         log_problem "failed to load MD subsystem"

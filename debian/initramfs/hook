@@ -6,14 +6,13 @@
 #
 set -eu
 
-PREREQ=""
-
+PREREQ=
 prereqs()
 {
   echo "$PREREQ"
 }
 
-case ${1:-} in
+case "${1:-}" in
   prereqs)
     prereqs
     exit 0
@@ -24,7 +23,7 @@ is_true()
 {
   case "${1:-}" in
     [Yy]es|[Yy]|1|[Tt]rue|[Tt]) return 0;;
-    *) return 1;
+    *) return 1;;
   esac
 }
 
@@ -218,7 +217,7 @@ uniquify()
 if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   echo "MD_DEVPAIRS='${devpairs% }'" >> $DESTCONFIG
 
-  devs=''; levels=''
+  devs= levels=
   for i in $devpairs; do
     dev=${i%:*}
     level=${i##*:}
@@ -232,16 +231,14 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   done
 
   # see if /etc/mdadm/mdadm.conf looks like it's missing devices
-  if [ -x $MDADM ]; then
-    $MDADM --detail --scan | while read array device rubbish; do
-      if ! echo $devs | grep -qw $device; then
-        warn "You appear to be missing $device from /etc/mdadm/mdadm.conf"
-        warn "If this is required to boot you must add this line:"
-        rubbish=`echo $rubbish | sed 's/metadata=[^ ]* //'`
-        warn "$array $device $rubbish"
-      fi
-    done
-  fi
+  $MDADM --detail --scan | while read array device rubbish; do
+    if ! echo $devpairs | grep -qw $device; then
+      warn "You appear to be missing $device from /etc/mdadm/mdadm.conf !"
+      warn "If this array is required to boot, you must add the following line:"
+      rubbish=`echo $rubbish | sed 's/metadata=[^ ]* //'`
+      warn "$array $device $rubbish"
+    fi
+  done
 
   for i in $INITRDSTART; do
     case "$INITRDSTART" in all|none|'') break;; *) :;; esac
