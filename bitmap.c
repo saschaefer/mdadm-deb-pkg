@@ -131,11 +131,13 @@ bitmap_info_t *bitmap_fd_read(int fd, int brief)
 	 */
 	unsigned long long total_bits = 0, read_bits = 0, dirty_bits = 0;
 	bitmap_info_t *info;
-	char *buf, *unaligned;
+	void *buf;
 	int n, skip;
 
-	unaligned = malloc(8192*2);
-	buf = (char*) ((unsigned long)unaligned | 8191)+1;
+	if (posix_memalign(&buf, 512, 8192) != 0) {
+		fprintf(stderr, Name ": failed to allocate 8192 bytes\n");
+		return NULL;
+	}
 	n = read(fd, buf, 8192);
 
 	info = malloc(sizeof(*info));
@@ -154,7 +156,6 @@ bitmap_info_t *bitmap_fd_read(int fd, int brief)
 		fprintf(stderr, Name ": failed to read superblock of bitmap "
 			"file: %s\n", strerror(errno));
 		free(info);
-		free(unaligned);
 		return NULL;
 	}
 	memcpy(&info->sb, buf, sizeof(info->sb));

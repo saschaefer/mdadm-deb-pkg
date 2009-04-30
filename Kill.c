@@ -34,7 +34,7 @@
 #include	"md_u.h"
 #include	"md_p.h"
 
-int Kill(char *dev, int force, int quiet)
+int Kill(char *dev, int force, int quiet, int noexcl)
 {
 	/*
 	 * Nothing fancy about Kill.  It just zeroes out a superblock
@@ -44,6 +44,8 @@ int Kill(char *dev, int force, int quiet)
 	int fd, rv = 0;
 	struct supertype *st;
 
+	if (force)
+		noexcl = 1;
 	fd = open(dev, O_RDWR|(force ? 0 : O_EXCL));
 	if (fd < 0) {
 		if (!quiet)
@@ -63,10 +65,8 @@ int Kill(char *dev, int force, int quiet)
 	if (force && rv >= 2)
 		rv = 0; /* ignore bad data in superblock */
 	if (rv== 0 || (force && rv >= 2)) {
-		mdu_array_info_t info;
-		info.major_version = -1; /* zero superblock */
 		st->ss->free_super(st);
-		st->ss->init_super(st, &info, 0, "", NULL, NULL);
+		st->ss->init_super(st, NULL, 0, "", NULL, NULL);
 		if (st->ss->store_super(st, fd)) {
 			if (!quiet)
 				fprintf(stderr, Name ": Could not zero superblock on %s\n",
