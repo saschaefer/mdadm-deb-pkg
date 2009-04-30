@@ -1,3 +1,9 @@
+mdadm (3.0~devel3-1) experimental; urgency=low
+
+  * Initial release of DEVELOPMENT BRANCH 3.0 to experimental.
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 30 Apr 2009 11:51:39 +0200
+
 mdadm (2.6.9-2) unstable; urgency=low
 
   * Fix the check of whether mdadm.conf defines all devices known to the
