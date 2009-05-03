@@ -1,7 +1,7 @@
 mdadm (2.6.9-3) unstable; urgency=low
 
   * Fix the multipath prereq patch (#516605) and make it exit after printing
-    the prerequisites.
+    the prerequisites (closes: #526793).
 
  -- martin f. krafft <madduck@debian.org>  Sun, 03 May 2009 17:29:47 +0200
 
