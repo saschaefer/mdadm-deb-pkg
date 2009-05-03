@@ -1,4 +1,4 @@
-mdadm (2.6.7.2-2) unstable; urgency=low
+mdadm (2.6.7.2-2) stable-proposed-updates; urgency=low
 
   * Fix start/stop runlevels in header of mdadm monitor init.d script
     (closes: #514923)
@@ -18,7 +18,7 @@ mdadm (2.6.7.2-2) unstable; urgency=low
   * Remove Mario Joußen from the uploaders list, since his email started
     bouncing.
 
- -- martin f. krafft <madduck@debian.org>  Fri, 13 Feb 2009 16:03:40 +0100
+ -- martin f. krafft <madduck@debian.org>  Sun, 03 May 2009 19:35:03 +0200
 
 mdadm (2.6.7.2-1) unstable; urgency=low
 
