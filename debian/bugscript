@@ -106,7 +106,14 @@ echo >&3
 
 echo "--- initrd.img-$(uname -r):" >&3
 if [ -r /boot/initrd.img-$(uname -r) ]; then
-  zcat /boot/initrd.img-$(uname -r) 2>&3 | cpio -t 2>&3 | egrep '/md[a/]' >&3
+  TEMPDIR=$(mktemp -d)
+  OLDPWD="$PWD"
+  cd "$TEMPDIR"
+  zcat /boot/initrd.img-$(uname -r) 2>&3 | cpio -i 2>&3
+  find -regex '.*/md[a/].+' -type f -exec md5sum {} \; >&3
+  cd "$OLDPWD"
+  rm -rf "$TEMPDIR"
+  unset TEMPDIR
 fi
 echo >&3
 
