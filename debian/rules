@@ -63,8 +63,8 @@ install: build
 	dh_testdir
 	dh_clean -k
 	dh_installdirs
-	install -m0755 mdadm $(DESTDIR)/sbin
-	install -m0755 mdadm.udeb $(DESTDIR_UDEB)/sbin/mdadm
+
+	$(MAKE) install DESTDIR=$(DESTDIR)
 
 	install -m0755 debian/initramfs/hook \
 		$(DESTDIR)/usr/share/initramfs-tools/hooks/mdadm
@@ -80,6 +80,8 @@ install: build
 
 	install -m0644 debian/mdadm.lintian-overrides \
 		$(DESTDIR)/usr/share/lintian/overrides/mdadm
+
+	install -m0755 mdadm.udeb $(DESTDIR_UDEB)/sbin/mdadm
 
 binary-indep: build install
 
