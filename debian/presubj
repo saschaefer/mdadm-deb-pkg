@@ -1,0 +1,17 @@
+Gathering information relevant to mdadm as root
+===============================================
+
+If you are not reporting bugs as root (which you should not), you will be
+prompted to give permission to run a script to collect relevant information
+from your system as the root user. Only the root user has access to some
+information that might be relevant to the bug report you are about to file.
+
+
+** Please give permission to run the script as root when asked momentarily.
+
+
+If you would rather obtain the same information manually, you can run
+  /usr/share/bug/mdadm/script 3>&1
+as root and include or attach the output.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 11:26:32 +0200

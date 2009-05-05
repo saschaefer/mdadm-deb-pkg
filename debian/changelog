@@ -4,6 +4,8 @@ mdadm (2.6.9-3) unstable; urgency=low
     the prerequisites (closes: #526793).
   * Change my previous recommendation for postfix over to the new virtual
     package default-mta (see #522300 and #508644).
+  * Enhance bugscript, which now asks to run as root (sudo/su) if invoked by
+    a normal user.
 
  -- martin f. krafft <madduck@debian.org>  Sun, 03 May 2009 17:29:47 +0200
 
