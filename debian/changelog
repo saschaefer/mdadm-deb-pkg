@@ -1,7 +1,7 @@
 mdadm (2.6.7.2-3) stable-proposed-updates; urgency=low
 
-  * Change my previous recommendation for postfix over to the new virtual
-    package default-mta (see #522300 and #508644).
+  * Change my previous recommendation for postfix over to Debian's default
+    MTA, exim4 (see #522300 and #508644).
   * Cherry-pick bug script enhancements from sid version:
     - Enhance bugscript, which now asks to run as root (sudo/su) if invoked by
       a normal user.
