@@ -123,14 +123,21 @@ if [ -r /proc/modules ]; then
   echo >&3
 fi
 
-if [ -r /var/log/syslog ]; then
-  echo "--- /var/log/syslog:" >&3
-  egrep "^\w{3} [ :[:digit:]]{11} ($(hostname)|localhost) (kernel: md|mdadm): " /var/log/syslog >&3 || :
-  echo >&3
+if [ -f /var/log/syslog ]; then
+  if [ -r /var/log/syslog ]; then
+    echo "--- /var/log/syslog:" >&3
+    egrep "^\w{3} [ :[:digit:]]{11} ($(hostname)|localhost) (kernel: md|mdadm): " /var/log/syslog >&3 || :
+    echo >&3
+  else
+    echo "syslog not readable by user." >&3
+  fi
 fi
 
 echo "--- volume detail:" >&3
-for dev in /dev/[hs]d[a-z]*; do mdadm -E $dev 2>/dev/null && echo -- || :; done >&3
+for dev in /dev/[hsv]d[a-z]*; do
+  [ ! -r $dev ] && echo "$dev not readable by user." && continue
+  mdadm -E $dev 2>/dev/null && echo -- || echo "$dev is not recognised by mdadm."
+done >&3
 echo >&3
 
 if [ -r /proc/cmdline ]; then
