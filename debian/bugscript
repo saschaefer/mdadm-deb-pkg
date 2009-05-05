@@ -146,10 +146,20 @@ if [ -r /proc/cmdline ]; then
   echo >&3
 fi
 
+if [ -f /boot/grub/grub.cfg ]; then
+  echo "--- grub2:" >&3
+  if [ -r /boot/grub/grub.cfg ]; then
+    egrep '^[^#].*\<(root=|raid)' /boot/grub/grub.cfg >&3 || :
+  else
+    echo grub.cfg file not readable. >&3
+  fi
+  echo >&3
+fi
+
 if [ -f /boot/grub/menu.lst ]; then
-  echo "--- grub:" >&3
+  echo "--- grub legacy:" >&3
   if [ -r /boot/grub/menu.lst ]; then
-    grep '^[^#].*root=' /boot/grub/menu.lst >&3 || :
+    grep '^[^#].*\<root=' /boot/grub/menu.lst >&3 || :
   else
     echo menu.lst file not readable. >&3
   fi

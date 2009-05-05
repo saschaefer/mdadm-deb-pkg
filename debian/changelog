@@ -7,6 +7,7 @@ mdadm (2.6.9-3) unstable; urgency=low
   * Enhance bugscript, which now asks to run as root (sudo/su) if invoked by
     a normal user.
   * Include MD5 sums of md-related files in initrd in bug reports.
+  * Add grub2 information retrieval to bugscript.
 
  -- martin f. krafft <madduck@debian.org>  Sun, 03 May 2009 17:29:47 +0200
 
