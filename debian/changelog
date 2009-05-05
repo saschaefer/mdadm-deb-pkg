@@ -4,6 +4,21 @@ mdadm (3.0~devel3-43-g2800528-1) experimental; urgency=low
 
  -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 12:02:03 +0200
 
+mdadm (2.6.9-3) unstable; urgency=low
+
+  * Fix the multipath prereq patch (#516605) and make it exit after printing
+    the prerequisites (closes: #526793).
+  * Change my previous recommendation for postfix over to the new virtual
+    package default-mta (see #522300 and #508644).
+  * Enhance bugscript, which now asks to run as root (sudo/su) if invoked by
+    a normal user.
+  * Include MD5 sums of md-related files in initrd in bug reports.
+  * Add grub2 information retrieval to bugscript.
+  * Trap SIGINT and thus prevent ctrl-c from terminating the bugscript
+    prematurely.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 11:46:22 +0200
+
 mdadm (3.0~devel3-1) experimental; urgency=low
 
   * Initial release of DEVELOPMENT BRANCH 3.0 to experimental.
@@ -20,6 +35,8 @@ mdadm (2.6.9-2) unstable; urgency=low
     bouncing.
   * Prepare mdadm source to use quilt, with the long-term goal to switch to
     TopGit, once I find the time.
+  * Cherry-pick caa0f6c & 667e66d from Neil into a quilt patch to fix gcc-4.4
+    compiler issues (closes: #505375).
 
  -- martin f. krafft <madduck@debian.org>  Sun, 26 Apr 2009 16:08:28 +0200
 
