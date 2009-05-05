@@ -2,6 +2,8 @@ mdadm (2.6.9-3) unstable; urgency=low
 
   * Fix the multipath prereq patch (#516605) and make it exit after printing
     the prerequisites (closes: #526793).
+  * Change my previous recommendation for postfix over to the new virtual
+    package default-mta (see #522300 and #508644).
 
  -- martin f. krafft <madduck@debian.org>  Sun, 03 May 2009 17:29:47 +0200
 
