@@ -6,6 +6,8 @@ mdadm (2.6.7.2-3) stable-proposed-updates; urgency=low
     a normal user.
   * Include MD5 sums of md-related files in initrd in bug reports.
   * Add grub2 information retrieval to bugscript.
+  * Trap SIGINT and thus prevent ctrl-c from terminating the bugscript
+    prematurely.
 
  -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 08:45:22 +0200
 
