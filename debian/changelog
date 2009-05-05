@@ -2,6 +2,8 @@ mdadm (2.6.7.2-3) stable-proposed-updates; urgency=low
 
   * Change my previous recommendation for postfix over to the new virtual
     package default-mta (see #522300 and #508644).
+  * Enhance bugscript, which now asks to run as root (sudo/su) if invoked by
+    a normal user.
 
  -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 08:45:22 +0200
 

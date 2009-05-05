@@ -69,6 +69,7 @@ install: build
 	install -m0755 debian/mkconf $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/checkarray $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/bugscript $(DESTDIR)/usr/share/bug/mdadm/script
+	install -m0544 debian/presubj $(DESTDIR)/usr/share/bug/mdadm
 
 	install -m0755 debian/mdadm-startall $(DESTDIR)/sbin
 
