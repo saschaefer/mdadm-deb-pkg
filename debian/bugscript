@@ -28,6 +28,9 @@ if ! command -v yesno >/dev/null; then
   exec 3>&1
 fi
 
+# do not let people ctrl-c out of the bugscript
+trap : INT
+
 if [ $(id -u) != 0 ]; then
   if [ -x "$(command -v sudo)" ]; then
     yesno "Gather system information as root using sudo? (Y/n) " yep
