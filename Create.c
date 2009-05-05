@@ -261,6 +261,8 @@ int Create(struct supertype *st, char *mddev,
 		return 1;
 	}
 	
+	if (size && chunk)
+		size &= ~(unsigned long long)(chunk - 1);
 	newsize = size * 2;
 	if (st && ! st->ss->validate_geometry(st, level, layout, raiddisks,
 					      chunk, size*2, NULL, &newsize, verbose>=0))
@@ -808,7 +810,7 @@ int Create(struct supertype *st, char *mddev,
 		sysfs_uevent(&info, "change");
 		if (verbose >= 0)
 			fprintf(stderr, Name ": container %s prepared.\n", mddev);
-		wait_for(chosen_name);
+		wait_for(chosen_name, mdfd);
 	} else if (runstop == 1 || subdevs >= raiddisks) {
 		if (st->ss->external) {
 			switch(level) {
@@ -844,7 +846,7 @@ int Create(struct supertype *st, char *mddev,
 			ping_monitor(devnum2devname(st->container_dev));
 			close(container_fd);
 		}
-		wait_for(chosen_name);
+		wait_for(chosen_name, mdfd);
 	} else {
 		fprintf(stderr, Name ": not starting array - not enough devices.\n");
 	}

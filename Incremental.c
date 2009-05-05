@@ -335,32 +335,34 @@ int Incremental(char *devname, int verbose, int runstop,
 
 		sra = sysfs_read(mdfd, fd2devnum(mdfd), (GET_DEVS | GET_STATE));
 
-		sprintf(dn, "%d:%d", sra->devs->disk.major,
-			sra->devs->disk.minor);
-		dfd2 = dev_open(dn, O_RDONLY);
-		st2 = dup_super(st);
-		if (st2->ss->load_super(st2, dfd2, NULL) ||
-		    st->ss->compare_super(st, st2) != 0) {
-			fprintf(stderr, Name
-				": metadata mismatch between %s and "
-				"chosen array %s\n",
-				devname, chosen_name);
-			close(mdfd);
+		if (sra->devs) {
+			sprintf(dn, "%d:%d", sra->devs->disk.major,
+				sra->devs->disk.minor);
+			dfd2 = dev_open(dn, O_RDONLY);
+			st2 = dup_super(st);
+			if (st2->ss->load_super(st2, dfd2, NULL) ||
+			    st->ss->compare_super(st, st2) != 0) {
+				fprintf(stderr, Name
+					": metadata mismatch between %s and "
+					"chosen array %s\n",
+					devname, chosen_name);
+				close(mdfd);
+				close(dfd2);
+				return 2;
+			}
 			close(dfd2);
-			return 2;
-		}
-		close(dfd2);
-		memset(&info2, 0, sizeof(info2));
-		st2->ss->getinfo_super(st2, &info2);
-		st2->ss->free_super(st2);
-		if (info.array.level != info2.array.level ||
-		    memcmp(info.uuid, info2.uuid, 16) != 0 ||
-		    info.array.raid_disks != info2.array.raid_disks) {
-			fprintf(stderr, Name
-				": unexpected difference between %s and %s.\n",
-				chosen_name, devname);
-			close(mdfd);
-			return 2;
+			memset(&info2, 0, sizeof(info2));
+			st2->ss->getinfo_super(st2, &info2);
+			st2->ss->free_super(st2);
+			if (info.array.level != info2.array.level ||
+			    memcmp(info.uuid, info2.uuid, 16) != 0 ||
+			    info.array.raid_disks != info2.array.raid_disks) {
+				fprintf(stderr, Name
+					": unexpected difference between %s and %s.\n",
+					chosen_name, devname);
+				close(mdfd);
+				return 2;
+			}
 		}
 		info2.disk.major = major(stb.st_rdev);
 		info2.disk.minor = minor(stb.st_rdev);
@@ -392,18 +394,24 @@ int Incremental(char *devname, int verbose, int runstop,
 	/* 7a/ if not, finish with success. */
 	if (info.array.level == LEVEL_CONTAINER) {
 		/* Try to assemble within the container */
-		close(mdfd);
 		map_unlock(&map);
 		sysfs_uevent(&info, "change");
 		if (verbose >= 0)
 			fprintf(stderr, Name
 				": container %s now has %d devices\n",
 				chosen_name, info.array.working_disks);
-		wait_for(chosen_name);
+		wait_for(chosen_name, mdfd);
+		close(mdfd);
 		if (runstop < 0)
 			return 0; /* don't try to assemble */
-		return Incremental(chosen_name, verbose, runstop,
-				   NULL, homehost, autof);
+		rv = Incremental(chosen_name, verbose, runstop,
+				 NULL, homehost, autof);
+		if (rv == 1)
+			/* Don't fail the whole -I if a subarray didn't
+			 * have enough devices to start yet
+			 */
+			rv = 0;
+		return rv;
 	}
 	avail = NULL;
 	active_disks = count_active(st, mdfd, &avail, &info);
@@ -474,7 +482,7 @@ int Incremental(char *devname, int verbose, int runstop,
 			   ": %s attached to %s, which has been started.\n",
 					devname, chosen_name);
 			rv = 0;
-			wait_for(chosen_name);
+			wait_for(chosen_name, mdfd);
 		} else {
 			fprintf(stderr, Name
                              ": %s attached to %s, but failed to start: %s.\n",
@@ -729,7 +737,6 @@ int Incremental_container(struct supertype *st, char *devname, int verbose,
 		char chosen_name[1024];
 		struct map_ent *mp;
 		struct mddev_ident_s *match = NULL;
-		int err;
 
 		mp = map_by_uuid(&map, ra->uuid);
 
@@ -789,10 +796,8 @@ int Incremental_container(struct supertype *st, char *devname, int verbose,
 			return 2;
 		}
 
-		err = assemble_container_content(st, mdfd, ra, runstop,
-						 chosen_name, verbose);
-		if (err)
-			return err;
+		assemble_container_content(st, mdfd, ra, runstop,
+					   chosen_name, verbose);
 	}
 	map_unlock(&map);
 	return 0;

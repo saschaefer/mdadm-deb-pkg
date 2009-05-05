@@ -1,3 +1,9 @@
+mdadm (3.0~devel3-43-g2800528-1) experimental; urgency=low
+
+  * Merge tip of upstream's devel-3.0 branch at commit 800528.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 12:02:03 +0200
+
 mdadm (3.0~devel3-1) experimental; urgency=low
 
   * Initial release of DEVELOPMENT BRANCH 3.0 to experimental.

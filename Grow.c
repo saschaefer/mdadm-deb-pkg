@@ -809,12 +809,21 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 		/* wait for reshape to pass the critical region */
 		while(1) {
 			unsigned long long comp;
+
 			if (sysfs_get_ll(sra, NULL, "sync_completed", &comp)<0) {
 				sleep(5);
 				break;
 			}
 			if (comp >= nstripe)
 				break;
+			if (comp == 0) {
+				/* Maybe it finished already */
+				char action[20];
+				if (sysfs_get_str(sra, NULL, "sync_action",
+						  action, 20) > 0 &&
+				    strncmp(action, "reshape", 7) != 0)
+					break;
+			}
 			sleep(1);
 		}
 

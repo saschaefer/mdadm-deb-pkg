@@ -1069,7 +1069,7 @@ int Assemble(struct supertype *st, char *mddev,
 				fprintf(stderr, "\n");
 			}
 			sysfs_uevent(content, "change");
-			wait_for(chosen_name);
+			wait_for(chosen_name, mdfd);
 			close(mdfd);
 			return 0;
 		}
@@ -1104,8 +1104,8 @@ int Assemble(struct supertype *st, char *mddev,
 								      (4 * content->array.chunk_size / 4096) + 1);
 					}
 				}
+				wait_for(mddev, mdfd);
 				close(mdfd);
-				wait_for(mddev);
 				if (auto_assem) {
 					int usecs = 1;
 					/* There is a nasty race with 'mdadm --monitor'.
@@ -1228,20 +1228,23 @@ int assemble_container_content(struct supertype *st, int mdfd,
 		sysfs_free(sra);
 
 	for (dev = content->devs; dev; dev = dev->next)
-		if (sysfs_add_disk(content, dev) == 0)
+		if (sysfs_add_disk(content, dev, 1) == 0)
 			working++;
 		else if (errno == EEXIST)
 			preexist++;
 	if (working == 0) {
 		close(mdfd);
 		return 1;/* Nothing new, don't try to start */
-	} else if (runstop > 0 ||
+	}
+	
+	map_update(&map, fd2devnum(mdfd),
+		   content->text_version,
+		   content->uuid, chosen_name);
+
+	if (runstop > 0 ||
 		 (working + preexist) >= content->array.working_disks) {
 		int err;
 
-		map_update(&map, fd2devnum(mdfd),
-			   content->text_version,
-			   content->uuid, chosen_name);
 		switch(content->array.level) {
 		case LEVEL_LINEAR:
 		case LEVEL_MULTIPATH:
@@ -1276,7 +1279,7 @@ int assemble_container_content(struct supertype *st, int mdfd,
 			fprintf(stderr, "\n");
 		}
 		if (!err)
-			wait_for(chosen_name);
+			wait_for(chosen_name, mdfd);
 		close(mdfd);
 		return 0;
 		/* FIXME should have an O_EXCL and wait for read-auto */

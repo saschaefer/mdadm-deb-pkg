@@ -643,6 +643,7 @@ static int load_ddf_local(int fd, struct ddf_super *super,
 	struct stat stb;
 	char *conf;
 	int i;
+	int confsec;
 	int vnum;
 	int max_virt_disks = __be16_to_cpu(super->active->max_vd_entries);
 	unsigned long long dsize;
@@ -693,11 +694,11 @@ static int load_ddf_local(int fd, struct ddf_super *super,
 			    0);
 
 	vnum = 0;
-	for (i = 0;
-	     i < __be32_to_cpu(super->active->config_section_length);
-	     i += super->conf_rec_len) {
+	for (confsec = 0;
+	     confsec < __be32_to_cpu(super->active->config_section_length);
+	     confsec += super->conf_rec_len) {
 		struct vd_config *vd =
-			(struct vd_config *)((char*)conf + i*512);
+			(struct vd_config *)((char*)conf + confsec*512);
 		struct vcl *vcl;
 
 		if (vd->magic == DDF_SPARE_ASSIGN_MAGIC) {
@@ -781,22 +782,20 @@ static int load_super_ddf(struct supertype *st, int fd,
 
 	/* 32M is a lower bound */
 	if (dsize <= 32*1024*1024) {
-		if (devname) {
+		if (devname)
 			fprintf(stderr,
 				Name ": %s is too small for ddf: "
 				"size is %llu sectors.\n",
 				devname, dsize>>9);
-			return 1;
-		}
+		return 1;
 	}
 	if (dsize & 511) {
-		if (devname) {
+		if (devname)
 			fprintf(stderr,
 				Name ": %s is an odd size for ddf: "
 				"size is %llu bytes.\n",
 				devname, dsize);
-			return 1;
-		}
+		return 1;
 	}
 
 	if (posix_memalign((void**)&super, 512, sizeof(*super))!= 0) {
@@ -1062,9 +1061,9 @@ static void examine_vd(int n, struct ddf_super *sb, char *guid)
 			       map_num(ddf_sec_level, vc->srl) ?: "-unknown-");
 		}
 		printf("  Device Size[%d] : %llu\n", n,
-		       __be64_to_cpu(vc->blocks)/2);
+		       (unsigned long long)__be64_to_cpu(vc->blocks)/2);
 		printf("   Array Size[%d] : %llu\n", n,
-		       __be64_to_cpu(vc->array_blocks)/2);
+		       (unsigned long long)__be64_to_cpu(vc->array_blocks)/2);
 	}
 }
 
@@ -1100,7 +1099,7 @@ static void examine_pds(struct ddf_super *sb)
 	int i;
 	struct dl *dl;
 	printf(" Physical Disks : %d\n", cnt);
-	printf("      Number    RefNo    Size       Device    Type/State\n");
+	printf("      Number    RefNo      Size       Device      Type/State\n");
 
 	for (i=0 ; i<cnt ; i++) {
 		struct phys_disk_entry *pd = &sb->phys->entries[i];
@@ -1111,18 +1110,19 @@ static void examine_pds(struct ddf_super *sb)
 		//printf("\n");
 		printf("       %3d    %08x  ", i,
 		       __be32_to_cpu(pd->refnum));
-		printf("%lluK ",  __be64_to_cpu(pd->config_size)>>1);
+		printf("%8lluK ", 
+		       (unsigned long long)__be64_to_cpu(pd->config_size)>>1);
 		for (dl = sb->dlist; dl ; dl = dl->next) {
 			if (dl->disk.refnum == pd->refnum) {
 				char *dv = map_dev(dl->major, dl->minor, 0);
 				if (dv) {
-					printf("%-10s", dv);
+					printf("%-15s", dv);
 					break;
 				}
 			}
 		}
 		if (!dl)
-			printf("%10s","");
+			printf("%15s","");
 		printf(" %s%s%s%s%s",
 		       (type&2) ? "active":"",
 		       (type&4) ? "Global-Spare":"",
@@ -1374,6 +1374,7 @@ static void getinfo_super_ddf_bvd(struct supertype *st, struct mdinfo *info)
 		__be32_to_cpu(*(__u32*)(vc->conf.guid+16));
 	info->array.utime	  = DECADE + __be32_to_cpu(vc->conf.timestamp);
 	info->array.chunk_size	  = 512 << vc->conf.chunk_shift;
+	info->custom_array_size	  = 0;
 
 	if (cd >= 0 && cd < ddf->mppe) {
 		info->data_offset	  = __be64_to_cpu(vc->lba_offset[cd]);
@@ -2653,6 +2654,8 @@ validate_geometry_ddf_container(struct supertype *st,
 	close(fd);
 
 	*freesize = avail_size_ddf(st, ldsize >> 9);
+	if (*freesize == 0)
+		return 0;
 
 	return 1;
 }
@@ -2917,14 +2920,14 @@ static struct mdinfo *container_content_ddf(struct supertype *st)
 			if (vc->conf.phys_refnum[i] == 0xFFFFFFFF)
 				continue;
 
+			this->array.working_disks++;
+
 			for (d = ddf->dlist; d ; d=d->next)
 				if (d->disk.refnum == vc->conf.phys_refnum[i])
 					break;
 			if (d == NULL)
 				/* Haven't found that one yet, maybe there are others */
 				continue;
-
-			this->array.working_disks++;
 
 			dev = malloc(sizeof(*dev));
 			memset(dev, 0, sizeof(*dev));

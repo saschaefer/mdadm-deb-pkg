@@ -146,6 +146,9 @@ struct mdinfo {
 	unsigned long long	component_size; /* same as array.size, except in
 						 * sectors and up to 64bits.
 						 */
+	unsigned long long	custom_array_size; /* size for non-default sized
+						    * arrays (in sectors)
+						    */
 	int			reshape_active;
 	unsigned long long	reshape_progress;
 	unsigned long long	resync_start;
@@ -369,9 +372,12 @@ extern int sysfs_set_num(struct mdinfo *sra, struct mdinfo *dev,
 extern int sysfs_uevent(struct mdinfo *sra, char *event);
 extern int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
 			char *name, unsigned long long *val);
+extern int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
+			 char *name, char *val, int size);
 extern int sysfs_set_safemode(struct mdinfo *sra, unsigned long ms);
 extern int sysfs_set_array(struct mdinfo *info, int vers);
-extern int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd);
+extern int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd,
+			  int in_sync);
 extern int sysfs_disk_to_scsi_id(int fd, __u32 *id);
 extern int sysfs_unique_holder(int devnum, long rdev);
 extern int load_sys(char *path, char *buf);
@@ -655,7 +661,7 @@ extern struct supertype *dup_super(struct supertype *st);
 extern int get_dev_size(int fd, char *dname, unsigned long long *sizep);
 extern void get_one_disk(int mdfd, mdu_array_info_t *ainf,
 			 mdu_disk_info_t *disk);
-void wait_for(char *dev);
+void wait_for(char *dev, int fd);
 
 #if __GNUC__ < 3
 struct stat64;

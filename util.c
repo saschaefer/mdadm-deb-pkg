@@ -765,7 +765,7 @@ int find_free_devnum(int use_partitions)
 {
 	int devnum;
 	for (devnum = 127; devnum != 128;
-	     devnum = devnum ? devnum-1 : (1<<22)-1) {
+	     devnum = devnum ? devnum-1 : (1<<20)-1) {
 		char *dn;
 		int _devnum;
 
@@ -852,13 +852,20 @@ int same_dev(char *one, char *two)
 	return st1.st_rdev == st2.st_rdev;
 }
 
-void wait_for(char *dev)
+void wait_for(char *dev, int fd)
 {
 	int i;
+	struct stat stb_want;
+
+	if (fstat(fd, &stb_want) != 0 ||
+	    (stb_want.st_mode & S_IFMT) != S_IFBLK)
+		return;
 
 	for (i=0 ; i<25 ; i++) {
 		struct stat stb;
-		if (stat(dev, &stb) == 0)
+		if (stat(dev, &stb) == 0 &&
+		    (stb.st_mode & S_IFMT) == S_IFBLK &&
+		    (stb.st_rdev == stb_want.st_rdev))
 			return;
 		usleep(200000);
 	}
@@ -1085,7 +1092,8 @@ int add_disk(int mdfd, struct supertype *st,
 	int rv;
 #ifndef MDASSEMBLE
 	if (st->ss->external) {
-		rv = sysfs_add_disk(sra, info);
+		rv = sysfs_add_disk(sra, info,
+				    info->disk.state & (1<<MD_DISK_SYNC));
 		if (! rv) {
 			struct mdinfo *sd2;
 			for (sd2 = sra->devs; sd2; sd2=sd2->next)

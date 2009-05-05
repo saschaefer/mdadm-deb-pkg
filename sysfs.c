@@ -466,6 +466,25 @@ int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
 	return 0;
 }
 
+int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
+		       char *name, char *val, int size)
+{
+	char fname[50];
+	int n;
+	int fd;
+	sprintf(fname, "/sys/block/%s/md/%s/%s",
+		sra->sys_name, dev?dev->sys_name:"", name);
+	fd = open(fname, O_RDONLY);
+	if (fd < 0)
+		return -1;
+	n = read(fd, val, size);
+	close(fd);
+	if (n <= 0)
+		return -1;
+	val[n] = 0;
+	return n;
+}
+
 int sysfs_set_safemode(struct mdinfo *sra, unsigned long ms)
 {
 	unsigned long sec;
@@ -506,12 +525,26 @@ int sysfs_set_array(struct mdinfo *info, int vers)
 	rv |= sysfs_set_num(info, NULL, "chunk_size", info->array.chunk_size);
 	rv |= sysfs_set_num(info, NULL, "layout", info->array.layout);
 	rv |= sysfs_set_num(info, NULL, "component_size", info->component_size/2);
+	if (info->custom_array_size) {
+		int rc;
+
+		rc = sysfs_set_num(info, NULL, "array_size",
+				   info->custom_array_size/2);
+		if (rc && errno == ENOENT) {
+			fprintf(stderr, Name ": This kernel does not "
+				"have the md/array_size attribute, "
+				"the array may be larger than expected\n");
+			rc = 0;
+		}
+		rv |= rc;
+	}
+
 	if (info->array.level > 0)
 		rv |= sysfs_set_num(info, NULL, "resync_start", info->resync_start);
 	return rv;
 }
 
-int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd)
+int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int in_sync)
 {
 	char dv[100];
 	char nm[100];
@@ -537,8 +570,12 @@ int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd)
 	rv = sysfs_set_num(sra, sd, "offset", sd->data_offset);
 	rv |= sysfs_set_num(sra, sd, "size", (sd->component_size+1) / 2);
 	if (sra->array.level != LEVEL_CONTAINER) {
+		if (in_sync)
+			/* This can correctly fail if array isn't started,
+			 * yet, so just ignore status for now.
+			 */
+			sysfs_set_str(sra, sd, "state", "in_sync");
 		rv |= sysfs_set_num(sra, sd, "slot", sd->disk.raid_disk);
-//		rv |= sysfs_set_str(sra, sd, "state", "in_sync");
 	}
 	return rv;
 }
