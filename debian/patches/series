@@ -1,2 +1,0 @@
-Fix-gcc-4.4-compiler-warning.patch -p1
-Makefile-use-CC-more-consistently.patch -p1
