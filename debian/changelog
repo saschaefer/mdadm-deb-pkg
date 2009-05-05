@@ -1,3 +1,10 @@
+mdadm (2.6.7.2-3) stable-proposed-updates; urgency=low
+
+  * Change my previous recommendation for postfix over to the new virtual
+    package default-mta (see #522300 and #508644).
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 08:45:22 +0200
+
 mdadm (2.6.7.2-2) stable-proposed-updates; urgency=low
 
   * Fix start/stop runlevels in header of mdadm monitor init.d script
