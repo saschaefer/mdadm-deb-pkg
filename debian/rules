@@ -78,9 +78,6 @@ install: build
 
 	install -m0755 debian/mdadm-startall $(DESTDIR)/sbin
 
-	install -m0644 debian/mdadm.lintian-overrides \
-		$(DESTDIR)/usr/share/lintian/overrides/mdadm
-
 	install -m0755 mdadm.udeb $(DESTDIR_UDEB)/sbin/mdadm
 
 binary-indep: build install
@@ -88,6 +85,7 @@ binary-indep: build install
 binary-arch: build install
 	dh_testdir
 	dh_testroot
+	dh_lintian
 	dh_installdebconf
 	dh_installdocs
 	dh_installexamples debian/newdisk
