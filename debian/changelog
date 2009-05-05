@@ -1,6 +1,9 @@
 mdadm (3.0~devel3-43-g2800528-1) experimental; urgency=low
 
   * Merge tip of upstream's devel-3.0 branch at commit 800528.
+  * Drop our own udev rules in favour of upstream's. If
+    /etc/udev/rules.d/65_mdadm.vol_id.rules has not been modified (md5sum
+    check), it is automatically removed; else, a warning is emitted.
 
  -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 12:02:03 +0200
 

@@ -4,6 +4,26 @@
 #
 set -eu
 
+# based on idea from http://www.dpkg.org/dpkg/ConffileHandling
+rm_conffile() {
+    local conffile md5sum package old_md5sum
+
+    conffile="$1"
+    if [ -e "$conffile" ]; then
+        md5sum=$(md5sum "$conffile" | cut -d' ' -f1)
+        package=$(dpkg -S "$conffile" | cut -d: -f1)
+        old_md5sum=$(dpkg -s $package | sed -rne "s,[[:space:]]+${conffile}[[:space:]]+,,p")
+        if [ "$md5sum" != "$old_md5sum" ]; then
+            echo "Obsolete conffile $conffile has been modified by you."
+            echo "Saving as ${conffile}.dpkg-bak ..."
+            mv -f "$conffile" "$conffile".dpkg-bak
+        else
+            echo "Removing obsolete conffile $conffile ..."
+            rm -f "$conffile"
+        fi
+    fi
+}
+
 case "$1" in
 
   upgrade|install)
@@ -22,6 +42,8 @@ case "$1" in
       echo DEVICE partitions > /var/backups/mdadm-Es_v1.dump
       $MDADM -Esc /var/backups/mdadm-Es_v1.dump >> /var/backups/mdadm-Es_v1.dump || :
     fi
+
+    rm_conffile /etc/udev/rules.d/65_mdadm.vol_id.rules
     ;;
 
   *) :;;
