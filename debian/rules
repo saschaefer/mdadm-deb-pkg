@@ -27,8 +27,8 @@ configure:
 debian/mdadm-startall.8: debian/mdadm-startall.sgml
 	docbook-to-man $< > $@
 
-build: configure build-stamp
-build-stamp: patch debian/mdadm-startall.8
+build: configure patch build-stamp
+build-stamp: debian/mdadm-startall.8
 	dh_testdir
 	$(MAKE) -f debian/rules mdadm.udeb DEBIAN=yes
 	$(MAKE) clean
