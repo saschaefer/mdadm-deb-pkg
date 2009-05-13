@@ -333,16 +333,19 @@ The latest version of this FAQ is available here:
 
 13. Can a MD array be partitioned?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  For a MD array to be able to hold partitions, it must be created as
-  a "partitionable array", using the configuration auto=part on the command
-  line or in the configuration file, or by using the standard naming scheme
-  (md_d* or md/d*) for partitionable arrays:
+  Since kernel 2.6.28, MD arrays can be partitioned like any other block
+  device.
+
+  Prior to 2.6.28, for a MD array to be able to hold partitions, it must be
+  created as a "partitionable array", using the configuration auto=part on the
+  command line or in the configuration file, or by using the standard naming
+  scheme (md_d* or md/d*) for partitionable arrays:
 
     mdadm --create --auto=yes ... /dev/md_d0 ...
     # see mdadm(8) manpage about the values of the --auto keyword
 
-14. When would I use partitionable arrays?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+14. When would I partition an array?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   This answer by Doug Ledford is shamelessly adapted from [0] (with
   permission):
 
