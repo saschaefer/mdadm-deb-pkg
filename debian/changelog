@@ -1,6 +1,9 @@
 mdadm (2.6.9-4) unstable; urgency=low
 
   * Add information about udev and device links in /dev to bugscript output.
+  * Add pointer to FAQ and in particular rootdelay to the bug script
+    pre-subject file, which is displayed by tools like reportbug and thus
+    hopefully reduces the numbers of duplicated bugs.
 
  -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 15:10:46 +0200
 
