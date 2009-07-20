@@ -547,7 +547,7 @@ char Help_incr[] =
 ;
 
 char Help_config[] =
-"The /etc/mdadm.conf config file:\n\n"
+"The /etc/mdadm/mdadm.conf config file:\n\n"
 " The config file contains, apart from blank lines and comment lines that\n"
 " start with a hash(#), four sorts of configuration lines: array lines, \n"
 " device lines, mailaddr lines and program lines.\n"
