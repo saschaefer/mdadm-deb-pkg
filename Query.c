@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2002-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2002-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include	"mdadm.h"
@@ -34,16 +29,15 @@
 int Query(char *dev)
 {
 	/* Give a brief description of the device,
-	 * whether it is an md device and whether it has 
+	 * whether it is an md device and whether it has
 	 * a superblock
 	 */
-	int fd = open(dev, O_RDONLY, 0);
+	int fd = open(dev, O_RDONLY);
 	int vers;
 	int ioctlerr;
 	int superror, superrno;
 	struct mdinfo info;
 	mdu_array_info_t array;
-	void *super;
 	struct supertype *st = NULL;
 
 	unsigned long long larray_size;
@@ -62,7 +56,7 @@ int Query(char *dev)
 	if (ioctl(fd, GET_ARRAY_INFO, &array)<0)
 		ioctlerr = errno;
 	else ioctlerr = 0;
- 
+
 	fstat(fd, &stb);
 
 	if (vers>=9000 && !ioctlerr) {
@@ -70,7 +64,7 @@ int Query(char *dev)
 			larray_size = 0;
 	}
 
-	if (vers < 0) 
+	if (vers < 0)
 		printf("%s: is not an md array\n", dev);
 	else if (vers < 9000)
 		printf("%s: is an md device, but kernel cannot provide details\n", dev);
@@ -89,20 +83,20 @@ int Query(char *dev)
 	}
 	st = guess_super(fd);
 	if (st) {
-		superror = st->ss->load_super(st, fd, &super, dev);
+		superror = st->ss->load_super(st, fd, dev);
 		superrno = errno;
-	} else 
+	} else
 		superror = -1;
 	close(fd);
 	if (superror == 0) {
 		/* array might be active... */
-		st->ss->getinfo_super(&info, super);
-		if (st->ss->major == 0) {
+		st->ss->getinfo_super(st, &info);
+		if (st->ss == &super0) {
 			mddev = get_md_name(info.array.md_minor);
 			disc.number = info.disk.number;
 			activity = "undetected";
 			if (mddev && (fd = open(mddev, O_RDONLY))>=0) {
-				if (md_get_version(fd) >= 9000 &&	
+				if (md_get_version(fd) >= 9000 &&
 				    ioctl(fd, GET_ARRAY_INFO, &array)>= 0) {
 					if (ioctl(fd, GET_DISK_INFO, &disc) >= 0 &&
 					    makedev((unsigned)disc.major,(unsigned)disc.minor) == stb.st_rdev)
@@ -117,15 +111,14 @@ int Query(char *dev)
 			mddev = "array";
 		}
 		printf("%s: device %d in %d device %s %s %s.  Use mdadm --examine for more detail.\n",
-		       dev, 
+		       dev,
 		       info.disk.number, info.array.raid_disks,
 		       activity,
 		       map_num(pers, info.array.level),
 		       mddev);
-		if (st->ss->major == 0)
+		if (st->ss == &super0)
 			put_md_name(mddev);
 	}
 	return 0;
 }
 
-	

@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include	"mdadm.h"
@@ -35,7 +30,7 @@
 #endif
 #include	"md_u.h"
 #include	"md_p.h"
-int Examine(mddev_dev_t devlist, int brief, int scan,
+int Examine(mddev_dev_t devlist, int brief, int export, int scan,
 	    int SparcAdjust, struct supertype *forcest,
 	    char *homehost)
 {
@@ -55,13 +50,11 @@ int Examine(mddev_dev_t devlist, int brief, int scan,
 	 * If (brief) gather devices for same array and just print a mdadm.conf line including devices=
 	 * if devlist==NULL, use conf_get_devs()
 	 */
-	int fd; 
-	void *super = NULL;
+	int fd;
 	int rv = 0;
 	int err = 0;
 
 	struct array {
-		void *super;
 		struct supertype *st;
 		struct mdinfo info;
 		void *devs;
@@ -85,7 +78,9 @@ int Examine(mddev_dev_t devlist, int brief, int scan,
 			if (!st)
 				st = guess_super(fd);
 			if (st)
-				err = st->ss->load_super(st, fd, &super, (brief||scan)?NULL:devlist->devname);
+				err = st->ss->load_super(st, fd,
+							 (brief||scan) ? NULL
+							   :devlist->devname);
 			else {
 				if (!brief) {
 					fprintf(stderr, Name ": No md superblock detected on %s.\n", devlist->devname);
@@ -99,36 +94,41 @@ int Examine(mddev_dev_t devlist, int brief, int scan,
 			continue;
 
 		if (SparcAdjust)
-			st->ss->update_super(NULL, super, "sparc2.2", devlist->devname, 0, 0, NULL);
+			st->ss->update_super(st, NULL, "sparc2.2",
+					     devlist->devname, 0, 0, NULL);
 		/* Ok, its good enough to try, though the checksum could be wrong */
+
 		if (brief) {
 			struct array *ap;
 			char *d;
 			for (ap=arrays; ap; ap=ap->next) {
-				if (st->ss == ap->st->ss && st->ss->compare_super(&ap->super, super)==0)
+				if (st->ss == ap->st->ss &&
+				    st->ss->compare_super(ap->st, st)==0)
 					break;
 			}
 			if (!ap) {
 				ap = malloc(sizeof(*ap));
-				ap->super = super;
 				ap->devs = dl_head();
 				ap->next = arrays;
 				ap->spares = 0;
 				ap->st = st;
 				arrays = ap;
-				st->ss->getinfo_super(&ap->info, super);
+				st->ss->getinfo_super(st, &ap->info);
 			} else {
-				st->ss->getinfo_super(&ap->info, super);
-				free(super);
+				st->ss->getinfo_super(st, &ap->info);
+				st->ss->free_super(st);
 			}
-			if (!(ap->info.disk.state & MD_DISK_SYNC))
+			if (!(ap->info.disk.state & (1<<MD_DISK_SYNC)))
 				ap->spares++;
 			d = dl_strdup(devlist->devname);
 			dl_add(ap->devs, d);
+		} else if (export) {
+			if (st->ss->export_examine_super)
+				st->ss->export_examine_super(st);
 		} else {
 			printf("%s:\n",devlist->devname);
-			st->ss->examine_super(super, homehost);
-			free(super);
+			st->ss->examine_super(st, homehost);
+			st->ss->free_super(st);
 		}
 	}
 	if (brief) {
@@ -136,7 +136,7 @@ int Examine(mddev_dev_t devlist, int brief, int scan,
 		for (ap=arrays; ap; ap=ap->next) {
 			char sep='=';
 			char *d;
-			ap->st->ss->brief_examine_super(ap->super);
+			ap->st->ss->brief_examine_super(ap->st, brief > 1);
 			if (ap->spares) printf("   spares=%d", ap->spares);
 			if (brief > 1) {
 				printf("   devices");
@@ -145,7 +145,7 @@ int Examine(mddev_dev_t devlist, int brief, int scan,
 					sep=',';
 				}
 			}
-			free(ap->super);
+			ap->st->ss->free_super(ap->st);
 			/* FIXME free ap */
 			if (ap->spares || brief > 1)
 				printf("\n");

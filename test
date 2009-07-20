@@ -30,6 +30,8 @@ targetdir=/var/tmp
 size=20000
 # super0, round down to multiple of 64 and substract 64
 mdsize0=19904
+# super00 is nested, subtract 128
+mdsize00=19840
 # super1.0 round down to multiple of 2, subtract 8
 mdsize1=19992
 # subtract another 4 for bitmaps
@@ -37,9 +39,13 @@ mdsize1b=19988
 mdsize11=19992
 mdsize12=19988
 
+# ddf needs bigger devices as 32Meg is reserved!
+ddfsize=65536
+
 cleanup() {
-	$mdadm -Ss
-	for d in 0 1 2 3 4 5 6 7
+	udevadm settle
+	$mdadm -Ssq
+	for d in 0 1 2 3 4 5 6 7  8 9 10 11 12
 	do
            losetup -d /dev/loop$d ; # rm -f $targetdir/mdtest$d
         done
@@ -48,9 +54,11 @@ cleanup() {
 trap cleanup 0 1 2 3 15
 
 devlist=
-for d in 0 1 2 3 4 5 6 7
+for d in 0 1 2 3 4 5 6 7 8 9 10 11 12
 do
-   [ -f $targetdir/mdtest$d ] || dd if=/dev/zero of=$targetdir/mdtest$d count=$size bs=1K > /dev/null 2>&1
+   sz=$size
+   if [ $d -gt 7 ]; then sz=$ddfsize ; fi
+   [ -f $targetdir/mdtest$d ] || dd if=/dev/zero of=$targetdir/mdtest$d count=$sz bs=1K > /dev/null 2>&1
    [ -b /dev/loop$d ] || mknod /dev/loop$d b 7 $d
    if [ $d -eq 7 ]
    then
@@ -61,9 +69,15 @@ do
    eval dev$d=/dev/loop$d
    eval file$d=$targetdir/mdtest$d
    eval devlist=\"\$devlist \$dev$d\"
+   #" <-- add this quote to un-confuse vim syntax highlighting
 done
 path0=$dev6
 path1=$dev7
+
+ulimit -c unlimited
+[ -f /proc/mdstat ] || modprobe md_mod
+echo 2000 > /proc/sys/dev/raid/speed_limit_max
+echo 0 > /sys/module/md_mod/parameters/start_ro
 
 if [ " $1" = " setup" ]
 then trap 0 ; exit 0
@@ -73,10 +87,15 @@ fi
 mdadm() {
     rm -f $targetdir/stderr
     case $* in
+       *-S* ) udevadm settle;;
+    esac
+    case $* in
        *-C* ) $mdadm 2> $targetdir/stderr --quiet "$@" --auto=yes;;
         * )   $mdadm 2> $targetdir/stderr --quiet "$@"
     esac
+    rv=$?
     cat >&2 $targetdir/stderr
+    return $rv
 }
 
 # check various things
@@ -93,7 +112,7 @@ check() {
       grep -s "active $1 " /proc/mdstat > /dev/null || {
    		echo >&2 "ERROR active $1 not found" ; cat /proc/mdstat ; exit 1;}
      ;;
-    resync | recovery )
+    resync | recovery | reshape)
       sleep 0.5
       grep -s $1 /proc/mdstat > /dev/null || {
    		echo >&2 ERROR no $1 happening; cat /proc/mdstat; exit 1; }
@@ -101,14 +120,14 @@ check() {
    
      nosync )
        sleep 0.5
-       if grep -s 're[synccovery]* =' > /dev/null /proc/mdstat ; then
+       if grep -s -E '(resync|recovery|reshape) =' > /dev/null /proc/mdstat ; then
    	   echo >&2 "ERROR resync or recovery is happening!"; cat /proc/mdstat ; exit 1; 
        fi
      ;;
    
     wait )
       sleep 0.1
-      while grep 're[synccovery]* =' > /dev/null /proc/mdstat
+      while grep -E '(resync|recovery|reshape|check|repair) =' > /dev/null /proc/mdstat
       do sleep 2;
       done
       ;;
@@ -150,6 +169,7 @@ testdev() {
    dsize=$[dvsize/chunk]
    dsize=$[dsize*chunk]
    rasize=$[dsize*2*cnt]
+   if [ `/sbin/blockdev --getsize $dev` -eq 0 ]; then sleep 2 ; fi
    if [ $rasize -ne `/sbin/blockdev --getsize $dev` ]
    then
      echo "ERROR: size is wrong for $dev: $cnt * $dvsize (chunk=$chunk) = $rasize, not `/sbin/blockdev --getsize $dev`"
@@ -162,21 +182,42 @@ rotest() {
   fsck -fn $dev >&2
 }
 
+setup_environment() {
+   if [ -f $1 ]; then
+      . $environment
+      setup_env
+   fi
+}
 
+reset_environment() {
+   if [ -f $1 ]; then
+      reset_env
+      unset setup_env
+      unset reset_env
+   fi
+}
 
 for script in tests/$prefix tests/$prefix*[^~]
 do
   if [ -f "$script" ]
   then
    rm -f $targetdir/stderr
+   # stop all arrays, just incase some script left an array active.
+   mdadm -Ssq
+   mdadm --zero $devlist 2> /dev/null
+   mdadm --zero $devlist 2> /dev/null
+   environment="tests/env-`basename $script`"
+   setup_environment $environment
    # source script in a subshell, so it has access to our
    # namespace, but cannot change it.
    if ( set -ex ; . $script )  2> $targetdir/log
    then echo "$script succeeded" 
    else cat $targetdir/log ; cat $targetdir/stderr
         echo "$script failed"
+	reset_environment $environment
        exit 1
    fi
+   reset_environment $environment
   fi
 done
 exit 0

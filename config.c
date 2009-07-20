@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include	"mdadm.h"
@@ -56,7 +51,7 @@
  *  with a key word, and not be indented, or must start with a
  *  non-key-word and must be indented.
  *
- * Keywords are DEVICE and ARRAY
+ * Keywords are DEVICE and ARRAY ... and several others.
  * DEV{ICE} introduces some devices that might contain raid components.
  * e.g.
  *   DEV style=0 /dev/sda* /dev/hd*
@@ -79,7 +74,8 @@
 char DefaultConfFile[] = CONFFILE;
 char DefaultAltConfFile[] = CONFFILE2;
 
-enum linetype { Devices, Array, Mailaddr, Mailfrom, Program, CreateDev, Homehost, LTEnd };
+enum linetype { Devices, Array, Mailaddr, Mailfrom, Program, CreateDev,
+		Homehost, AutoMode, LTEnd };
 char *keywords[] = {
 	[Devices]  = "devices",
 	[Array]    = "array",
@@ -88,6 +84,7 @@ char *keywords[] = {
 	[Program]  = "program",
 	[CreateDev]= "create",
 	[Homehost] = "homehost",
+	[AutoMode] = "auto",
 	[LTEnd]    = NULL
 };
 
@@ -100,7 +97,7 @@ int match_keyword(char *word)
 {
 	int len = strlen(word);
 	int n;
-    
+
 	if (len < 3) return -1;
 	for (n=0; keywords[n]; n++) {
 		if (strncasecmp(word, keywords[n], len)==0)
@@ -161,11 +158,24 @@ char *conf_word(FILE *file, int allow_key)
 					word[len++] = c;
 				}
 				c = getc(file);
+				/* Hack for broken kernels (2.6.14-.24) that put
+				 *        "active(auto-read-only)"
+				 * in /proc/mdstat instead of
+				 *        "active (auto-read-only)"
+				 */
+				if (c == '(' && len >= 6
+				    && strncmp(word+len-6, "active", 6) == 0)
+					c = ' ';
 			}
 		}
 		if (c != EOF) ungetc(c, file);
 	}
 	word[len] = 0;
+
+	/* Further HACK for broken kernels.. 2.6.14-2.6.24 */
+	if (strcmp(word, "auto-read-only)") == 0)
+		strcpy(word, "(auto-read-only)");
+
 /*    printf("word is <%s>\n", word); */
 	if (!wordfound) {
 		free(word);
@@ -173,7 +183,7 @@ char *conf_word(FILE *file, int allow_key)
 	}
 	return word;
 }
-	
+
 /*
  * conf_line reads one logical line from the conffile.
  * It skips comments and continues until it finds a line that starts
@@ -237,7 +247,7 @@ mddev_dev_t load_partitions(void)
 		if (buf[0] != ' ')
 			continue;
 		major = strtoul(buf, &mp, 10);
-		if (mp == buf || *mp != ' ') 
+		if (mp == buf || *mp != ' ')
 			continue;
 		minor = strtoul(mp, NULL, 10);
 
@@ -248,9 +258,41 @@ mddev_dev_t load_partitions(void)
 		d->devname = strdup(name);
 		d->next = rv;
 		d->used = 0;
+		d->content = NULL;
 		rv = d;
 	}
 	fclose(f);
+	return rv;
+}
+
+mddev_dev_t load_containers(void)
+{
+	struct mdstat_ent *mdstat = mdstat_read(1, 0);
+	struct mdstat_ent *ent;
+	mddev_dev_t d;
+	mddev_dev_t rv = NULL;
+
+	if (!mdstat)
+		return NULL;
+
+	for (ent = mdstat; ent; ent = ent->next)
+		if (ent->metadata_version &&
+		    strncmp(ent->metadata_version, "external:", 9) == 0 &&
+		    !is_subarray(&ent->metadata_version[9])) {
+			d = malloc(sizeof(*d));
+			if (!d)
+				continue;
+			if (asprintf(&d->devname, "/dev/%s", ent->dev) < 0) {
+				free(d);
+				continue;
+			}
+			d->next = rv;
+			d->used = 0;
+			d->content = NULL;
+			rv = d;
+		}
+	free_mdstat(mdstat);
+
 	return rv;
 }
 
@@ -379,13 +421,14 @@ static void createline(char *line)
 	}
 }
 
-void devline(char *line) 
+void devline(char *line)
 {
 	char *w;
 	struct conf_dev *cd;
 
 	for (w=dl_next(line); w != line; w=dl_next(w)) {
-		if (w[0] == '/' || strcasecmp(w, "partitions") == 0) {
+		if (w[0] == '/' || strcasecmp(w, "partitions") == 0 ||
+		    strcasecmp(w, "containers") == 0) {
 			cd = malloc(sizeof(*cd));
 			cd->name = strdup(w);
 			cd->next = cdevlist;
@@ -399,6 +442,17 @@ void devline(char *line)
 
 mddev_ident_t mddevlist = NULL;
 mddev_ident_t *mddevlp = &mddevlist;
+
+static int is_number(char *w)
+{
+	/* check if there are 1 or more digits and nothing else */
+	int digits = 0;
+	while (*w && isdigit(*w)) {
+		digits++;
+		w++;
+	}
+	return (digits && ! *w);
+}
 
 void arrayline(char *line)
 {
@@ -421,13 +475,39 @@ void arrayline(char *line)
 	mis.bitmap_fd = -1;
 	mis.bitmap_file = NULL;
 	mis.name[0] = 0;
+	mis.container = NULL;
+	mis.member = NULL;
 
 	for (w=dl_next(line); w!=line; w=dl_next(w)) {
-		if (w[0] == '/') {
-			if (mis.devname)
-				fprintf(stderr, Name ": only give one device per ARRAY line: %s and %s\n",
-					mis.devname, w);
-			else mis.devname = w;
+		if (w[0] == '/' || strchr(w, '=') == NULL) {
+			/* This names the device, or is '<ignore>'.
+			 * The rules match those in create_mddev.
+			 * 'w' must be:
+			 *  /dev/md/{anything}
+			 *  /dev/mdNN
+			 *  /dev/md_dNN
+			 *  <ignore>
+			 *  or anything that doesn't start '/' or '<'
+			 */
+			if (strcasecmp(w, "<ignore>") == 0 ||
+			    strncmp(w, "/dev/md/", 8) == 0 ||
+			    (w[0] != '/' && w[0] != '<') ||
+			    (strncmp(w, "/dev/md", 7) == 0 && 
+			     is_number(w+7)) ||
+			    (strncmp(w, "/dev/md_d", 9) == 0 &&
+			     is_number(w+9))
+				) {
+				/* This is acceptable */;
+				if (mis.devname)
+					fprintf(stderr, Name ": only give one "
+						"device per ARRAY line: %s and %s\n",
+						mis.devname, w);
+				else
+					mis.devname = w;
+			}else {
+				fprintf(stderr, Name ": %s is an invalid name for "
+					"an md device - ignored.\n", w);
+			}
 		} else if (strncasecmp(w, "uuid=", 5)==0 ) {
 			if (mis.uuid_set)
 				fprintf(stderr, Name ": only specify uuid once, %s ignored.\n",
@@ -494,7 +574,7 @@ void arrayline(char *line)
 		} else if (strncasecmp(w, "metadata=", 9) == 0) {
 			/* style of metadata on the devices. */
 			int i;
-			
+
 			for(i=0; superlist[i] && !mis.st; i++)
 				mis.st = superlist[i]->match_metadata_desc(w+9);
 
@@ -503,19 +583,26 @@ void arrayline(char *line)
 		} else if (strncasecmp(w, "auto=", 5) == 0 ) {
 			/* whether to create device special files as needed */
 			mis.autof = parse_auto(w+5, "auto type", 0);
+		} else if (strncasecmp(w, "member=", 7) == 0) {
+			/* subarray within a container */
+			mis.member = strdup(w+7);
+		} else if (strncasecmp(w, "container=", 10) == 0) {
+			/* the container holding this subarray.  Either a device name
+			 * or a uuid */
+			mis.container = strdup(w+10);
 		} else {
 			fprintf(stderr, Name ": unrecognised word on ARRAY line: %s\n",
 				w);
 		}
 	}
-	if (mis.devname == NULL)
-		fprintf(stderr, Name ": ARRAY line with no device\n");
-	else if (mis.uuid_set == 0 && mis.devices == NULL && mis.super_minor == UnSet && mis.name[0] == 0)
+	if (mis.uuid_set == 0 && mis.devices == NULL &&
+	    mis.super_minor == UnSet && mis.name[0] == 0 &&
+	    (mis.container == NULL || mis.member == NULL))
 		fprintf(stderr, Name ": ARRAY line %s has no identity information.\n", mis.devname);
 	else {
 		mi = malloc(sizeof(*mi));
 		*mi = mis;
-		mi->devname = strdup(mis.devname);
+		mi->devname = mis.devname ? strdup(mis.devname) : NULL;
 		mi->next = NULL;
 		*mddevlp = mi;
 		mddevlp = &mi->next;
@@ -545,10 +632,12 @@ void mailfromline(char *line)
 		if (alert_mail_from == NULL)
 			alert_mail_from = strdup(w);
 		else {
-			char *t= NULL;
-			asprintf(&t, "%s %s", alert_mail_from, w);
-			free(alert_mail_from);
-			alert_mail_from = t;
+			char *t = NULL;
+
+			if (xasprintf(&t, "%s %s", alert_mail_from, w) > 0) {
+				free(alert_mail_from);
+				alert_mail_from = t;
+			}
 		}
 	}
 }
@@ -569,12 +658,15 @@ void programline(char *line)
 }
 
 static char *home_host = NULL;
+static int require_homehost = 1;
 void homehostline(char *line)
 {
 	char *w;
 
 	for (w=dl_next(line); w != line ; w=dl_next(w)) {
-		if (home_host == NULL)
+		if (strcasecmp(w, "<ignore>")==0)
+			require_homehost = 0;
+		else if (home_host == NULL)
 			home_host = strdup(w);
 		else
 			fprintf(stderr, Name ": excess host name on HOMEHOST line: %s - ignored\n",
@@ -582,6 +674,16 @@ void homehostline(char *line)
 	}
 }
 
+static char *auto_options = NULL;
+void autoline(char *line)
+{
+	if (auto_options) {
+		fprintf(stderr, Name ": AUTO line may only be give once."
+			"  Subsequent lines ignored\n");
+		return;
+	}
+	auto_options = line;		
+}
 
 int loaded = 0;
 
@@ -652,12 +754,15 @@ void load_conffile(void)
 		case Homehost:
 			homehostline(line);
 			break;
+		case AutoMode:
+			autoline(line);
+			break;
 		default:
 			fprintf(stderr, Name ": Unknown keyword %s\n", line);
 		}
 		free_line(line);
 	}
-    
+
 	fclose(f);
 
 /*    printf("got file\n"); */
@@ -681,9 +786,11 @@ char *conf_get_program(void)
 	return alert_program;
 }
 
-char *conf_get_homehost(void)
+char *conf_get_homehost(int *require_homehostp)
 {
 	load_conffile();
+	if (require_homehostp)
+		*require_homehostp = require_homehost;
 	return home_host;
 }
 
@@ -698,9 +805,17 @@ mddev_ident_t conf_get_ident(char *dev)
 	mddev_ident_t rv;
 	load_conffile();
 	rv = mddevlist;
-	while (dev && rv && strcmp(dev, rv->devname)!=0)
+	while (dev && rv && (rv->devname == NULL
+			     || !devname_matches(dev, rv->devname)))
 		rv = rv->next;
 	return rv;
+}
+
+static void append_dlist(mddev_dev_t *dlp, mddev_dev_t list)
+{
+	while (*dlp)
+		dlp = &(*dlp)->next;
+	*dlp = list;
 }
 
 mddev_dev_t conf_get_devs()
@@ -717,16 +832,20 @@ mddev_dev_t conf_get_devs()
 		free(t->devname);
 		free(t);
 	}
-    
+
 	load_conffile();
 
-	if (cdevlist == NULL)
-		/* default to 'partitions */
+	if (cdevlist == NULL) {
+		/* default to 'partitions' and 'containers' */
 		dlist = load_partitions();
+		append_dlist(&dlist, load_containers());
+	}
 
 	for (cd=cdevlist; cd; cd=cd->next) {
-		if (strcasecmp(cd->name, "partitions")==0 && dlist == NULL)
-			dlist = load_partitions();
+		if (strcasecmp(cd->name, "partitions")==0)
+			append_dlist(&dlist, load_partitions());
+		else if (strcasecmp(cd->name, "containers")==0)
+			append_dlist(&dlist, load_containers());
 		else {
 			glob(cd->name, flags, NULL, &globbuf);
 			flags |= GLOB_APPEND;
@@ -738,6 +857,7 @@ mddev_dev_t conf_get_devs()
 			t->devname = strdup(globbuf.gl_pathv[i]);
 			t->next = dlist;
 			t->used = 0;
+			t->content = NULL;
 			dlist = t;
 /*	printf("one dev is %s\n", t->devname);*/
 		}
@@ -762,6 +882,52 @@ int conf_test_dev(char *devname)
 	return 0;
 }
 
+int conf_test_metadata(const char *version)
+{
+	/* Check if the given metadata version is allowed
+	 * to be auto-assembled.
+	 * The default is 'yes' but the 'auto' line might over-ride that.
+	 * Word in auto_options are processed in order with the first
+	 * match winning.
+	 * word can be:
+	 *   +version   - that version can be assembled
+	 *   -version   - that version cannot be auto-assembled
+	 *   yes or +all - any other version can be assembled
+	 *   no or -all  - no other version can be assembled.
+	 */
+	char *w;
+	load_conffile();
+	if (!auto_options)
+		return 1;
+	for (w = dl_next(auto_options); w != auto_options; w = dl_next(w)) {
+		int rv;
+		if (strcasecmp(w, "yes") == 0)
+			return 1;
+		if (strcasecmp(w, "no") == 0)
+			return 0;
+		if (w[0] == '+')
+			rv = 1;
+		else if (w[0] == '-')
+			rv = 0;
+		else continue;
+
+		if (strcasecmp(w+1, "all") == 0)
+			return rv;
+		if (strcasecmp(w+1, version) == 0)
+			return rv;
+		/* allow  '0' to match version '0.90'
+		 * and 1 or 1.whatever to match version '1.x'
+		 */
+		if (version[1] == '.' &&
+		    strlen(w+1) == 1 &&
+		    w[1] == version[0])
+			return rv;
+		if (version[1] == '.' && version[2] == 'x' &&
+		    strncmp(w+1, version, 2) == 0)
+			return rv;
+	}
+	return 1;
+}
 
 int match_oneof(char *devices, char *devname)
 {
@@ -786,4 +952,129 @@ int match_oneof(char *devices, char *devname)
 		devices++;
     }
     return 0;
+}
+
+int devname_matches(char *name, char *match)
+{
+	/* See if the given array name matches the
+	 * given match from config file.
+	 *
+	 * First strip and /dev/md/ or /dev/, then
+	 * see if there might be a numeric match of
+	 *  mdNN with NN
+	 * then just strcmp
+	 */
+	if (strncmp(name, "/dev/md/", 8) == 0)
+		name += 8;
+	else if (strncmp(name, "/dev/", 5) == 0)
+		name += 5;
+
+	if (strncmp(match, "/dev/md/", 8) == 0)
+		match += 8;
+	else if (strncmp(match, "/dev/", 5) == 0)
+		match += 5;
+
+
+	if (strncmp(name, "md", 2) == 0 &&
+	    isdigit(name[2]))
+		name += 2;
+	if (strncmp(match, "md", 2) == 0 &&
+	    isdigit(match[2]))
+		match += 2;
+
+	return (strcmp(name, match) == 0);
+}
+
+int conf_name_is_free(char *name)
+{
+	/* Check if this name is already take by an ARRAY entry in
+	 * the config file.
+	 * It can be taken either by a match on devname, name, or
+	 * even super-minor.
+	 */
+	mddev_ident_t dev;
+
+	load_conffile();
+	for (dev = mddevlist; dev; dev = dev->next) {
+		char nbuf[100];
+		if (dev->devname && devname_matches(name, dev->devname))
+			return 0;
+		if (dev->name[0] && devname_matches(name, dev->name))
+			return 0;
+		sprintf(nbuf, "%d", dev->super_minor);
+		if (dev->super_minor != UnSet &&
+		    devname_matches(name, nbuf))
+			return 0;
+	}
+	return 1;
+}
+
+struct mddev_ident_s *conf_match(struct mdinfo *info, struct supertype *st)
+{
+	struct mddev_ident_s *array_list, *match;
+	int verbose = 0;
+	char *devname = NULL;
+	array_list = conf_get_ident(NULL);
+	match = NULL;
+	for (; array_list; array_list = array_list->next) {
+		if (array_list->uuid_set &&
+		    same_uuid(array_list->uuid, info->uuid, st->ss->swapuuid)
+		    == 0) {
+			if (verbose >= 2 && array_list->devname)
+				fprintf(stderr, Name
+					": UUID differs from %s.\n",
+					array_list->devname);
+			continue;
+		}
+		if (array_list->name[0] &&
+		    strcasecmp(array_list->name, info->name) != 0) {
+			if (verbose >= 2 && array_list->devname)
+				fprintf(stderr, Name
+					": Name differs from %s.\n",
+					array_list->devname);
+			continue;
+		}
+		if (array_list->devices && devname &&
+		    !match_oneof(array_list->devices, devname)) {
+			if (verbose >= 2 && array_list->devname)
+				fprintf(stderr, Name
+					": Not a listed device for %s.\n",
+					array_list->devname);
+			continue;
+		}
+		if (array_list->super_minor != UnSet &&
+		    array_list->super_minor != info->array.md_minor) {
+			if (verbose >= 2 && array_list->devname)
+				fprintf(stderr, Name
+					": Different super-minor to %s.\n",
+					array_list->devname);
+			continue;
+		}
+		if (!array_list->uuid_set &&
+		    !array_list->name[0] &&
+		    !array_list->devices &&
+		    array_list->super_minor == UnSet) {
+			if (verbose >= 2 && array_list->devname)
+				fprintf(stderr, Name
+			     ": %s doesn't have any identifying information.\n",
+					array_list->devname);
+			continue;
+		}
+		/* FIXME, should I check raid_disks and level too?? */
+
+		if (match) {
+			if (verbose >= 0) {
+				if (match->devname && array_list->devname)
+					fprintf(stderr, Name
+		   ": we match both %s and %s - cannot decide which to use.\n",
+						match->devname, array_list->devname);
+				else
+					fprintf(stderr, Name
+						": multiple lines in mdadm.conf match\n");
+			}
+			return NULL;
+		}
+		match = array_list;
+	}
+	return match;
 }

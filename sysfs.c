@@ -2,7 +2,7 @@
  * sysfs - extract md related information from sysfs.  Part of:
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2006-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -25,6 +25,7 @@
 
 #include	"mdadm.h"
 #include	<dirent.h>
+#include	<ctype.h>
 
 int load_sys(char *path, char *buf)
 {
@@ -34,27 +35,70 @@ int load_sys(char *path, char *buf)
 		return -1;
 	n = read(fd, buf, 1024);
 	close(fd);
-	if (n <=0 || n >= 1024)
+	if (n <0 || n >= 1024)
 		return -1;
 	buf[n] = 0;
-	if (buf[n-1] == '\n')
+	if (n && buf[n-1] == '\n')
 		buf[n-1] = 0;
 	return 0;
 }
 
-void sysfs_free(struct sysarray *sra)
+void sysfs_free(struct mdinfo *sra)
 {
-	if (!sra)
-		return;
-	while (sra->devs) {
-		struct sysdev *d = sra->devs;
-		sra->devs = d->next;
-		free(d);
+	while (sra) {
+		struct mdinfo *sra2 = sra->next;
+		while (sra->devs) {
+			struct mdinfo *d = sra->devs;
+			sra->devs = d->next;
+			free(d);
+		}
+		free(sra);
+		sra = sra2;
 	}
-	free(sra);
 }
 
-struct sysarray *sysfs_read(int fd, int devnum, unsigned long options)
+int sysfs_open(int devnum, char *devname, char *attr)
+{
+	char fname[50];
+	int fd;
+	char *mdname = devnum2devname(devnum);
+
+	if (!mdname)
+		return -1;
+
+	sprintf(fname, "/sys/block/%s/md/", mdname);
+	if (devname) {
+		strcat(fname, devname);
+		strcat(fname, "/");
+	}
+	strcat(fname, attr);
+	fd = open(fname, O_RDWR);
+	if (fd < 0 && errno == EACCES)
+		fd = open(fname, O_RDONLY);
+	free(mdname);
+	return fd;
+}
+
+void sysfs_init(struct mdinfo *mdi, int fd, int devnum)
+{
+	mdi->sys_name[0] = 0;
+	if (fd >= 0) {
+		mdu_version_t vers;
+		if (ioctl(fd, RAID_VERSION, &vers) != 0)
+			return;
+		devnum = fd2devnum(fd);
+	}
+	if (devnum == NoMdDev)
+		return;
+	if (devnum >= 0)
+		sprintf(mdi->sys_name, "md%d", devnum);
+	else
+		sprintf(mdi->sys_name, "md_d%d",
+			-1-devnum);
+}
+
+
+struct mdinfo *sysfs_read(int fd, int devnum, unsigned long options)
 {
 	/* Longest possible name in sysfs, mounted at /sys, is
 	 *  /sys/block/md_dXXX/md/dev-XXXXX/block/dev
@@ -65,31 +109,22 @@ struct sysarray *sysfs_read(int fd, int devnum, unsigned long options)
 	char buf[1024];
 	char *base;
 	char *dbase;
-	struct sysarray *sra;
-	struct sysdev *dev;
-	DIR *dir;
+	struct mdinfo *sra;
+	struct mdinfo *dev;
+	DIR *dir = NULL;
 	struct dirent *de;
 
 	sra = malloc(sizeof(*sra));
 	if (sra == NULL)
 		return sra;
-
-	if (fd >= 0) {
-		struct stat stb;
-		if (fstat(fd, &stb)) return NULL;
-		if (major(stb.st_rdev)==9)
-			sprintf(sra->name, "md%d", minor(stb.st_rdev));
-		else
-			sprintf(sra->name, "md_d%d",
-				minor(stb.st_rdev)>>MdpMinorShift);
-	} else {
-		if (devnum >= 0)
-			sprintf(sra->name, "md%d", devnum);
-		else
-			sprintf(sra->name, "md_d%d",
-				-1-devnum);
+	memset(sra, 0, sizeof(*sra));
+	sysfs_init(sra, fd, devnum);
+	if (sra->sys_name[0] == 0) {
+		free(sra);
+		return NULL;
 	}
-	sprintf(fname, "/sys/block/%s/md/", sra->name);
+
+	sprintf(fname, "/sys/block/%s/md/", sra->sys_name);
 	base = fname + strlen(fname);
 
 	sra->devs = NULL;
@@ -97,23 +132,44 @@ struct sysarray *sysfs_read(int fd, int devnum, unsigned long options)
 		strcpy(base, "metadata_version");
 		if (load_sys(fname, buf))
 			goto abort;
-		if (strncmp(buf, "none", 4) == 0)
-			sra->major_version = sra->minor_version = -1;
-		else
+		if (strncmp(buf, "none", 4) == 0) {
+			sra->array.major_version =
+				sra->array.minor_version = -1;
+			strcpy(sra->text_version, "");
+		} else if (strncmp(buf, "external:", 9) == 0) {
+			sra->array.major_version = -1;
+			sra->array.minor_version = -2;
+			strcpy(sra->text_version, buf+9);
+		} else {
 			sscanf(buf, "%d.%d",
-			       &sra->major_version, &sra->minor_version);
+			       &sra->array.major_version,
+			       &sra->array.minor_version);
+			strcpy(sra->text_version, buf);
+		}
 	}
 	if (options & GET_LEVEL) {
 		strcpy(base, "level");
 		if (load_sys(fname, buf))
 			goto abort;
-		sra->level = map_name(pers, buf);
+		sra->array.level = map_name(pers, buf);
 	}
 	if (options & GET_LAYOUT) {
 		strcpy(base, "layout");
 		if (load_sys(fname, buf))
 			goto abort;
-		sra->layout = strtoul(buf, NULL, 0);
+		sra->array.layout = strtoul(buf, NULL, 0);
+	}
+	if (options & GET_DISKS) {
+		strcpy(base, "raid_disks");
+		if (load_sys(fname, buf))
+			goto abort;
+		sra->array.raid_disks = strtoul(buf, NULL, 0);
+	}
+	if (options & GET_DEGRADED) {
+		strcpy(base, "degraded");
+		if (load_sys(fname, buf))
+			goto abort;
+		sra->array.failed_disks = strtoul(buf, NULL, 0);
 	}
 	if (options & GET_COMPONENT) {
 		strcpy(base, "component_size");
@@ -127,7 +183,7 @@ struct sysarray *sysfs_read(int fd, int devnum, unsigned long options)
 		strcpy(base, "chunk_size");
 		if (load_sys(fname, buf))
 			goto abort;
-		sra->chunk = strtoul(buf, NULL, 0);
+		sra->array.chunk_size = strtoul(buf, NULL, 0);
 	}
 	if (options & GET_CACHE) {
 		strcpy(base, "stripe_cache_size");
@@ -141,6 +197,35 @@ struct sysarray *sysfs_read(int fd, int devnum, unsigned long options)
 			goto abort;
 		sra->mismatch_cnt = strtoul(buf, NULL, 0);
 	}
+	if (options & GET_SAFEMODE) {
+		int scale = 1;
+		int dot = 0;
+		int i;
+		unsigned long msec;
+		size_t len;
+
+		strcpy(base, "safe_mode_delay");
+		if (load_sys(fname, buf))
+			goto abort;
+
+		/* remove a period, and count digits after it */
+		len = strlen(buf);
+		for (i = 0; i < len; i++) {
+			if (dot) {
+				if (isdigit(buf[i])) {
+					buf[i-1] = buf[i];
+					scale *= 10;
+				}
+				buf[i] = 0;
+			} else if (buf[i] == '.') {
+				dot=1;
+				buf[i] = 0;
+			}
+		}
+		msec = strtoul(buf, NULL, 10);
+		msec = (msec * 1000) / scale;
+		sra->safe_mode_delay = msec;
+	}
 
 	if (! (options & GET_DEVS))
 		return sra;
@@ -150,7 +235,7 @@ struct sysarray *sysfs_read(int fd, int devnum, unsigned long options)
 	dir = opendir(fname);
 	if (!dir)
 		goto abort;
-	sra->spares = 0;
+	sra->array.spare_disks = 0;
 
 	while ((de = readdir(dir)) != NULL) {
 		char *ep;
@@ -164,45 +249,80 @@ struct sysarray *sysfs_read(int fd, int devnum, unsigned long options)
 		dev = malloc(sizeof(*dev));
 		if (!dev)
 			goto abort;
-		dev->next = sra->devs;
-		sra->devs = dev;
-		strcpy(dev->name, de->d_name);
 
 		/* Always get slot, major, minor */
 		strcpy(dbase, "slot");
-		if (load_sys(fname, buf))
-			goto abort;
-		dev->role = strtoul(buf, &ep, 10);
-		if (*ep) dev->role = -1;
+		if (load_sys(fname, buf)) {
+			/* hmm... unable to read 'slot' maybe the device
+			 * is going away?
+			 */
+			strcpy(dbase, "block");
+			if (readlink(fname, buf, sizeof(buf)) < 0 &&
+			    errno != ENAMETOOLONG) {
+				/* ...yup device is gone */
+				free(dev);
+				continue;
+			} else {
+				/* slot is unreadable but 'block' link
+				 * still intact... something bad is happening
+				 * so abort
+				 */
+				free(dev);
+				goto abort;
+			}
+			
+		}
+		strcpy(dev->sys_name, de->d_name);
+		dev->disk.raid_disk = strtoul(buf, &ep, 10);
+		if (*ep) dev->disk.raid_disk = -1;
 
 		strcpy(dbase, "block/dev");
-		if (load_sys(fname, buf))
-			goto abort;
-		sscanf(buf, "%d:%d", &dev->major, &dev->minor);
+		if (load_sys(fname, buf)) {
+			free(dev);
+			if (options & SKIP_GONE_DEVS)
+				continue;
+			else
+				goto abort;
+		}
+		sscanf(buf, "%d:%d", &dev->disk.major, &dev->disk.minor);
+
+		/* special case check for block devices that can go 'offline' */
+		if (options & SKIP_GONE_DEVS) {
+			strcpy(dbase, "block/device/state");
+			if (load_sys(fname, buf) == 0 &&
+			    strncmp(buf, "offline", 7) == 0) {
+				free(dev);
+				continue;
+			}
+		}
+
+		/* finally add this disk to the array */
+		dev->next = sra->devs;
+		sra->devs = dev;
 
 		if (options & GET_OFFSET) {
 			strcpy(dbase, "offset");
 			if (load_sys(fname, buf))
 				goto abort;
-			dev->offset = strtoull(buf, NULL, 0);
+			dev->data_offset = strtoull(buf, NULL, 0);
 		}
 		if (options & GET_SIZE) {
 			strcpy(dbase, "size");
 			if (load_sys(fname, buf))
 				goto abort;
-			dev->size = strtoull(buf, NULL, 0);
+			dev->component_size = strtoull(buf, NULL, 0) * 2;
 		}
 		if (options & GET_STATE) {
-			dev->state = 0;
+			dev->disk.state = 0;
 			strcpy(dbase, "state");
 			if (load_sys(fname, buf))
 				goto abort;
 			if (strstr(buf, "in_sync"))
-				dev->state |= (1<<MD_DISK_SYNC);
+				dev->disk.state |= (1<<MD_DISK_SYNC);
 			if (strstr(buf, "faulty"))
-				dev->state |= (1<<MD_DISK_FAULTY);
-			if (dev->state == 0)
-				sra->spares++;
+				dev->disk.state |= (1<<MD_DISK_FAULTY);
+			if (dev->disk.state == 0)
+				sra->array.spare_disks++;
 		}
 		if (options & GET_ERROR) {
 			strcpy(buf, "errors");
@@ -211,11 +331,39 @@ struct sysarray *sysfs_read(int fd, int devnum, unsigned long options)
 			dev->errors = strtoul(buf, NULL, 0);
 		}
 	}
+	closedir(dir);
 	return sra;
 
  abort:
+	if (dir)
+		closedir(dir);
 	sysfs_free(sra);
 	return NULL;
+}
+
+int sysfs_attr_match(const char *attr, const char *str)
+{
+	/* See if attr, read from a sysfs file, matches
+	 * str.  They must either be the same, or attr can
+	 * have a trailing newline or comma
+	 */
+	while (*attr && *str && *attr == *str) {
+		attr++;
+		str++;
+	}
+
+	if (*str || (*attr && *attr != ',' && *attr != '\n'))
+		return 0;
+	return 1;
+}
+
+int sysfs_match_word(const char *word, char **list)
+{
+	int n;
+	for (n=0; list[n]; n++)
+		if (sysfs_attr_match(word, list[n]))
+			break;
+	return n;
 }
 
 unsigned long long get_component_size(int fd)
@@ -231,12 +379,12 @@ unsigned long long get_component_size(int fd)
 	char fname[50];
 	int n;
 	if (fstat(fd, &stb)) return 0;
-	if (major(stb.st_rdev) == 9)
+	if (major(stb.st_rdev) != get_mdp_major())
 		sprintf(fname, "/sys/block/md%d/md/component_size",
-			minor(stb.st_rdev));
+			(int)minor(stb.st_rdev));
 	else
 		sprintf(fname, "/sys/block/md_d%d/md/component_size",
-			minor(stb.st_rdev)>>MdpMinorShift);
+			(int)minor(stb.st_rdev)>>MdpMinorShift);
 	fd = open(fname, O_RDONLY);
 	if (fd < 0)
 		return 0;
@@ -248,25 +396,29 @@ unsigned long long get_component_size(int fd)
 	return strtoull(fname, NULL, 10) * 2;
 }
 
-int sysfs_set_str(struct sysarray *sra, struct sysdev *dev,
+int sysfs_set_str(struct mdinfo *sra, struct mdinfo *dev,
 		  char *name, char *val)
 {
 	char fname[50];
 	int n;
 	int fd;
+
 	sprintf(fname, "/sys/block/%s/md/%s/%s",
-		sra->name, dev?dev->name:"", name);
+		sra->sys_name, dev?dev->sys_name:"", name);
 	fd = open(fname, O_WRONLY);
 	if (fd < 0)
 		return -1;
 	n = write(fd, val, strlen(val));
 	close(fd);
-	if (n != strlen(val))
+	if (n != strlen(val)) {
+		dprintf(Name ": failed to write '%s' to '%s' (%s)\n",
+			val, fname, strerror(errno));
 		return -1;
+	}
 	return 0;
 }
 
-int sysfs_set_num(struct sysarray *sra, struct sysdev *dev,
+int sysfs_set_num(struct mdinfo *sra, struct mdinfo *dev,
 		  char *name, unsigned long long val)
 {
 	char valstr[50];
@@ -274,7 +426,23 @@ int sysfs_set_num(struct sysarray *sra, struct sysdev *dev,
 	return sysfs_set_str(sra, dev, name, valstr);
 }
 
-int sysfs_get_ll(struct sysarray *sra, struct sysdev *dev,
+int sysfs_uevent(struct mdinfo *sra, char *event)
+{
+	char fname[50];
+	int n;
+	int fd;
+
+	sprintf(fname, "/sys/block/%s/uevent",
+		sra->sys_name);
+	fd = open(fname, O_WRONLY);
+	if (fd < 0)
+		return -1;
+	n = write(fd, event, strlen(event));
+	close(fd);
+	return 0;
+}	
+
+int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
 		       char *name, unsigned long long *val)
 {
 	char fname[50];
@@ -283,7 +451,7 @@ int sysfs_get_ll(struct sysarray *sra, struct sysdev *dev,
 	int fd;
 	char *ep;
 	sprintf(fname, "/sys/block/%s/md/%s/%s",
-		sra->name, dev?dev->name:"", name);
+		sra->sys_name, dev?dev->sys_name:"", name);
 	fd = open(fname, O_RDONLY);
 	if (fd < 0)
 		return -1;
@@ -297,3 +465,401 @@ int sysfs_get_ll(struct sysarray *sra, struct sysdev *dev,
 		return -1;
 	return 0;
 }
+
+int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
+		       char *name, char *val, int size)
+{
+	char fname[50];
+	int n;
+	int fd;
+	sprintf(fname, "/sys/block/%s/md/%s/%s",
+		sra->sys_name, dev?dev->sys_name:"", name);
+	fd = open(fname, O_RDONLY);
+	if (fd < 0)
+		return -1;
+	n = read(fd, val, size);
+	close(fd);
+	if (n <= 0)
+		return -1;
+	val[n] = 0;
+	return n;
+}
+
+int sysfs_set_safemode(struct mdinfo *sra, unsigned long ms)
+{
+	unsigned long sec;
+	unsigned long msec;
+	char delay[30];
+
+	sec = ms / 1000;
+	msec = ms % 1000;
+
+	sprintf(delay, "%ld.%03ld\n", sec, msec);
+	/*             this '\n' ^ needed for kernels older than 2.6.28 */
+	return sysfs_set_str(sra, NULL, "safe_mode_delay", delay);
+}
+
+int sysfs_set_array(struct mdinfo *info, int vers)
+{
+	int rv = 0;
+	char ver[100];
+
+	ver[0] = 0;
+	if (info->array.major_version == -1 &&
+	    info->array.minor_version == -2) {
+		strcat(strcpy(ver, "external:"), info->text_version);
+
+		if ((vers % 100) < 2 ||
+		    sysfs_set_str(info, NULL, "metadata_version",
+				  ver) < 0) {
+			fprintf(stderr, Name ": This kernel does not "
+				"support external metadata.\n");
+			return 1;
+		}
+	}
+	if (info->array.level < 0)
+		return 0; /* FIXME */
+	rv |= sysfs_set_str(info, NULL, "level",
+			    map_num(pers, info->array.level));
+	rv |= sysfs_set_num(info, NULL, "raid_disks", info->array.raid_disks);
+	rv |= sysfs_set_num(info, NULL, "chunk_size", info->array.chunk_size);
+	rv |= sysfs_set_num(info, NULL, "layout", info->array.layout);
+	rv |= sysfs_set_num(info, NULL, "component_size", info->component_size/2);
+	if (info->custom_array_size) {
+		int rc;
+
+		rc = sysfs_set_num(info, NULL, "array_size",
+				   info->custom_array_size/2);
+		if (rc && errno == ENOENT) {
+			fprintf(stderr, Name ": This kernel does not "
+				"have the md/array_size attribute, "
+				"the array may be larger than expected\n");
+			rc = 0;
+		}
+		rv |= rc;
+	}
+
+	if (info->array.level > 0)
+		rv |= sysfs_set_num(info, NULL, "resync_start", info->resync_start);
+	return rv;
+}
+
+int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int in_sync)
+{
+	char dv[100];
+	char nm[100];
+	char *dname;
+	int rv;
+
+	sprintf(dv, "%d:%d", sd->disk.major, sd->disk.minor);
+	rv = sysfs_set_str(sra, NULL, "new_dev", dv);
+	if (rv)
+		return rv;
+
+	memset(nm, 0, sizeof(nm));
+	sprintf(dv, "/sys/dev/block/%d:%d", sd->disk.major, sd->disk.minor);
+	rv = readlink(dv, nm, sizeof(nm));
+	if (rv <= 0)
+		return -1;
+	nm[rv] = '\0';
+	dname = strrchr(nm, '/');
+	if (dname) dname++;
+	strcpy(sd->sys_name, "dev-");
+	strcpy(sd->sys_name+4, dname);
+
+	rv = sysfs_set_num(sra, sd, "offset", sd->data_offset);
+	rv |= sysfs_set_num(sra, sd, "size", (sd->component_size+1) / 2);
+	if (sra->array.level != LEVEL_CONTAINER) {
+		if (in_sync)
+			/* This can correctly fail if array isn't started,
+			 * yet, so just ignore status for now.
+			 */
+			sysfs_set_str(sra, sd, "state", "in_sync");
+		rv |= sysfs_set_num(sra, sd, "slot", sd->disk.raid_disk);
+	}
+	return rv;
+}
+
+#if 0
+int sysfs_disk_to_sg(int fd)
+{
+	/* from an open block device, try find and open its corresponding
+	 * scsi_generic interface
+	 */
+	struct stat st;
+	char path[256];
+	char sg_path[256];
+	char sg_major_minor[8];
+	char *c;
+	DIR *dir;
+	struct dirent *de;
+	int major, minor, rv;
+
+	if (fstat(fd, &st))
+		return -1;
+
+	snprintf(path, sizeof(path), "/sys/dev/block/%d:%d/device",
+		 major(st.st_rdev), minor(st.st_rdev));
+
+	dir = opendir(path);
+	if (!dir)
+		return -1;
+
+	de = readdir(dir);
+	while (de) {
+		if (strncmp("scsi_generic:", de->d_name,
+			    strlen("scsi_generic:")) == 0)
+			break;
+		de = readdir(dir);
+	}
+	closedir(dir);
+
+	if (!de)
+		return -1;
+
+	snprintf(sg_path, sizeof(sg_path), "%s/%s/dev", path, de->d_name);
+	fd = open(sg_path, O_RDONLY);
+	if (fd < 0)
+		return fd;
+
+	rv = read(fd, sg_major_minor, sizeof(sg_major_minor));
+	close(fd);
+	if (rv < 0)
+		return -1;
+	else
+		sg_major_minor[rv - 1] = '\0';
+
+	c = strchr(sg_major_minor, ':');
+	*c = '\0';
+	c++;
+	major = strtol(sg_major_minor, NULL, 10);
+	minor = strtol(c, NULL, 10);
+	snprintf(path, sizeof(path), "/dev/.tmp.md.%d:%d:%d",
+		 (int) getpid(), major, minor);
+	if (mknod(path, S_IFCHR|0600, makedev(major, minor))==0) {
+			fd = open(path, O_RDONLY);
+			unlink(path);
+			return fd;
+	}
+
+	return -1;
+}
+#endif
+
+int sysfs_disk_to_scsi_id(int fd, __u32 *id)
+{
+	/* from an open block device, try to retrieve it scsi_id */
+	struct stat st;
+	char path[256];
+	char *c1, *c2;
+	DIR *dir;
+	struct dirent *de;
+
+	if (fstat(fd, &st))
+		return 1;
+
+	snprintf(path, sizeof(path), "/sys/dev/block/%d:%d/device",
+		 major(st.st_rdev), minor(st.st_rdev));
+
+	dir = opendir(path);
+	if (!dir)
+		return 1;
+
+	de = readdir(dir);
+	while (de) {
+		if (strncmp("scsi_disk:", de->d_name,
+			    strlen("scsi_disk:")) == 0)
+			break;
+		de = readdir(dir);
+	}
+	closedir(dir);
+
+	if (!de)
+		return 1;
+
+	c1 = strchr(de->d_name, ':');
+	c1++;
+	c2 = strchr(c1, ':');
+	*c2 = '\0';
+	*id = strtol(c1, NULL, 10) << 24; /* host */
+	c1 = c2 + 1;
+	c2 = strchr(c1, ':');
+	*c2 = '\0';
+	*id |= strtol(c1, NULL, 10) << 16; /* channel */
+	c1 = c2 + 1;
+	c2 = strchr(c1, ':');
+	*c2 = '\0';
+	*id |= strtol(c1, NULL, 10) << 8; /* lun */
+	c1 = c2 + 1;
+	*id |= strtol(c1, NULL, 10); /* id */
+
+	return 0;
+}
+
+
+int sysfs_unique_holder(int devnum, long rdev)
+{
+	/* Check that devnum is a holder of rdev,
+	 * and is the only holder.
+	 * we should be locked against races by
+	 * an O_EXCL on devnum
+	 */
+	DIR *dir;
+	struct dirent *de;
+	char dirname[100];
+	char l;
+	int found = 0;
+	sprintf(dirname, "/sys/dev/block/%d:%d/holders",
+		major(rdev), minor(rdev));
+	dir = opendir(dirname);
+	errno = ENOENT;
+	if (!dir)
+		return 0;
+	l = strlen(dirname);
+	while ((de = readdir(dir)) != NULL) {
+		char buf[10];
+		int n;
+		int mj, mn;
+		char c;
+		int fd;
+
+		if (de->d_ino == 0)
+			continue;
+		if (de->d_name[0] == '.')
+			continue;
+		strcpy(dirname+l, "/");
+		strcat(dirname+l, de->d_name);
+		strcat(dirname+l, "/dev");
+		fd = open(dirname, O_RDONLY);
+		if (fd < 0) {
+			errno = ENOENT;
+			break;
+		}
+		n = read(fd, buf, sizeof(buf)-1);
+		close(fd);
+		buf[n] = 0;
+		if (sscanf(buf, "%d:%d%c", &mj, &mn, &c) != 3 ||
+		    c != '\n') {
+			errno = ENOENT;
+			break;
+		}
+		if (mj != MD_MAJOR)
+			mn = -1-(mn>>6);
+
+		if (devnum != mn) {
+			errno = EEXIST;
+			break;
+		}
+		found = 1;
+	}
+	closedir(dir);
+	if (de)
+		return 0;
+	else
+		return found;
+}
+
+#ifndef MDASSEMBLE
+
+static char *clean_states[] = {
+	"clear", "inactive", "readonly", "read-auto", "clean", NULL };
+
+int WaitClean(char *dev, int verbose)
+{
+	int fd;
+	struct mdinfo *mdi;
+	int rv = 1;
+	int devnum;
+
+	fd = open(dev, O_RDONLY); 
+	if (fd < 0) {
+		if (verbose)
+			fprintf(stderr, Name ": Couldn't open %s: %s\n", dev, strerror(errno));
+		return 1;
+	}
+
+	devnum = fd2devnum(fd);
+	mdi = sysfs_read(fd, devnum, GET_VERSION|GET_LEVEL|GET_SAFEMODE);
+	if (!mdi) {
+		if (verbose)
+			fprintf(stderr, Name ": Failed to read sysfs attributes for "
+				"%s\n", dev);
+		close(fd);
+		return 0;
+	}
+
+	switch(mdi->array.level) {
+	case LEVEL_LINEAR:
+	case LEVEL_MULTIPATH:
+	case 0:
+		/* safemode delay is irrelevant for these levels */
+		rv = 0;
+		
+	}
+
+	/* for internal metadata the kernel handles the final clean
+	 * transition, containers can never be dirty
+	 */
+	if (!is_subarray(mdi->text_version))
+		rv = 0;
+
+	/* safemode disabled ? */
+	if (mdi->safe_mode_delay == 0)
+		rv = 0;
+
+	if (rv) {
+		int state_fd = sysfs_open(fd2devnum(fd), NULL, "array_state");
+		char buf[20];
+		fd_set fds;
+		struct timeval tm;
+
+		/* minimize the safe_mode_delay and prepare to wait up to 5s
+		 * for writes to quiesce
+		 */
+		sysfs_set_safemode(mdi, 1);
+		tm.tv_sec = 5;
+		tm.tv_usec = 0;
+
+		/* give mdmon a chance to checkpoint resync */
+		sysfs_set_str(mdi, NULL, "sync_action", "idle");
+
+		FD_ZERO(&fds);
+
+		/* wait for array_state to be clean */
+		while (1) {
+			rv = read(state_fd, buf, sizeof(buf));
+			if (rv < 0)
+				break;
+			if (sysfs_match_word(buf, clean_states) <= 4)
+				break;
+			FD_SET(state_fd, &fds);
+			rv = select(state_fd + 1, NULL, NULL, &fds, &tm);
+			if (rv < 0 && errno != EINTR)
+				break;
+			lseek(state_fd, 0, SEEK_SET);
+		}
+		if (rv < 0)
+			rv = 1;
+		else if (ping_monitor(mdi->text_version) == 0) {
+			/* we need to ping to close the window between array
+			 * state transitioning to clean and the metadata being
+			 * marked clean
+			 */
+			rv = 0;
+		} else
+			rv = 1;
+		if (rv && verbose)
+			fprintf(stderr, Name ": Error waiting for %s to be clean\n",
+				dev);
+
+		/* restore the original safe_mode_delay */
+		sysfs_set_safemode(mdi, mdi->safe_mode_delay);
+		close(state_fd);
+	}
+
+	sysfs_free(mdi);
+	close(fd);
+
+	return rv;
+}
+#endif /* MDASSEMBLE */

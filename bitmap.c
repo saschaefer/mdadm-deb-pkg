@@ -115,6 +115,15 @@ unsigned long long bitmap_bits(unsigned long long array_size,
 	return (array_size * 512 + chunksize - 1) / chunksize;
 }
 
+unsigned long bitmap_sectors(struct bitmap_super_s *bsb)
+{
+	unsigned long long bits = bitmap_bits(__le64_to_cpu(bsb->sync_size),
+					      __le32_to_cpu(bsb->chunksize));
+	int bits_per_sector = 8*512;
+	return (bits + bits_per_sector - 1) / bits_per_sector;
+}
+
+
 bitmap_info_t *bitmap_fd_read(int fd, int brief)
 {
 	/* Note: fd might be open O_DIRECT, so we must be
@@ -122,11 +131,13 @@ bitmap_info_t *bitmap_fd_read(int fd, int brief)
 	 */
 	unsigned long long total_bits = 0, read_bits = 0, dirty_bits = 0;
 	bitmap_info_t *info;
-	char *buf, *unaligned;
+	void *buf;
 	int n, skip;
 
-	unaligned = malloc(8192*2);
-	buf = (char*) ((unsigned long)unaligned | 8191)+1;
+	if (posix_memalign(&buf, 512, 8192) != 0) {
+		fprintf(stderr, Name ": failed to allocate 8192 bytes\n");
+		return NULL;
+	}
 	n = read(fd, buf, 8192);
 
 	info = malloc(sizeof(*info));
@@ -145,15 +156,14 @@ bitmap_info_t *bitmap_fd_read(int fd, int brief)
 		fprintf(stderr, Name ": failed to read superblock of bitmap "
 			"file: %s\n", strerror(errno));
 		free(info);
-		free(unaligned);
 		return NULL;
 	}
 	memcpy(&info->sb, buf, sizeof(info->sb));
 	skip = sizeof(info->sb);
 
 	sb_le_to_cpu(&info->sb); /* convert superblock to CPU byte ordering */
-	
-	if (brief || info->sb.sync_size == 0)
+
+	if (brief || info->sb.sync_size == 0 || info->sb.chunksize == 0)
 		goto out;
 
 	/* read the rest of the file counting total bits and dirty bits --
@@ -219,8 +229,8 @@ bitmap_info_t *bitmap_file_read(char *filename, int brief, struct supertype **st
 		if (!st) {
 			/* just look at device... */
 			lseek(fd, 0, 0);
-		} else {	
-			st->ss->locate_bitmap(st, fd, NULL);
+		} else {
+			st->ss->locate_bitmap(st, fd);
 		}
 		ioctl(fd, BLKFLSBUF, 0); /* make sure we read current data */
 		*stp = st;
@@ -261,6 +271,7 @@ int ExamineBitmap(char *filename, int brief, struct supertype *st)
 	int rv = 1;
 	char buf[64];
 	int swap;
+	__u32 uuid32[4];
 
 	info = bitmap_file_read(filename, brief, &st);
 	if (!info)
@@ -288,19 +299,20 @@ int ExamineBitmap(char *filename, int brief, struct supertype *st)
 #else
 		swap = 1;
 #endif
-	if (swap) {
-	printf("            UUID : %08x:%08x:%08x:%08x\n",
-					swapl(*(__u32 *)(sb->uuid+0)),
-					swapl(*(__u32 *)(sb->uuid+4)),
-					swapl(*(__u32 *)(sb->uuid+8)),
-					swapl(*(__u32 *)(sb->uuid+12)));
-	} else {
-	printf("            UUID : %08x:%08x:%08x:%08x\n",
-					*(__u32 *)(sb->uuid+0),
-					*(__u32 *)(sb->uuid+4),
-					*(__u32 *)(sb->uuid+8),
-					*(__u32 *)(sb->uuid+12));
-	}
+	memcpy(uuid32, sb->uuid, 16);
+	if (swap)
+		printf("            UUID : %08x:%08x:%08x:%08x\n",
+		       swapl(uuid32[0]),
+		       swapl(uuid32[1]),
+		       swapl(uuid32[2]),
+		       swapl(uuid32[3]));
+	else
+		printf("            UUID : %08x:%08x:%08x:%08x\n",
+		       uuid32[0],
+		       uuid32[1],
+		       uuid32[2],
+		       uuid32[3]);
+
 	printf("          Events : %llu\n", (unsigned long long)sb->events);
 	printf("  Events Cleared : %llu\n", (unsigned long long)sb->events_cleared);
 	printf("           State : %s\n", bitmap_state(sb->state));
@@ -398,7 +410,7 @@ int CreateBitmap(char *filename, int force, char uuid[16],
 		}
 		bytes -= sizeof(block);
 	}
-	
+
 	rv = 0;
 	fflush(fp);
 	/* make the file be the right size (well, to the nearest byte) */
