@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #define HAVE_STDINT_H 1
@@ -232,7 +227,7 @@ static void examine_super0(struct supertype *st, char *homehost)
 	}
 }
 
-static void brief_examine_super0(struct supertype *st)
+static void brief_examine_super0(struct supertype *st, int verbose)
 {
 	mdp_super_t *sb = st->sb;
 	char *c=map_num(pers, sb->level);
@@ -240,14 +235,18 @@ static void brief_examine_super0(struct supertype *st)
 
 	sprintf(devname, "/dev/md%d", sb->md_minor);
 
-	printf("ARRAY %s level=%s num-devices=%d UUID=",
-	       devname,
-	       c?c:"-unknown-", sb->raid_disks);
+	if (verbose) {
+		printf("ARRAY %s level=%s num-devices=%d",
+		       devname,
+		       c?c:"-unknown-", sb->raid_disks);
+	} else
+		printf("ARRAY %s", devname);
+
 	if (sb->minor_version >= 90)
-		printf("%08x:%08x:%08x:%08x", sb->set_uuid0, sb->set_uuid1,
+		printf(" UUID=%08x:%08x:%08x:%08x", sb->set_uuid0, sb->set_uuid1,
 		       sb->set_uuid2, sb->set_uuid3);
 	else
-		printf("%08x", sb->set_uuid0);
+		printf(" UUID=%08x", sb->set_uuid0);
 	printf("\n");
 }
 

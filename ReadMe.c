@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2007 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 
 #include "mdadm.h"
 
-char Version[] = Name " - v3.0-devel3 - 10th March 2009\n";
+char Version[] = Name " - v3.0 - 2nd June 2009\n";
 
 /*
  * File: ReadMe.c
@@ -139,7 +139,9 @@ struct option long_options[] = {
     {"write-mostly",0, 0, 'W'},
     {"re-add",    0, 0,  ReAdd},
     {"homehost",  1, 0,  HomeHost},
+#if 0
     {"auto-update-homehost", 0, 0, AutoHomeHost},
+#endif
     {"symlinks",  1, 0,  Symlinks},
 
     /* For assemble */
@@ -271,7 +273,6 @@ char OptionHelp[] =
 "  --size=       -z   : Size (in K) of each drive in RAID1/4/5/6/10 - optional\n"
 "  --force       -f   : Honour devices as listed on command line.  Don't\n"
 "                     : insert a missing drive for RAID5.\n"
-"  --auto(=p)    -a   : Automatically allocate new (partitioned) md array if needed.\n"
 "  --assume-clean     : Assume the array is already in-sync. This is dangerous.\n"
 "  --bitmap-chunk=    : chunksize of bitmap in bitmap file (Kilobytes)\n"
 "  --delay=      -d   : seconds between bitmap updates\n"
@@ -289,7 +290,6 @@ char OptionHelp[] =
 "  --scan        -s   : scan config file for missing information\n"
 "  --force       -f   : Assemble the array even if some superblocks appear out-of-date\n"
 "  --update=     -U   : Update superblock: try '-A --update=?' for list of options.\n"
-"  --auto(=p)    -a   : Automatically allocate new (partitioned) md array if needed.\n"
 "  --no-degraded      : Do not start any degraded arrays - default unless --scan.\n"
 "\n"
 " For detail or examine:\n"

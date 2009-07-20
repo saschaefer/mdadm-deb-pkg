@@ -735,7 +735,8 @@ static void examine_super_imsm(struct supertype *st, char *homehost)
 		printf("      Signature : %x\n", __le32_to_cpu(log->signature));
 		printf("    Entry Count : %d\n", __le32_to_cpu(log->entry_count));
 		printf("   Spare Blocks : %d\n",  __le32_to_cpu(log->reserved_spare_block_count));
-		printf("    First Spare : %llx\n", __le64_to_cpu(log->first_spare_lba));
+		printf("    First Spare : %llx\n",
+		       (unsigned long long) __le64_to_cpu(log->first_spare_lba));
 	}
 	for (i = 0; i < mpb->num_raid_devs; i++) {
 		struct mdinfo info;
@@ -753,7 +754,7 @@ static void examine_super_imsm(struct supertype *st, char *homehost)
 	}
 }
 
-static void brief_examine_super_imsm(struct supertype *st)
+static void brief_examine_super_imsm(struct supertype *st, int verbose)
 {
 	/* We just write a generic IMSM ARRAY entry */
 	struct mdinfo info;
@@ -767,15 +768,14 @@ static void brief_examine_super_imsm(struct supertype *st)
 
 	getinfo_super_imsm(st, &info);
 	fname_from_uuid(st, &info, nbuf, ':');
-	printf("ARRAY metadata=imsm auto=md UUID=%s\n", nbuf + 5);
+	printf("ARRAY metadata=imsm UUID=%s\n", nbuf + 5);
 	for (i = 0; i < super->anchor->num_raid_devs; i++) {
 		struct imsm_dev *dev = get_imsm_dev(super, i);
 
 		super->current_vol = i;
 		getinfo_super_imsm(st, &info);
 		fname_from_uuid(st, &info, nbuf1, ':');
-		printf("ARRAY /dev/md/%.16s container=%s\n"
-		       "   member=%d auto=mdp UUID=%s\n",
+		printf("ARRAY /dev/md/%.16s container=%s member=%d UUID=%s\n",
 		       dev->volume, nbuf + 5, i, nbuf1 + 5);
 	}
 }
@@ -2404,13 +2404,16 @@ static int init_super_imsm_volume(struct supertype *st, mdu_array_info_t *info,
 				"in a raid1 volume\n");
 		return 0;
 	}
+
+	map->raid_level = info->level;
 	if (info->level == 10) {
 		map->raid_level = 1;
 		map->num_domains = info->raid_disks / 2;
-	} else {
-		map->raid_level = info->level;
+	} else if (info->level == 1)
+		map->num_domains = info->raid_disks;
+	else
 		map->num_domains = 1;
-	}
+
 	num_data_stripes = info_to_num_data_stripes(info, map->num_domains);
 	map->num_data_stripes = __cpu_to_le32(num_data_stripes);
 

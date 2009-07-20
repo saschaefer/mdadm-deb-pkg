@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2006-2007 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2006-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -1162,7 +1162,7 @@ static void getinfo_super_ddf(struct supertype *st, struct mdinfo *info);
 
 static void uuid_from_super_ddf(struct supertype *st, int uuid[4]);
 
-static void brief_examine_super_ddf(struct supertype *st)
+static void brief_examine_super_ddf(struct supertype *st, int verbose)
 {
 	/* We just write a generic DDF ARRAY entry
 	 */

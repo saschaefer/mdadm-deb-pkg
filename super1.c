@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include "mdadm.h"
@@ -414,7 +409,7 @@ static void examine_super1(struct supertype *st, char *homehost)
 }
 
 
-static void brief_examine_super1(struct supertype *st)
+static void brief_examine_super1(struct supertype *st, int verbose)
 {
 	struct mdp_superblock_1 *sb = st->sb;
 	int i;
@@ -430,17 +425,19 @@ static void brief_examine_super1(struct supertype *st)
 	else
 		nm = NULL;
 
-	printf("ARRAY%s%s level=%s ",
-	       nm ? " /dev/md/":"", nm,
-	       c?c:"-unknown-");
+	printf("ARRAY%s%s", nm ? " /dev/md/":"", nm);
+	if (verbose && c)
+		printf(" level=%s", c);
 	sb_offset = __le64_to_cpu(sb->super_offset);
 	if (sb_offset <= 4)
-		printf("metadata=1.1 ");
+		printf(" metadata=1.1 ");
 	else if (sb_offset <= 8)
-		printf("metadata=1.2 ");
+		printf(" metadata=1.2 ");
 	else
-		printf("metadata=1.0 ");
-	printf("num-devices=%d UUID=", __le32_to_cpu(sb->raid_disks));
+		printf(" metadata=1.0 ");
+	if (verbose)
+		printf("num-devices=%d ", __le32_to_cpu(sb->raid_disks));
+	printf("UUID=");
 	for (i=0; i<16; i++) {
 		if ((i&3)==0 && i != 0) printf(":");
 		printf("%02x", sb->set_uuid[i]);
@@ -685,10 +682,8 @@ static int update_super1(struct supertype *st, struct mdinfo *info,
 
 		if ((rfd = open("/dev/urandom", O_RDONLY)) < 0 ||
 		    read(rfd, sb->device_uuid, 16) != 16) {
-			*(__u32*)(sb->device_uuid) = random();
-			*(__u32*)(sb->device_uuid+4) = random();
-			*(__u32*)(sb->device_uuid+8) = random();
-			*(__u32*)(sb->device_uuid+12) = random();
+			__u32 r[4] = {random(), random(), random(), random()};
+			memcpy(sb->device_uuid, r, 16);
 		}
 
 		sb->dev_roles[i] =
@@ -814,10 +809,8 @@ static int init_super1(struct supertype *st, mdu_array_info_t *info,
 	else {
 		if ((rfd = open("/dev/urandom", O_RDONLY)) < 0 ||
 		    read(rfd, sb->set_uuid, 16) != 16) {
-			*(__u32*)(sb->set_uuid) = random();
-			*(__u32*)(sb->set_uuid+4) = random();
-			*(__u32*)(sb->set_uuid+8) = random();
-			*(__u32*)(sb->set_uuid+12) = random();
+			__u32 r[4] = {random(), random(), random(), random()};
+			memcpy(sb->set_uuid, r, 16);
 		}
 		if (rfd >= 0) close(rfd);
 	}
@@ -1021,12 +1014,12 @@ static int write_init_super1(struct supertype *st)
 
 		if ((rfd = open("/dev/urandom", O_RDONLY)) < 0 ||
 		    read(rfd, sb->device_uuid, 16) != 16) {
-			*(__u32*)(sb->device_uuid) = random();
-			*(__u32*)(sb->device_uuid+4) = random();
-			*(__u32*)(sb->device_uuid+8) = random();
-			*(__u32*)(sb->device_uuid+12) = random();
+			__u32 r[4] = {random(), random(), random(), random()};
+			memcpy(sb->device_uuid, r, 16);
 		}
-		if (rfd >= 0) close(rfd);
+		if (rfd >= 0)
+			close(rfd);
+
 		sb->events = 0;
 
 		refst =*st;
@@ -1652,5 +1645,5 @@ struct superswitch super1 = {
 #else
 	.swapuuid = 1,
 #endif
-	.name = "1.0",
+	.name = "1.x",
 };

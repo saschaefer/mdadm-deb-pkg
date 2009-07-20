@@ -1,7 +1,7 @@
 /*
  * mdassemble - assemble Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  * Copyright (C) 2003 Luca Berra <bluca@vodka.it>
  *
  *
@@ -20,12 +20,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include "mdadm.h"
@@ -100,6 +95,8 @@ int main(int argc, char *argv[]) {
 	} else
 		for (; array_list; array_list = array_list->next) {
 			mdu_array_info_t array;
+			if (strcasecmp(array_list->devname, "<ignore>") == 0)
+				continue;
 			mdfd = open_mddev(array_list->devname, 0);
 			if (mdfd >= 0 && ioctl(mdfd, GET_ARRAY_INFO, &array) == 0) {
 				rv |= Manage_ro(array_list->devname, mdfd, -1); /* make it readwrite */
@@ -109,7 +106,8 @@ int main(int argc, char *argv[]) {
 				close(mdfd);
 			rv |= Assemble(array_list->st, array_list->devname,
 				       array_list, NULL, NULL,
-				       readonly, runstop, NULL, NULL, verbose, force);
+				       readonly, runstop, NULL, NULL, 0,
+				       verbose, force);
 		}
 	return rv;
 }

@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include "mdadm.h"
@@ -238,11 +233,19 @@ int create_mddev(char *dev, char *name, int autof, int trustworthy,
 			use_mdp = 0;
 	}
 	if (num < 0 && trustworthy == LOCAL && name) {
-		/* if name is numeric, use that for num
+		/* if name is numeric, possibly prefixed by 
+		 * 'md' or '/dev/md', use that for num
 		 * if it is not already in use */
 		char *ep;
-		num = strtoul(name, &ep, 10);
-		if (ep == name || *ep)
+		char *n2 = name;
+		if (strncmp(n2, "/dev/", 5) == 0)
+			n2 += 5;
+		if (strncmp(n2, "md", 2) == 0)
+			n2 += 2;
+		if (*n2 == '/')
+			n2++;
+		num = strtoul(n2, &ep, 10);
+		if (ep == n2 || *ep)
 			num = -1;
 		else if (mddev_busy(use_mdp ? (-1-num) : num))
 			num = -1;
@@ -303,7 +306,10 @@ int create_mddev(char *dev, char *name, int autof, int trustworthy,
 				conflict = 0;
 		}
 	}
-	if (cname[0] == 0)
+
+	if (dev)
+		strcpy(chosen, dev);
+	else if (cname[0] == 0)
 		strcpy(chosen, devname);
 
 	/* We have a device number and name.

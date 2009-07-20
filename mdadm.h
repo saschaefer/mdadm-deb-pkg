@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #define	_GNU_SOURCE
@@ -440,7 +435,7 @@ extern struct superswitch {
 	 * device. ->load_super has been called.
 	 */
 	void (*examine_super)(struct supertype *st, char *homehost);
-	void (*brief_examine_super)(struct supertype *st);
+	void (*brief_examine_super)(struct supertype *st, int verbose);
 	void (*export_examine_super)(struct supertype *st);
 
 	/* Used to report details of an active array.
@@ -724,13 +719,13 @@ extern int Assemble(struct supertype *st, char *mddev,
 		    mddev_ident_t ident,
 		    mddev_dev_t devlist, char *backup_file,
 		    int readonly, int runstop,
-		    char *update, char *homehost,
+		    char *update, char *homehost, int require_homehost,
 		    int verbose, int force);
 
 extern int Build(char *mddev, int chunk, int level, int layout,
 		 int raiddisks, mddev_dev_t devlist, int assume_clean,
 		 char *bitmap_file, int bitmap_chunk, int write_behind,
-		 int delay, int verbose, int autof);
+		 int delay, int verbose, int autof, unsigned long long size);
 
 
 extern int Create(struct supertype *st, char *mddev,
@@ -755,7 +750,8 @@ extern int Wait(char *dev);
 extern int WaitClean(char *dev, int verbose);
 
 extern int Incremental(char *devname, int verbose, int runstop,
-		       struct supertype *st, char *homehost, int autof);
+		       struct supertype *st, char *homehost, int require_homehost,
+		       int autof);
 extern int Incremental_container(struct supertype *st, char *devname,
 				 int verbose, int runstop, int autof,
 				 int trustworthy);
@@ -789,14 +785,19 @@ extern int parse_auto(char *str, char *msg, int config);
 extern mddev_ident_t conf_get_ident(char *dev);
 extern mddev_dev_t conf_get_devs(void);
 extern int conf_test_dev(char *devname);
+extern int conf_test_metadata(const char *version);
 extern struct createinfo *conf_get_create_info(void);
 extern void set_conffile(char *file);
 extern char *conf_get_mailaddr(void);
 extern char *conf_get_mailfrom(void);
 extern char *conf_get_program(void);
-extern char *conf_get_homehost(void);
+extern char *conf_get_homehost(int *require_homehostp);
 extern char *conf_line(FILE *file);
 extern char *conf_word(FILE *file, int allow_key);
+extern int conf_name_is_free(char *name);
+extern int devname_matches(char *name, char *match);
+extern struct mddev_ident_s *conf_match(struct mdinfo *info, struct supertype *st);
+
 extern void free_line(char *line);
 extern int match_oneof(char *devices, char *devname);
 extern void uuid_from_super(int uuid[4], mdp_super_t *super);

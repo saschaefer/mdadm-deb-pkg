@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include	"mdadm.h"
@@ -79,7 +74,7 @@ int Assemble(struct supertype *st, char *mddev,
 	     mddev_ident_t ident,
 	     mddev_dev_t devlist, char *backup_file,
 	     int readonly, int runstop,
-	     char *update, char *homehost,
+	     char *update, char *homehost, int require_homehost,
 	     int verbose, int force)
 {
 	/*
@@ -140,7 +135,7 @@ int Assemble(struct supertype *st, char *mddev,
 	int clean;
 	int auto_assem = (mddev == NULL && !ident->uuid_set &&
 			  ident->super_minor == UnSet && ident->name[0] == 0
-			  && ident->container == NULL && ident->member == NULL);
+			  && (ident->container == NULL || ident->member == NULL));
 	int old_linux = 0;
 	int vers = vers; /* Keep gcc quite - it really is initialised */
 	struct {
@@ -188,6 +183,8 @@ int Assemble(struct supertype *st, char *mddev,
 	if (!devlist &&
 	    ident->uuid_set == 0 &&
 	    ident->super_minor < 0 &&
+	    ident->name[0] == 0 &&
+	    (ident->container == NULL || ident->member == NULL) &&
 	    ident->devices == NULL) {
 		fprintf(stderr, Name ": No identity information available for %s - cannot assemble.\n",
 			mddev ? mddev : "further assembly");
@@ -262,6 +259,13 @@ int Assemble(struct supertype *st, char *mddev,
 			if (report_missmatch)
 				fprintf(stderr, Name ": no recogniseable superblock on %s\n",
 					devname);
+			tmpdev->used = 2;
+		} else if (auto_assem && st == NULL &&
+			   !conf_test_metadata(tst->ss->name)) {
+			if (report_missmatch)
+				fprintf(stderr, Name ": %s has metadata type %s for which "
+					"auto-assembly is disabled\n",
+					devname, tst->ss->name);
 			tmpdev->used = 2;
 		} else if (tst->ss->load_super(tst,dfd, NULL)) {
 			if (report_missmatch)
@@ -473,16 +477,14 @@ int Assemble(struct supertype *st, char *mddev,
 	if (!st || !st->sb || !content)
 		return 2;
 
-	/* Now need to open array the device.  Use create_mddev */
+	/* Now need to open the array device.  Use create_mddev */
 	if (content == &info)
 		st->ss->getinfo_super(st, content);
 
 	trustworthy = FOREIGN;
-	switch (st->ss->match_home(st, homehost)) {
-	case 0:
-		trustworthy = FOREIGN;
-		name = content->name;
-		break;
+	name = content->name;
+	switch (st->ss->match_home(st, homehost)
+		?: st->ss->match_home(st, "any")) {
 	case 1:
 		trustworthy = LOCAL;
 		name = strchr(content->name, ':');
@@ -491,22 +493,30 @@ int Assemble(struct supertype *st, char *mddev,
 		else
 			name = content->name;
 		break;
-	case -1:
-		trustworthy = FOREIGN;
-		break;
 	}
-	if (!auto_assem && trustworthy == FOREIGN)
-		/* If the array is listed in mdadm or on
+	if (!auto_assem)
+		/* If the array is listed in mdadm.conf or on
 		 * command line, then we trust the name
 		 * even if the array doesn't look local
 		 */
 		trustworthy = LOCAL;
 
-	if (content->name[0] == 0 &&
+	if (name[0] == 0 &&
 	    content->array.level == LEVEL_CONTAINER) {
 		name = content->text_version;
 		trustworthy = METADATA;
 	}
+
+	if (name[0] && trustworthy != LOCAL &&
+	    ! require_homehost &&
+	    conf_name_is_free(name))
+		trustworthy = LOCAL;
+
+	if (trustworthy == LOCAL &&
+	    strchr(name, ':'))
+		/* Ignore 'host:' prefix of name */
+		name = strchr(name, ':')+1;
+
 	mdfd = create_mddev(mddev, name, ident->autof, trustworthy,
 			    chosen_name);
 	if (mdfd < 0) {

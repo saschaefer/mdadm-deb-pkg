@@ -2,7 +2,7 @@
  * Incremental.c - support --incremental.  Part of:
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2006-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -37,7 +37,8 @@ static void find_reject(int mdfd, struct supertype *st, struct mdinfo *sra,
 			char *array_name);
 
 int Incremental(char *devname, int verbose, int runstop,
-		struct supertype *st, char *homehost, int autof)
+		struct supertype *st, char *homehost, int require_homehost,
+		int autof)
 {
 	/* Add this device to an array, creating the array if necessary
 	 * and starting the array if sensible or - if runstop>0 - if possible.
@@ -211,14 +212,33 @@ int Incremental(char *devname, int verbose, int runstop,
 		match = array_list;
 	}
 
+	if (match && match->devname
+	    && strcasecmp(match->devname, "<ignore>") == 0) {
+		if (verbose >= 0)
+			fprintf(stderr, Name ": array containing %s is explicitly"
+				" ignored by mdadm.conf\n",
+				devname);
+		return 1;
+	}
+
+	if (!match && !conf_test_metadata(st->ss->name)) {
+		if (verbose >= 1)
+			fprintf(stderr, Name
+				": %s has metadata type %s for which "
+				"auto-assembly is disabled\n",
+				devname, st->ss->name);
+		return 1;
+	}
+
 	/* 3a/ if not, check for homehost match.  If no match, continue
 	 * but don't trust the 'name' in the array. Thus a 'random' minor
 	 * number will be assigned, and the device name will be based
 	 * on that. */
 	if (match)
 		trustworthy = LOCAL;
-	else if (homehost == NULL ||
-		 st->ss->match_home(st, homehost) != 1)
+	else if ((homehost == NULL ||
+		  st->ss->match_home(st, homehost) != 1) &&
+		 st->ss->match_home(st, "any") != 1)
 		trustworthy = FOREIGN;
 	else
 		trustworthy = LOCAL;
@@ -240,33 +260,32 @@ int Incremental(char *devname, int verbose, int runstop,
 		return Incremental_container(st, devname, verbose, runstop,
 					     autof, trustworthy);
 	}
-	name_to_use = strchr(info.name, ':');
-	if (name_to_use)
-		name_to_use++;
-	else
-		name_to_use = info.name;
 
-	if ((!name_to_use || name_to_use[0] == 0) &&
+	name_to_use = info.name;
+	if (name_to_use[0] == 0 &&
 	    info.array.level == LEVEL_CONTAINER &&
 	    trustworthy == LOCAL) {
 		name_to_use = info.text_version;
 		trustworthy = METADATA;
 	}
+	if (name_to_use[0] && trustworthy != LOCAL &&
+	    ! require_homehost &&
+	    conf_name_is_free(name_to_use))
+		trustworthy = LOCAL;
+
+	/* strip "hostname:" prefix from name if we have decided
+	 * to treat it as LOCAL
+	 */
+	if (trustworthy == LOCAL && strchr(name_to_use, ':') != NULL)
+		name_to_use = strchr(name_to_use, ':')+1;
 
 	/* 4/ Check if array exists.
 	 */
 	map_lock(&map);
 	mp = map_by_uuid(&map, info.uuid);
-	if (mp) {
-		mdfd = open_mddev(mp->path, 0);
-		if (mdfd < 0 && mddev_busy(mp->devnum)) {
-			/* maybe udev hasn't created it yet. */
-			char buf[50];
-			sprintf(buf, "%d:%d", dev2major(mp->devnum),
-				dev2minor(mp->devnum));
-			mdfd = dev_open(buf, O_RDWR);
-		}
-	} else
+	if (mp)
+		mdfd = open_dev(mp->devnum);
+	else
 		mdfd = -1;
 
 	if (mdfd < 0) {
@@ -331,7 +350,10 @@ int Incremental(char *devname, int verbose, int runstop,
 		struct supertype *st2;
 		struct mdinfo info2, *d;
 
-		strcpy(chosen_name, mp->path);
+		if (mp->path)
+			strcpy(chosen_name, mp->path);
+		else
+			strcpy(chosen_name, devnum2devname(mp->devnum));
 
 		sra = sysfs_read(mdfd, fd2devnum(mdfd), (GET_DEVS | GET_STATE));
 
@@ -369,14 +391,14 @@ int Incremental(char *devname, int verbose, int runstop,
 		/* add disk needs to know about containers */
 		if (st->ss->external)
 			sra->array.level = LEVEL_CONTAINER;
-		err = add_disk(mdfd, st2, sra, &info2);
+		err = add_disk(mdfd, st, sra, &info2);
 		if (err < 0 && errno == EBUSY) {
 			/* could be another device present with the same
 			 * disk.number. Find and reject any such
 			 */
 			find_reject(mdfd, st, sra, info.disk.number,
 				    info.events, verbose, chosen_name);
-			err = add_disk(mdfd, st2, sra, &info2);
+			err = add_disk(mdfd, st, sra, &info2);
 		}
 		if (err < 0) {
 			fprintf(stderr, Name ": failed to add %s to %s: %s.\n",
@@ -405,7 +427,7 @@ int Incremental(char *devname, int verbose, int runstop,
 		if (runstop < 0)
 			return 0; /* don't try to assemble */
 		rv = Incremental(chosen_name, verbose, runstop,
-				 NULL, homehost, autof);
+				 NULL, homehost, require_homehost, autof);
 		if (rv == 1)
 			/* Don't fail the whole -I if a subarray didn't
 			 * have enough devices to start yet
@@ -636,7 +658,7 @@ int IncrementalScan(int verbose)
 		mdu_array_info_t array;
 		mdu_bitmap_file_t bmf;
 		struct mdinfo *sra;
-		int mdfd = open_mddev(me->path, 0);
+		int mdfd = open_dev(me->devnum);
 
 		if (mdfd < 0)
 			continue;
@@ -647,8 +669,8 @@ int IncrementalScan(int verbose)
 		}
 		/* Ok, we can try this one.   Maybe it needs a bitmap */
 		for (mddev = devs ; mddev ; mddev = mddev->next)
-			if (mddev->devname
-			    && strcmp(mddev->devname, me->path) == 0)
+			if (mddev->devname && me->path
+			    && devname_matches(mddev->devname, me->path))
 				break;
 		if (mddev && mddev->bitmap_file) {
 			/*
@@ -682,11 +704,12 @@ int IncrementalScan(int verbose)
 				if (verbose >= 0)
 					fprintf(stderr, Name
 						": started array %s\n",
-						me->path);
+						me->path ?: devnum2devname(me->devnum));
 			} else {
 				fprintf(stderr, Name
 					": failed to start array %s: %s\n",
-					me->path, strerror(errno));
+					me->path ?: devnum2devname(me->devnum),
+					strerror(errno));
 				rv = 1;
 			}
 		}
@@ -742,10 +765,13 @@ int Incremental_container(struct supertype *st, char *devname, int verbose,
 
 		if (mp) {
 			mdfd = open_dev(mp->devnum);
-			strcpy(chosen_name, mp->path);
+			if (mp->path)
+				strcpy(chosen_name, mp->path);
+			else
+				strcpy(chosen_name, devnum2devname(mp->devnum));
 		} else {
 
-			/* Check in mdadm.conf for devices == devname and
+			/* Check in mdadm.conf for container == devname and
 			 * member == ra->text_version after second slash.
 			 */
 			char *sub = strchr(ra->text_version+1, '/');
@@ -782,6 +808,17 @@ int Incremental_container(struct supertype *st, char *devname, int verbose,
 						array_list->member);
 				break;
 			}
+
+			if (match && match->devname &&
+			    strcasecmp(match->devname, "<ignore>") == 0) {
+				if (verbose > 0)
+					fprintf(stderr, Name ": array %s/%s is "
+						"explicitly ignored by mdadm.conf\n",
+						match->container, match->member);
+				return 2;
+			}
+			if (match)
+				trustworthy = LOCAL;
 
 			mdfd = create_mddev(match ? match->devname : NULL,
 					    ra->name,

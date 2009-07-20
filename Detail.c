@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include	"mdadm.h"
@@ -196,14 +191,16 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 
 	if (brief) {
 		mdu_bitmap_file_t bmf;
-		if (array.raid_disks)
-			printf("ARRAY %s level=%s num-devices=%d", dev,
-			       c?c:"-unknown-",
-			       array.raid_disks );
-		else
-			printf("ARRAY %s level=container num-devices=%d",
-			       dev, array.nr_disks);
-
+		printf("ARRAY %s", dev);
+		if (brief > 1) {
+			if (array.raid_disks)
+				printf("level=%s num-devices=%d",
+				       c?c:"-unknown-",
+				       array.raid_disks );
+			else
+				printf("level=container num-devices=%d",
+				       array.nr_disks);
+		}
 		if (container) {
 			printf(" container=%s", container);
 			printf(" member=%s", member);

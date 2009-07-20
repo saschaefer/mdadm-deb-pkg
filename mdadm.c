@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  *
  *    Additions for bitmap and write-behind RAID options, Copyright (C) 2003-2004,
  *    Paul Clements, SteelEye Technology, Inc.
@@ -91,6 +86,7 @@ int main(int argc, char *argv[])
 
 	char *homehost = NULL;
 	char sys_hostname[256];
+	int require_homehost = 1;
 	char *mailaddr = NULL;
 	char *program = NULL;
 	int delay = 0;
@@ -166,7 +162,10 @@ int main(int argc, char *argv[])
 			continue;
 
 		case HomeHost:
-			homehost = optarg;
+			if (strcasecmp(optarg, "<ignore>") == 0)
+				require_homehost = 0;
+			else
+				homehost = optarg;
 			continue;
 
 		case ':':
@@ -339,9 +338,11 @@ int main(int argc, char *argv[])
 			}
 			continue;
 
+#if 0
 		case O(ASSEMBLE,AutoHomeHost):
 			auto_update_home = 1;
 			continue;
+#endif
 		case O(INCREMENTAL, 'e'):
 		case O(CREATE,'e'):
 		case O(ASSEMBLE,'e'):
@@ -374,7 +375,8 @@ int main(int argc, char *argv[])
 
 
 		case O(GROW,'z'):
-		case O(CREATE,'z'): /* size */
+		case O(CREATE,'z'):
+		case O(BUILD,'z'): /* size */
 			if (size >= 0) {
 				fprintf(stderr, Name ": size may only be specified once. "
 					"Second value is %s.\n", optarg);
@@ -406,7 +408,10 @@ int main(int argc, char *argv[])
 					optarg);
 				exit(2);
 			}
-			if (level != 0 && level != -1 && level != 1 && level != -4 && level != -5 && mode == BUILD) {
+			if (level != 0 && level != LEVEL_LINEAR && level != 1 &&
+			    level != LEVEL_MULTIPATH && level != LEVEL_FAULTY &&
+			    level != 10 &&
+			    mode == BUILD) {
 				fprintf(stderr, Name ": Raid level %s not permitted with --build.\n",
 					optarg);
 				exit(2);
@@ -1009,7 +1014,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (homehost == NULL)
-		homehost = conf_get_homehost();
+		homehost = conf_get_homehost(&require_homehost);
 	if (homehost == NULL || strcmp(homehost, "<system>")==0) {
 		if (gethostname(sys_hostname, sizeof(sys_hostname)) == 0) {
 			sys_hostname[sizeof(sys_hostname)-1] = 0;
@@ -1049,12 +1054,16 @@ int main(int argc, char *argv[])
 					array_ident->autof = autof;
 				rv |= Assemble(ss, devlist->devname, array_ident,
 					       NULL, backup_file,
-					       readonly, runstop, update, homehost, verbose-quiet, force);
+					       readonly, runstop, update,
+					       homehost, require_homehost,
+					       verbose-quiet, force);
 			}
 		} else if (!scan)
 			rv = Assemble(ss, devlist->devname, &ident,
 				      devlist->next, backup_file,
-				      readonly, runstop, update, homehost, verbose-quiet, force);
+				      readonly, runstop, update,
+				      homehost, require_homehost,
+				      verbose-quiet, force);
 		else if (devs_found>0) {
 			if (update && devs_found > 1) {
 				fprintf(stderr, Name ": can only update a single array at a time\n");
@@ -1076,7 +1085,9 @@ int main(int argc, char *argv[])
 					array_ident->autof = autof;
 				rv |= Assemble(ss, dv->devname, array_ident,
 					       NULL, backup_file,
-					       readonly, runstop, update, homehost, verbose-quiet, force);
+					       readonly, runstop, update,
+					       homehost, require_homehost,
+					       verbose-quiet, force);
 			}
 		} else {
 			mddev_ident_t array_list =  conf_get_ident(NULL);
@@ -1095,13 +1106,18 @@ int main(int argc, char *argv[])
 				exit(1);
 			}
 			for (; array_list; array_list = array_list->next) {
+				if (array_list->devname &&
+				    strcasecmp(array_list->devname, "<ignore>") == 0)
+					continue;
 				if (array_list->autof == 0)
 					array_list->autof = autof;
 				
 				rv |= Assemble(ss, array_list->devname,
 					       array_list,
 					       NULL, NULL,
-					       readonly, runstop, NULL, homehost, verbose-quiet, force);
+					       readonly, runstop, NULL,
+					       homehost, require_homehost,
+					       verbose-quiet, force);
 				cnt++;
 			}
 			if (homehost && cnt == 0) {
@@ -1119,7 +1135,9 @@ int main(int argc, char *argv[])
 						rv2 = Assemble(ss, NULL,
 							       &ident,
 							       devlist, NULL,
-							       readonly, runstop, NULL, homehost, verbose-quiet, force);
+							       readonly, runstop, NULL,
+							       homehost, require_homehost,
+							       verbose-quiet, force);
 						if (rv2==0) {
 							cnt++;
 							acnt++;
@@ -1132,6 +1150,7 @@ int main(int argc, char *argv[])
 					} while (rv2!=2);
 					/* Incase there are stacked devices, we need to go around again */
 				} while (acnt);
+#if 0
 				if (cnt == 0 && auto_update_home && homehost) {
 					/* Nothing found, maybe we need to bootstrap homehost info */
 					do {
@@ -1140,7 +1159,9 @@ int main(int argc, char *argv[])
 							rv2 = Assemble(ss, NULL,
 								       &ident,
 								       NULL, NULL,
-								       readonly, runstop, "homehost", homehost, verbose-quiet, force);
+								       readonly, runstop, "homehost",
+								       homehost, require_homehost,
+								       verbose-quiet, force);
 							if (rv2==0) {
 								cnt++;
 								acnt++;
@@ -1149,6 +1170,7 @@ int main(int argc, char *argv[])
 						/* Incase there are stacked devices, we need to go around again */
 					} while (acnt);
 				}
+#endif
 				if (cnt == 0 && rv == 0) {
 					fprintf(stderr, Name ": No arrays found in config file or automatically\n");
 					rv = 1;
@@ -1183,7 +1205,7 @@ int main(int argc, char *argv[])
 		rv = Build(devlist->devname, chunk, level, layout,
 			   raiddisks, devlist->next, assume_clean,
 			   bitmap_file, bitmap_chunk, write_behind,
-			   delay, verbose-quiet, autof);
+			   delay, verbose-quiet, autof, size);
 		break;
 	case CREATE:
 		if (delay == 0) delay = DEFAULT_BITMAP_DELAY;
@@ -1238,7 +1260,8 @@ int main(int argc, char *argv[])
 						char *name;
 						struct map_ent *me;
 						me = map_by_devnum(&map, e->devnum);
-						if (me && me->path)
+						if (me && me->path
+						    && strcmp(me->path, "/unknown") != 0)
 							name = me->path;
 						else
 							name = get_md_name(e->devnum);
@@ -1345,6 +1368,13 @@ int main(int argc, char *argv[])
 			rv = 1;
 			break;
 		}
+		if (delay == 0) {
+			if (get_linux_version() > 20616)
+				/* mdstat responds to poll */
+				delay = 1000;
+			else
+				delay = 60;
+		}
 		rv= Monitor(devlist, mailaddr, program,
 			    delay?delay:60, daemonise, scan, oneshot,
 			    dosyslog, test, pidfile);
@@ -1407,7 +1437,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 		rv = Incremental(devlist->devname, verbose-quiet, runstop,
-				 ss, homehost, autof);
+				 ss, homehost, require_homehost, autof);
 		break;
 	case AUTODETECT:
 		autodetect();
