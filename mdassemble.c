@@ -1,7 +1,7 @@
 /*
  * mdassemble - assemble Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  * Copyright (C) 2003 Luca Berra <bluca@vodka.it>
  *
  *
@@ -20,12 +20,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include "mdadm.h"
@@ -55,7 +50,7 @@ mapping_t pers[] = {
 
 #ifndef MDASSEMBLE_AUTO
 /* from mdopen.c */
-int open_mddev(char *dev, int autof/*unused */)
+int open_mddev(char *dev, int report_errors/*unused*/)
 {
 	int mdfd = open(dev, O_RDWR);
 	if (mdfd < 0)
@@ -69,7 +64,21 @@ int open_mddev(char *dev, int autof/*unused */)
 	}
 	return mdfd;
 }
+int create_mddev(char *dev, char *name, int autof/*unused*/, int trustworthy,
+		 char *chosen)
+{
+	return open_mddev(dev, 0);
+}
 #endif
+int map_update(struct map_ent **mpp, int devnum, char *metadata,
+	       int *uuid, char *path)
+{
+	return 0;
+}
+struct map_ent *map_by_name(struct map_ent **mpp, char *name)
+{
+	return NULL;
+}
 
 int rv;
 int mdfd = -1;
@@ -86,19 +95,19 @@ int main(int argc, char *argv[]) {
 	} else
 		for (; array_list; array_list = array_list->next) {
 			mdu_array_info_t array;
-			mdfd = open_mddev(array_list->devname, array_list->autof);
-			if (mdfd < 0) {
-				rv |= 1;
+			if (strcasecmp(array_list->devname, "<ignore>") == 0)
+				continue;
+			mdfd = open_mddev(array_list->devname, 0);
+			if (mdfd >= 0 && ioctl(mdfd, GET_ARRAY_INFO, &array) == 0) {
+				rv |= Manage_ro(array_list->devname, mdfd, -1); /* make it readwrite */
 				continue;
 			}
-			if (ioctl(mdfd, GET_ARRAY_INFO, &array) < 0) {
-				rv |= Assemble(array_list->st, array_list->devname, mdfd,
-					   array_list, NULL, NULL,
-					   readonly, runstop, NULL, NULL, verbose, force);
-			} else {
-				rv |= Manage_ro(array_list->devname, mdfd, -1); /* make it readwrite */
-			}
-			close(mdfd);
+			if (mdfd >= 0)
+				close(mdfd);
+			rv |= Assemble(array_list->st, array_list->devname,
+				       array_list, NULL, NULL,
+				       readonly, runstop, NULL, NULL, 0,
+				       verbose, force);
 		}
 	return rv;
 }

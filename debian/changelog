@@ -1,3 +1,28 @@
+mdadm (3.0-1) unstable; urgency=low
+
+  * New stable upstream release.
+  * Add information about udev and device links in /dev to bugscript output.
+  * Add pointer to FAQ and in particular rootdelay to the bug script
+    pre-subject file, which is displayed by tools like reportbug and thus
+    hopefully reduces the numbers of duplicated bugs.
+  * Patch from Frédéric Brière to make logcheck rules printk_time aware
+    (closes: #537460).
+  * Updated German translation due to typos and old spelling rules; thanks to
+    Helge Kreutzmann for the patch (closes: #534663).
+  * Bumped Standard-Version to 3.8.2; no changes necessary.
+
+ -- martin f. krafft <madduck@debian.org>  Mon, 20 Jul 2009 16:12:41 +0200
+
+mdadm (3.0~devel3-43-g2800528-1) experimental; urgency=low
+
+  * Merge tip of upstream's devel-3.0 branch at commit 2800528.
+  * Drop our own udev rules in favour of upstream's. If
+    /etc/udev/rules.d/65_mdadm.vol_id.rules has not been modified (md5sum
+    check), it is automatically removed; else, a warning is emitted.
+  * Add information about udev and device links in /dev to bugscript output.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 15:10:46 +0200
+
 mdadm (2.6.9-3) unstable; urgency=low
 
   * Fix the multipath prereq patch (#516605) and make it exit after printing
@@ -12,6 +37,12 @@ mdadm (2.6.9-3) unstable; urgency=low
     prematurely.
 
  -- martin f. krafft <madduck@debian.org>  Tue, 05 May 2009 11:46:22 +0200
+
+mdadm (3.0~devel3-1) experimental; urgency=low
+
+  * Initial release of DEVELOPMENT BRANCH 3.0 to experimental.
+
+ -- martin f. krafft <madduck@debian.org>  Thu, 30 Apr 2009 11:51:39 +0200
 
 mdadm (2.6.9-2) unstable; urgency=low
 

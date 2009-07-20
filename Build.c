@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include "mdadm.h"
@@ -33,10 +28,10 @@
 #define START_MD     		_IO (MD_MAJOR, 2)
 #define STOP_MD      		_IO (MD_MAJOR, 3)
 
-int Build(char *mddev, int mdfd, int chunk, int level, int layout,
-	  int raiddisks,
-	  mddev_dev_t devlist, int assume_clean,
-	  char *bitmap_file, int bitmap_chunk, int write_behind, int delay, int verbose)
+int Build(char *mddev, int chunk, int level, int layout,
+	  int raiddisks, mddev_dev_t devlist, int assume_clean,
+	  char *bitmap_file, int bitmap_chunk, int write_behind,
+	  int delay, int verbose, int autof, unsigned long long size)
 {
 	/* Build a linear or raid0 arrays without superblocks
 	 * We cannot really do any checks, we just do it.
@@ -57,8 +52,11 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 	int subdevs = 0, missing_disks = 0;
 	mddev_dev_t dv;
 	int bitmap_fd;
-	unsigned long long size = ~0ULL;
 	unsigned long long bitmapsize;
+	int mdfd;
+	char chosen_name[1024];
+	int uuid[4] = {0,0,0,0};
+	struct map_ent *map = NULL;
 
 	/* scan all devices, make sure they really are block devices */
 	for (dv = devlist; dv; dv=dv->next) {
@@ -112,6 +110,18 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 			break;
 		}
 
+	/* We need to create the device.  It can have no name. */
+	map_lock(&map);
+	mdfd = create_mddev(mddev, NULL, autof, LOCAL,
+			    chosen_name);
+	if (mdfd < 0) {
+		map_unlock(&map);
+		return 1;
+	}
+	mddev = chosen_name;
+
+	map_update(&map, fd2devnum(mdfd), "none", uuid, chosen_name);
+	map_unlock(&map);
 
 	vers = md_get_version(mdfd);
 
@@ -119,7 +129,7 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 	if (vers >= 9000) {
 		mdu_array_info_t array;
 		array.level = level;
-		array.size = 0;
+		array.size = size;
 		array.nr_disks = raiddisks;
 		array.raid_disks = raiddisks;
 		array.md_minor = 0;
@@ -140,17 +150,17 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 		if (ioctl(mdfd, SET_ARRAY_INFO, &array)) {
 			fprintf(stderr, Name ": SET_ARRAY_INFO failed for %s: %s\n",
 				mddev, strerror(errno));
-			return 1;
+			goto abort;
 		}
 	} else if (bitmap_file) {
 		fprintf(stderr, Name ": bitmaps not supported with this kernel\n");
-		return 1;
+		goto abort;
 	}
 
 	if (bitmap_file && level <= 0) {
 		fprintf(stderr, Name ": bitmaps not meaningful with level %s\n",
 			map_num(pers, level)?:"given");
-		return 1;
+		goto abort;
 	}
 	/* now add the devices */
 	for ((i=0), (dv = devlist) ; dv ; i++, dv=dv->next) {
@@ -178,7 +188,7 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 		    (size == 0 || dsize < size))
 				size = dsize;
 		close(fd);
-		if (vers>= 9000) {
+		if (vers >= 9000) {
 			mdu_disk_info_t disk;
 			disk.number = i;
 			disk.raid_disk = i;
@@ -211,7 +221,7 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 				if (bitmap_chunk == UnSet) {
 					fprintf(stderr, Name ": %s cannot be openned.",
 						bitmap_file);
-					return 1;
+					goto abort;
 				}
 #endif
 				if (vers < 9003) {
@@ -224,20 +234,20 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 				bitmapsize = size>>9; /* FIXME wrong for RAID10 */
 				if (CreateBitmap(bitmap_file, 1, NULL, bitmap_chunk,
 						 delay, write_behind, bitmapsize, major)) {
-					return 1;
+					goto abort;
 				}
 				bitmap_fd = open(bitmap_file, O_RDWR);
 				if (bitmap_fd < 0) {
 					fprintf(stderr, Name ": %s cannot be openned.",
 						bitmap_file);
-					return 1;
+					goto abort;
 				}
 			}
 			if (bitmap_fd >= 0) {
 				if (ioctl(mdfd, SET_BITMAP_FILE, bitmap_fd) < 0) {
 					fprintf(stderr, Name ": Cannot set bitmap file for %s: %s\n",
 						mddev, strerror(errno));
-					return 1;
+					goto abort;
 				}
 			}
 		}
@@ -265,6 +275,8 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 	if (verbose >= 0)
 		fprintf(stderr, Name ": array %s built and started.\n",
 			mddev);
+	wait_for(mddev, mdfd);
+	close(mdfd);
 	return 0;
 
  abort:
@@ -272,5 +284,6 @@ int Build(char *mddev, int mdfd, int chunk, int level, int layout,
 	    ioctl(mdfd, STOP_ARRAY, 0);
 	else
 	    ioctl(mdfd, STOP_MD, 0);
+	close(mdfd);
 	return 1;
 }

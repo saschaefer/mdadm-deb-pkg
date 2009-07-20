@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2007 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 
 #include "mdadm.h"
 
-char Version[] = Name " - v2.6.9 - 10th March 2009\n";
+char Version[] = Name " - v3.0 - 2nd June 2009\n";
 
 /*
  * File: ReadMe.c
@@ -107,6 +107,7 @@ struct option long_options[] = {
     {"query",	  0, 0, 'Q'},
     {"examine-bitmap", 0, 0, 'X'},
     {"auto-detect", 0, 0, AutoDetect},
+    {"detail-platform", 0, 0, DetailPlatform},
 
     /* synonyms */
     {"monitor",   0, 0, 'F'},
@@ -138,7 +139,9 @@ struct option long_options[] = {
     {"write-mostly",0, 0, 'W'},
     {"re-add",    0, 0,  ReAdd},
     {"homehost",  1, 0,  HomeHost},
+#if 0
     {"auto-update-homehost", 0, 0, AutoHomeHost},
+#endif
     {"symlinks",  1, 0,  Symlinks},
 
     /* For assemble */
@@ -161,6 +164,7 @@ struct option long_options[] = {
     {"readwrite", 0, 0, 'w'},
     {"no-degraded",0,0,  NoDegraded },
     {"wait",	  0, 0, 'W'},
+    {"wait-clean", 0, 0, Waitclean },
 
     /* For Detail/Examine */
     {"brief",	  0, 0, 'b'},
@@ -269,7 +273,6 @@ char OptionHelp[] =
 "  --size=       -z   : Size (in K) of each drive in RAID1/4/5/6/10 - optional\n"
 "  --force       -f   : Honour devices as listed on command line.  Don't\n"
 "                     : insert a missing drive for RAID5.\n"
-"  --auto(=p)    -a   : Automatically allocate new (partitioned) md array if needed.\n"
 "  --assume-clean     : Assume the array is already in-sync. This is dangerous.\n"
 "  --bitmap-chunk=    : chunksize of bitmap in bitmap file (Kilobytes)\n"
 "  --delay=      -d   : seconds between bitmap updates\n"
@@ -287,7 +290,6 @@ char OptionHelp[] =
 "  --scan        -s   : scan config file for missing information\n"
 "  --force       -f   : Assemble the array even if some superblocks appear out-of-date\n"
 "  --update=     -U   : Update superblock: try '-A --update=?' for list of options.\n"
-"  --auto(=p)    -a   : Automatically allocate new (partitioned) md array if needed.\n"
 "  --no-degraded      : Do not start any degraded arrays - default unless --scan.\n"
 "\n"
 " For detail or examine:\n"
@@ -465,6 +467,7 @@ char Help_misc[] =
 "  --query       -Q   : Display general information about how a\n"
 "                       device relates to the md driver\n"
 "  --detail      -D   : Display details of an array\n"
+"  --detail-platform  : Display hardware/firmware details\n"
 "  --examine     -E   : Examine superblock on an array component\n"
 "  --examine-bitmap -X: Display contents of a bitmap file\n"
 "  --zero-superblock  : erase the MD superblock from a device.\n"
@@ -581,16 +584,49 @@ char Help_config[] =
 /* name/number mappings */
 
 mapping_t r5layout[] = {
-	{ "left-asymmetric", 0},
-	{ "right-asymmetric", 1},
-	{ "left-symmetric", 2},
-	{ "right-symmetric", 3},
+	{ "left-asymmetric", ALGORITHM_LEFT_ASYMMETRIC},
+	{ "right-asymmetric", ALGORITHM_RIGHT_ASYMMETRIC},
+	{ "left-symmetric", ALGORITHM_LEFT_SYMMETRIC},
+	{ "right-symmetric", ALGORITHM_RIGHT_SYMMETRIC},
 
-	{ "default", 2},
-	{ "la", 0},
-	{ "ra", 1},
-	{ "ls", 2},
-	{ "rs", 3},
+	{ "default", ALGORITHM_LEFT_SYMMETRIC},
+	{ "la", ALGORITHM_LEFT_ASYMMETRIC},
+	{ "ra", ALGORITHM_RIGHT_ASYMMETRIC},
+	{ "ls", ALGORITHM_LEFT_SYMMETRIC},
+	{ "rs", ALGORITHM_RIGHT_SYMMETRIC},
+
+	{ "parity-first", ALGORITHM_PARITY_0},
+	{ "parity-last", ALGORITHM_PARITY_N},
+	{ "ddf-zero-restart", ALGORITHM_RIGHT_ASYMMETRIC},
+	{ "ddf-N-restart", ALGORITHM_LEFT_ASYMMETRIC},
+	{ "ddf-N-continue", ALGORITHM_LEFT_SYMMETRIC},
+
+	{ NULL, 0}
+};
+mapping_t r6layout[] = {
+	{ "left-asymmetric", ALGORITHM_LEFT_ASYMMETRIC},
+	{ "right-asymmetric", ALGORITHM_RIGHT_ASYMMETRIC},
+	{ "left-symmetric", ALGORITHM_LEFT_SYMMETRIC},
+	{ "right-symmetric", ALGORITHM_RIGHT_SYMMETRIC},
+
+	{ "default", ALGORITHM_LEFT_SYMMETRIC},
+	{ "la", ALGORITHM_LEFT_ASYMMETRIC},
+	{ "ra", ALGORITHM_RIGHT_ASYMMETRIC},
+	{ "ls", ALGORITHM_LEFT_SYMMETRIC},
+	{ "rs", ALGORITHM_RIGHT_SYMMETRIC},
+
+	{ "parity-first", ALGORITHM_PARITY_0},
+	{ "parity-last", ALGORITHM_PARITY_N},
+	{ "ddf-zero-restart", ALGORITHM_ROTATING_ZERO_RESTART},
+	{ "ddf-N-restart", ALGORITHM_ROTATING_N_RESTART},
+	{ "ddf-N-continue", ALGORITHM_ROTATING_N_CONTINUE},
+
+	{ "left-asymmetric-6", ALGORITHM_LEFT_ASYMMETRIC_6},
+	{ "right-asymmetric-6", ALGORITHM_RIGHT_ASYMMETRIC_6},
+	{ "left-symmetric-6", ALGORITHM_LEFT_SYMMETRIC_6},
+	{ "right-symmetric-6", ALGORITHM_RIGHT_SYMMETRIC_6},
+	{ "parity-first-6", ALGORITHM_PARITY_0_6},
+
 	{ NULL, 0}
 };
 
@@ -613,6 +649,7 @@ mapping_t pers[] = {
 	{ "raid10", 10},
 	{ "10", 10},
 	{ "faulty", LEVEL_FAULTY},
+	{ "container", LEVEL_CONTAINER},
 	{ NULL, 0}
 };
 

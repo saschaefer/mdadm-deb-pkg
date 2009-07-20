@@ -333,16 +333,19 @@ The latest version of this FAQ is available here:
 
 13. Can a MD array be partitioned?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  For a MD array to be able to hold partitions, it must be created as
-  a "partitionable array", using the configuration auto=part on the command
-  line or in the configuration file, or by using the standard naming scheme
-  (md_d* or md/d*) for partitionable arrays:
+  Since kernel 2.6.28, MD arrays can be partitioned like any other block
+  device.
+
+  Prior to 2.6.28, for a MD array to be able to hold partitions, it must be
+  created as a "partitionable array", using the configuration auto=part on the
+  command line or in the configuration file, or by using the standard naming
+  scheme (md_d* or md/d*) for partitionable arrays:
 
     mdadm --create --auto=yes ... /dev/md_d0 ...
     # see mdadm(8) manpage about the values of the --auto keyword
 
-14. When would I use partitionable arrays?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+14. When would I partition an array?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   This answer by Doug Ledford is shamelessly adapted from [0] (with
   permission):
 
@@ -552,4 +555,30 @@ The latest version of this FAQ is available here:
   skip lengthy resynchronisation for arrays that have not been properly shut
   down, but which also not have changed.
 
- -- martin f. krafft <madduck@debian.org>  Wed, 02 Jul 2008 11:32:51 +0200
+26. Why doesn't mdadm find arrays specified in the config file and causes the
+    boot to fail?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  My boot process dies at an early stage and drops me into the busybox shell.
+  The last relevant output seems to be from mdadm and is something like
+
+    "/dev/md2 does not exist"
+
+  or
+
+    "No devices listed in conf file found"
+
+  Why does mdadm break my system?
+
+  Short answer: It doesn't, the underlying devices aren't yet available yet
+  when mdadm runs during the early boot process.
+
+  Long answer: It doesn't. but the drivers of those devices incorrectly
+  communicate to the kernel that the devices are ready, when in fact they are
+  not. I consider this a bug in those drivers. Please consider reporting it.
+
+  Workaround: there is nothing mdadm can or will do against this. Fortunately
+  though, initramfs provides a method, documented at
+  http://wiki.debian.org/InitramfsDebug. Please append rootdelay=10 to the
+  kernel command line and try if the boot now works.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 13 May 2009 09:59:53 +0200

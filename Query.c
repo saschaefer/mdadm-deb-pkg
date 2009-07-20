@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2002-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2002-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include	"mdadm.h"
@@ -96,7 +91,7 @@ int Query(char *dev)
 	if (superror == 0) {
 		/* array might be active... */
 		st->ss->getinfo_super(st, &info);
-		if (st->ss->major == 0) {
+		if (st->ss == &super0) {
 			mddev = get_md_name(info.array.md_minor);
 			disc.number = info.disk.number;
 			activity = "undetected";
@@ -121,7 +116,7 @@ int Query(char *dev)
 		       activity,
 		       map_num(pers, info.array.level),
 		       mddev);
-		if (st->ss->major == 0)
+		if (st->ss == &super0)
 			put_md_name(mddev);
 	}
 	return 0;

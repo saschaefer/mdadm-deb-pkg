@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2006 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,7 @@
  *    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  *    Author: Neil Brown
- *    Email: <neilb@cse.unsw.edu.au>
- *    Paper: Neil Brown
- *           School of Computer Science and Engineering
- *           The University of New South Wales
- *           Sydney, 2052
- *           Australia
+ *    Email: <neilb@suse.de>
  */
 
 #include	"mdadm.h"
@@ -165,10 +160,21 @@ int Monitor(mddev_dev_t devlist,
 	if (devlist == NULL) {
 		mddev_ident_t mdlist = conf_get_ident(NULL);
 		for (; mdlist; mdlist=mdlist->next) {
-			struct state *st = malloc(sizeof *st);
+			struct state *st;
+			if (mdlist->devname == NULL)
+				continue;
+			if (strcasecmp(mdlist->devname, "<ignore>") == 0)
+				continue;
+			st = malloc(sizeof *st);
 			if (st == NULL)
 				continue;
-			st->devname = strdup(mdlist->devname);
+			if (mdlist->devname[0] == '/')
+				st->devname = strdup(mdlist->devname);
+			else {
+				st->devname = malloc(8+strlen(mdlist->devname)+1);
+				strcpy(strcpy(st->devname, "/dev/md/"),
+				       mdlist->devname);
+			}
 			st->utime = 0;
 			st->next = statelist;
 			st->err = 0;
@@ -272,6 +278,10 @@ int Monitor(mddev_dev_t devlist,
 					mse2->devnum = INT_MAX; /* flag it as "used" */
 					mse = mse2;
 				}
+
+			if (array.utime == 0)
+				/* external arrays don't update utime */
+				array.utime = time(0);
 
 			if (st->utime == array.utime &&
 			    st->failed == array.failed_disks &&
@@ -470,16 +480,25 @@ int Monitor(mddev_dev_t devlist,
 							}
 						}
 						if (dev > 0) {
-							if (ioctl(fd2, HOT_REMOVE_DISK,
-								  (unsigned long)dev) == 0) {
-								if (ioctl(fd1, HOT_ADD_DISK,
-									  (unsigned long)dev) == 0) {
+							struct mddev_dev_s devlist;
+							char devname[20];
+							devlist.next = NULL;
+							devlist.used = 0;
+							devlist.re_add = 0;
+							devlist.writemostly = 0;
+							devlist.devname = devname;
+							sprintf(devname, "%d:%d", major(dev), minor(dev));
+
+							devlist.disposition = 'r';
+							if (Manage_subdevs(st2->devname, fd2, &devlist, -1) == 0) {
+								devlist.disposition = 'a';
+								if (Manage_subdevs(st->devname, fd1, &devlist, -1) == 0) {
 									alert("MoveSpare", st->devname, st2->devname, mailaddr, mailfrom, alert_cmd, dosyslog);
 									close(fd1);
 									close(fd2);
 									break;
 								}
-								else ioctl(fd2, HOT_ADD_DISK, (unsigned long) dev);
+								else Manage_subdevs(st2->devname, fd2, &devlist, -1);
 							}
 						}
 						close(fd1);
@@ -604,10 +623,7 @@ int Wait(char *dev)
 			strerror(errno));
 		return 2;
 	}
-	if (major(stb.st_rdev) == MD_MAJOR)
-		devnum = minor(stb.st_rdev);
-	else
-		devnum = -1-(minor(stb.st_rdev)/64);
+	devnum = stat2devnum(&stb);
 
 	while(1) {
 		struct mdstat_ent *ms = mdstat_read(1, 0);
@@ -618,6 +634,13 @@ int Wait(char *dev)
 				break;
 
 		if (!e || e->percent < 0) {
+			if (e && e->metadata_version &&
+			    strncmp(e->metadata_version, "external:", 9) == 0) {
+				if (is_subarray(&e->metadata_version[9]))
+					ping_monitor(&e->metadata_version[9]);
+				else
+					ping_monitor(devnum2devname(devnum));
+			}
 			free_mdstat(ms);
 			return rv;
 		}

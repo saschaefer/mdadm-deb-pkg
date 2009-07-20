@@ -178,3 +178,12 @@ if [ -f /etc/lilo.conf ]; then
   fi
   echo >&3
 fi
+
+echo "--- udev:" >&3
+COLUMNS=70 dpkg -l udev | grep '\<udev\>' >&3
+md5sum /etc/udev/rules.d/*md* /lib/udev/rules.d/*md* >&3 2>/dev/null
+echo >&3
+
+echo "--- /dev:" >&3
+ls -l /dev/md* /dev/disk/by-* >&3
+echo >&3

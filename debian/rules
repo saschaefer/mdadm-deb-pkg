@@ -27,8 +27,8 @@ configure:
 debian/mdadm-startall.8: debian/mdadm-startall.sgml
 	docbook-to-man $< > $@
 
-build: configure build-stamp
-build-stamp: patch debian/mdadm-startall.8
+build: configure patch build-stamp
+build-stamp: debian/mdadm-startall.8
 	dh_testdir
 	$(MAKE) -f debian/rules mdadm.udeb DEBIAN=yes
 	$(MAKE) clean
@@ -63,8 +63,8 @@ install: build
 	dh_testdir
 	dh_clean -k
 	dh_installdirs
-	install -m0755 mdadm $(DESTDIR)/sbin
-	install -m0755 mdadm.udeb $(DESTDIR_UDEB)/sbin/mdadm
+
+	$(MAKE) install DESTDIR=$(DESTDIR)
 
 	install -m0755 debian/initramfs/hook \
 		$(DESTDIR)/usr/share/initramfs-tools/hooks/mdadm
@@ -74,24 +74,23 @@ install: build
 	install -m0755 debian/mkconf $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/checkarray $(DESTDIR)/usr/share/mdadm
 	install -m0755 debian/bugscript $(DESTDIR)/usr/share/bug/mdadm/script
-	install -m0544 debian/presubj $(DESTDIR)/usr/share/bug/mdadm
+	install -m0644 debian/presubj $(DESTDIR)/usr/share/bug/mdadm
 
 	install -m0755 debian/mdadm-startall $(DESTDIR)/sbin
 
-	install -m0644 debian/mdadm.lintian-overrides \
-		$(DESTDIR)/usr/share/lintian/overrides/mdadm
+	install -m0755 mdadm.udeb $(DESTDIR_UDEB)/sbin/mdadm
 
 binary-indep: build install
 
 binary-arch: build install
 	dh_testdir
 	dh_testroot
+	dh_lintian
 	dh_installdebconf
 	dh_installdocs
 	dh_installexamples debian/newdisk
 	dh_installinit --init-script=mdadm-raid --no-start -- start 25 S . start 60 0 6 .
 	dh_installinit -- defaults 25
-	dh_installudev --priority=65 --name=vol_id
 	dh_installman
 	dh_installcron
 	dh_installchangelogs ChangeLog

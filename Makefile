@@ -31,7 +31,10 @@
 # e.g.  make CXFLAGS=-O to optimise
 TCC = tcc
 UCLIBC_GCC = $(shell for nm in i386-uclibc-linux-gcc i386-uclibc-gcc; do which $$nm > /dev/null && { echo $$nm ; exit; } ; done; echo false No uclibc found )
-DIET_GCC = diet gcc
+#DIET_GCC = diet gcc
+# sorry, but diet-libc doesn't know about posix_memalign, 
+# so we cannot use it any more.
+DIET_GCC = gcc -DHAVE_STDINT_H
 
 KLIBC=/home/src/klibc/klibc-0.77
 
@@ -40,6 +43,9 @@ KLIBC_GCC = gcc -nostdinc -iwithprefix include -I$(KLIBC)/klibc/include -I$(KLIB
 CC = $(CROSS_COMPILE)gcc
 CXFLAGS = -ggdb
 CWFLAGS = -Wall -Werror -Wstrict-prototypes
+ifdef WARN_UNUSED
+CWFLAGS += -Wp,-D_FORTIFY_SOURCE=2 -O
+endif
 
 ifdef DEBIAN
 CPPFLAGS= -DDEBIAN
@@ -69,27 +75,37 @@ MAN8DIR = $(MANDIR)/man8
 OBJS =  mdadm.o config.o mdstat.o  ReadMe.o util.o Manage.o Assemble.o Build.o \
 	Create.o Detail.o Examine.o Grow.o Monitor.o dlink.o Kill.o Query.o \
 	Incremental.o \
-	mdopen.o super0.o super1.o bitmap.o restripe.o sysfs.o sha1.o \
-	mapfile.o
+	mdopen.o super0.o super1.o super-ddf.o super-intel.o bitmap.o \
+	restripe.o sysfs.o sha1.o mapfile.o crc32.o sg_io.o msg.o \
+	platform-intel.o probe_roms.o
+
 SRCS =  mdadm.c config.c mdstat.c  ReadMe.c util.c Manage.c Assemble.c Build.c \
 	Create.c Detail.c Examine.c Grow.c Monitor.c dlink.c Kill.c Query.c \
 	Incremental.c \
-	mdopen.c super0.c super1.c bitmap.c restripe.c sysfs.c sha1.c \
-	mapfile.c
+	mdopen.c super0.c super1.c super-ddf.c super-intel.c bitmap.c \
+	restripe.c sysfs.c sha1.c mapfile.c crc32.c sg_io.c msg.c \
+	platform-intel.c probe_roms.c
+
+MON_OBJS = mdmon.o monitor.o managemon.o util.o mdstat.o sysfs.o config.o \
+	Kill.o sg_io.o dlink.o ReadMe.o super0.o super1.o super-intel.o \
+	super-ddf.o sha1.o crc32.o msg.o bitmap.o \
+	platform-intel.o probe_roms.o
+
 
 STATICSRC = pwgr.c
 STATICOBJS = pwgr.o
 
 ASSEMBLE_SRCS := mdassemble.c Assemble.c Manage.c config.c dlink.c util.c \
-	super0.c super1.c sha1.c sysfs.c
-ASSEMBLE_AUTO_SRCS := mdopen.c mdstat.c
+	super0.c super1.c super-ddf.c super-intel.c sha1.c crc32.c sg_io.c mdstat.c \
+	platform-intel.c probe_roms.c sysfs.c
+ASSEMBLE_AUTO_SRCS := mdopen.c
 ASSEMBLE_FLAGS:= $(CFLAGS) -DMDASSEMBLE
 ifdef MDASSEMBLE_AUTO
 ASSEMBLE_SRCS += $(ASSEMBLE_AUTO_SRCS)
 ASSEMBLE_FLAGS += -DMDASSEMBLE_AUTO
 endif
 
-all : mdadm mdadm.man md.man mdadm.conf.man
+all : mdadm mdmon mdadm.man md.man mdadm.conf.man mdmon.man
 
 everything: all mdadm.static swap_super test_stripe \
 	mdassemble mdassemble.auto mdassemble.static mdassemble.man \
@@ -111,13 +127,17 @@ mdadm.tcc : $(SRCS) mdadm.h
 
 mdadm.klibc : $(SRCS) mdadm.h
 	rm -f $(OBJS) 
-	gcc -nostdinc -iwithprefix include -I$(KLIBC)/klibc/include -I$(KLIBC)/linux/include -I$(KLIBC)/klibc/arch/i386/include -I$(KLIBC)/klibc/include/bits32 $(CFLAGS) $(SRCS)
+	$(CC) -nostdinc -iwithprefix include -I$(KLIBC)/klibc/include -I$(KLIBC)/linux/include -I$(KLIBC)/klibc/arch/i386/include -I$(KLIBC)/klibc/include/bits32 $(CFLAGS) $(SRCS)
 
 mdadm.Os : $(SRCS) mdadm.h
-	gcc -o mdadm.Os $(CFLAGS)  -DHAVE_STDINT_H -Os $(SRCS)
+	$(CC) -o mdadm.Os $(CFLAGS)  -DHAVE_STDINT_H -Os $(SRCS)
 
 mdadm.O2 : $(SRCS) mdadm.h
-	gcc -o mdadm.O2 $(CFLAGS)  -DHAVE_STDINT_H -O2 $(SRCS)
+	$(CC) -o mdadm.O2 $(CFLAGS)  -DHAVE_STDINT_H -O2 $(SRCS)
+
+mdmon : $(MON_OBJS)
+	$(CC) $(LDFLAGS) -o mdmon $(MON_OBJS) $(LDLIBS)
+msg.o: msg.c msg.h
 
 test_stripe : restripe.c mdadm.h
 	$(CC) $(CXFLAGS) $(LDFLAGS) -o test_stripe -DMAIN restripe.c
@@ -147,6 +167,9 @@ mdassemble.klibc : $(ASSEMBLE_SRCS) mdadm.h
 mdadm.man : mdadm.8
 	nroff -man mdadm.8 > mdadm.man
 
+mdmon.man : mdmon.8
+	nroff -man mdmon.8 > mdmon.man
+
 md.man : md.4
 	nroff -man md.4 > md.man
 
@@ -156,13 +179,15 @@ mdadm.conf.man : mdadm.conf.5
 mdassemble.man : mdassemble.8
 	nroff -man mdassemble.8 > mdassemble.man
 
-$(OBJS) : mdadm.h bitmap.h
+$(OBJS) : mdadm.h mdmon.h bitmap.h
+$(MON_OBJS) : mdadm.h mdmon.h bitmap.h
 
 sha1.o : sha1.c sha1.h md5.h
 	$(CC) $(CFLAGS) -DHAVE_STDINT_H -o sha1.o -c sha1.c
 
-install : mdadm install-man
+install : mdadm mdmon install-man install-udev
 	$(INSTALL) -D $(STRIP) -m 755 mdadm $(DESTDIR)$(BINDIR)/mdadm
+	$(INSTALL) -D $(STRIP) -m 755 mdmon $(DESTDIR)$(BINDIR)/mdmon
 
 install-static : mdadm.static install-man
 	$(INSTALL) -D $(STRIP) -m 755 mdadm.static $(DESTDIR)$(BINDIR)/mdadm
@@ -176,19 +201,24 @@ install-uclibc : mdadm.uclibc install-man
 install-klibc : mdadm.klibc install-man
 	$(INSTALL) -D $(STRIP) -m 755 mdadm.klibc $(DESTDIR)$(BINDIR)/mdadm
 
-install-man: mdadm.8 md.4 mdadm.conf.5
+install-man: mdadm.8 md.4 mdadm.conf.5 mdmon.8
 	$(INSTALL) -D -m 644 mdadm.8 $(DESTDIR)$(MAN8DIR)/mdadm.8
+	$(INSTALL) -D -m 644 mdmon.8 $(DESTDIR)$(MAN8DIR)/mdmon.8
 	$(INSTALL) -D -m 644 md.4 $(DESTDIR)$(MAN4DIR)/md.4
 	$(INSTALL) -D -m 644 mdadm.conf.5 $(DESTDIR)$(MAN5DIR)/mdadm.conf.5
 
-uninstall:
-	rm -f $(DESTDIR)$(MAN8DIR)/mdadm.8 md.4 $(DESTDIR)$(MAN4DIR)/md.4 $(DESTDIR)$(MAN5DIR)/mdadm.conf.5 $(DESTDIR)$(BINDIR)/mdadm
+install-udev: udev-md-raid.rules
+	$(INSTALL) -D -m 644 udev-md-raid.rules $(DESTDIR)/lib/udev/rules.d/64-md-raid.rules
 
-test: mdadm test_stripe swap_super
+uninstall:
+	rm -f $(DESTDIR)$(MAN8DIR)/mdadm.8 $(DESTDIR)$(MAN8DIR)/mdmon.8 $(DESTDIR)$(MAN4DIR)/md.4 $(DESTDIR)$(MAN5DIR)/mdadm.conf.5 $(DESTDIR)$(BINDIR)/mdadm
+
+test: mdadm mdmon test_stripe swap_super
 	@echo "Please run 'sh ./test' as root"
 
 clean : 
-	rm -f mdadm $(OBJS) $(STATICOBJS) core *.man mdadm.tcc mdadm.uclibc mdadm.static *.orig *.porig *.rej *.alt \
+	rm -f mdadm mdmon $(OBJS) $(MON_OBJS) $(STATICOBJS) core *.man \
+	mdadm.tcc mdadm.uclibc mdadm.static *.orig *.porig *.rej *.alt \
 	mdadm.Os mdadm.O2 \
 	mdassemble mdassemble.static mdassemble.auto mdassemble.uclibc \
 	mdassemble.klibc swap_super \
