@@ -261,9 +261,41 @@ mddev_dev_t load_partitions(void)
 		d->devname = strdup(name);
 		d->next = rv;
 		d->used = 0;
+		d->content = NULL;
 		rv = d;
 	}
 	fclose(f);
+	return rv;
+}
+
+mddev_dev_t load_containers(void)
+{
+	struct mdstat_ent *mdstat = mdstat_read(1, 0);
+	struct mdstat_ent *ent;
+	mddev_dev_t d;
+	mddev_dev_t rv = NULL;
+
+	if (!mdstat)
+		return NULL;
+
+	for (ent = mdstat; ent; ent = ent->next)
+		if (ent->metadata_version &&
+		    strncmp(ent->metadata_version, "external:", 9) == 0 &&
+		    !is_subarray(&ent->metadata_version[9])) {
+			d = malloc(sizeof(*d));
+			if (!d)
+				continue;
+			if (asprintf(&d->devname, "/dev/%s", ent->dev) < 0) {
+				free(d);
+				continue;
+			}
+			d->next = rv;
+			d->used = 0;
+			d->content = NULL;
+			rv = d;
+		}
+	free_mdstat(mdstat);
+
 	return rv;
 }
 
@@ -398,7 +430,8 @@ void devline(char *line)
 	struct conf_dev *cd;
 
 	for (w=dl_next(line); w != line; w=dl_next(w)) {
-		if (w[0] == '/' || strcasecmp(w, "partitions") == 0) {
+		if (w[0] == '/' || strcasecmp(w, "partitions") == 0 ||
+		    strcasecmp(w, "containers") == 0) {
 			cd = malloc(sizeof(*cd));
 			cd->name = strdup(w);
 			cd->next = cdevlist;
@@ -434,6 +467,8 @@ void arrayline(char *line)
 	mis.bitmap_fd = -1;
 	mis.bitmap_file = NULL;
 	mis.name[0] = 0;
+	mis.container = NULL;
+	mis.member = NULL;
 
 	for (w=dl_next(line); w!=line; w=dl_next(w)) {
 		if (w[0] == '/') {
@@ -516,19 +551,26 @@ void arrayline(char *line)
 		} else if (strncasecmp(w, "auto=", 5) == 0 ) {
 			/* whether to create device special files as needed */
 			mis.autof = parse_auto(w+5, "auto type", 0);
+		} else if (strncasecmp(w, "member=", 7) == 0) {
+			/* subarray within a container */
+			mis.member = strdup(w+7);
+		} else if (strncasecmp(w, "container=", 10) == 0) {
+			/* the container holding this subarray.  Either a device name
+			 * or a uuid */
+			mis.container = strdup(w+10);
 		} else {
 			fprintf(stderr, Name ": unrecognised word on ARRAY line: %s\n",
 				w);
 		}
 	}
-	if (mis.devname == NULL)
-		fprintf(stderr, Name ": ARRAY line with no device\n");
-	else if (mis.uuid_set == 0 && mis.devices == NULL && mis.super_minor == UnSet && mis.name[0] == 0)
+	if (mis.uuid_set == 0 && mis.devices == NULL &&
+	    mis.super_minor == UnSet && mis.name[0] == 0 &&
+	    (mis.container == NULL && mis.member == NULL))
 		fprintf(stderr, Name ": ARRAY line %s has no identity information.\n", mis.devname);
 	else {
 		mi = malloc(sizeof(*mi));
 		*mi = mis;
-		mi->devname = strdup(mis.devname);
+		mi->devname = mis.devname ? strdup(mis.devname) : NULL;
 		mi->next = NULL;
 		*mddevlp = mi;
 		mddevlp = &mi->next;
@@ -558,10 +600,12 @@ void mailfromline(char *line)
 		if (alert_mail_from == NULL)
 			alert_mail_from = strdup(w);
 		else {
-			char *t= NULL;
-			xasprintf(&t, "%s %s", alert_mail_from, w);
-			free(alert_mail_from);
-			alert_mail_from = t;
+			char *t = NULL;
+
+			if (xasprintf(&t, "%s %s", alert_mail_from, w) > 0) {
+				free(alert_mail_from);
+				alert_mail_from = t;
+			}
 		}
 	}
 }
@@ -711,9 +755,17 @@ mddev_ident_t conf_get_ident(char *dev)
 	mddev_ident_t rv;
 	load_conffile();
 	rv = mddevlist;
-	while (dev && rv && strcmp(dev, rv->devname)!=0)
+	while (dev && rv && (rv->devname == NULL
+			     || strcmp(dev, rv->devname)!=0))
 		rv = rv->next;
 	return rv;
+}
+
+static void append_dlist(mddev_dev_t *dlp, mddev_dev_t list)
+{
+	while (*dlp)
+		dlp = &(*dlp)->next;
+	*dlp = list;
 }
 
 mddev_dev_t conf_get_devs()
@@ -733,13 +785,17 @@ mddev_dev_t conf_get_devs()
 
 	load_conffile();
 
-	if (cdevlist == NULL)
-		/* default to 'partitions */
+	if (cdevlist == NULL) {
+		/* default to 'partitions' and 'containers' */
 		dlist = load_partitions();
+		append_dlist(&dlist, load_containers());
+	}
 
 	for (cd=cdevlist; cd; cd=cd->next) {
-		if (strcasecmp(cd->name, "partitions")==0 && dlist == NULL)
-			dlist = load_partitions();
+		if (strcasecmp(cd->name, "partitions")==0)
+			append_dlist(&dlist, load_partitions());
+		else if (strcasecmp(cd->name, "containers")==0)
+			append_dlist(&dlist, load_containers());
 		else {
 			glob(cd->name, flags, NULL, &globbuf);
 			flags |= GLOB_APPEND;
@@ -751,6 +807,7 @@ mddev_dev_t conf_get_devs()
 			t->devname = strdup(globbuf.gl_pathv[i]);
 			t->next = dlist;
 			t->used = 0;
+			t->content = NULL;
 			dlist = t;
 /*	printf("one dev is %s\n", t->devname);*/
 		}

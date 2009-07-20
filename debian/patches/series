@@ -1,2 +1,2 @@
-Fix-gcc-4.4-compiler-warning.patch -p1
-Makefile-use-CC-more-consistently.patch -p1
+Bump-version-output.patch -p1
+Use-initialised-superblock-pointer-fixes-compiler-w.patch -p1

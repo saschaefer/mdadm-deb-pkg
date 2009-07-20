@@ -1,0 +1,37 @@
+From 95935f9892c39377375496d1ca2ba7547b07759f Mon Sep 17 00:00:00 2001
+From: martin f. krafft <madduck@debian.org>
+Date: Fri, 8 May 2009 10:56:17 +0200
+Subject: [PATCH] Use initialised superblock pointer, fixes compiler warning
+
+This is from Neil and will be included in the next push; for now, it
+enables the compile.
+
+Signed-off-by: martin f. krafft <madduck@debian.org>
+---
+ Incremental.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Incremental.c b/Incremental.c
+index f7e602e..f8fc359 100644
+--- a/Incremental.c
++++ b/Incremental.c
+@@ -369,14 +369,14 @@ int Incremental(char *devname, int verbose, int runstop,
+ 		/* add disk needs to know about containers */
+ 		if (st->ss->external)
+ 			sra->array.level = LEVEL_CONTAINER;
+-		err = add_disk(mdfd, st2, sra, &info2);
++		err = add_disk(mdfd, st, sra, &info2);
+ 		if (err < 0 && errno == EBUSY) {
+ 			/* could be another device present with the same
+ 			 * disk.number. Find and reject any such
+ 			 */
+ 			find_reject(mdfd, st, sra, info.disk.number,
+ 				    info.events, verbose, chosen_name);
+-			err = add_disk(mdfd, st2, sra, &info2);
++			err = add_disk(mdfd, st, sra, &info2);
+ 		}
+ 		if (err < 0) {
+ 			fprintf(stderr, Name ": failed to add %s to %s: %s.\n",
+-- 
+1.6.2.4
+

@@ -581,4 +581,4 @@ The latest version of this FAQ is available here:
   http://wiki.debian.org/InitramfsDebug. Please append rootdelay=10 to the
   kernel command line and try if the boot now works.
 
- -- martin f. krafft <madduck@debian.org>  Mon, 20 Jul 2009 14:59:19 +0200
+ -- martin f. krafft <madduck@debian.org>  Wed, 13 May 2009 09:59:53 +0200

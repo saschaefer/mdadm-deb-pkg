@@ -29,8 +29,13 @@
 
 #include	"mdadm.h"
 #include	"md_p.h"
+#include	<sys/socket.h>
 #include	<sys/utsname.h>
+#include	<sys/wait.h>
+#include	<sys/un.h>
 #include	<ctype.h>
+#include	<dirent.h>
+#include	<signal.h>
 
 /*
  * following taken from linux/blkpg.h because they aren't
@@ -217,8 +222,13 @@ int enough(int level, int raid_disks, int layout, int clean,
 	}
 }
 
+const int uuid_match_any[4] = { ~0, ~0, ~0, ~0 };
 int same_uuid(int a[4], int b[4], int swapuuid)
 {
+	if (memcmp(a, uuid_match_any, sizeof(int[4])) == 0 ||
+	    memcmp(b, uuid_match_any, sizeof(int[4])) == 0)
+		return 1;
+
 	if (swapuuid) {
 		/* parse uuids are hostendian.
 		 * uuid's from some superblocks are big-ending
@@ -262,6 +272,27 @@ void copy_uuid(void *a, int b[4], int swapuuid)
 		}
 	} else
 		memcpy(a, b, 16);
+}
+
+char *fname_from_uuid(struct supertype *st, struct mdinfo *info, char *buf, char sep)
+{
+	int i, j;
+	int id;
+	char uuid[16];
+	char *c = buf;
+	strcpy(c, "UUID-");
+	c += strlen(c);
+	copy_uuid(uuid, info->uuid, st->ss->swapuuid);
+	for (i = 0; i < 4; i++) {
+		id = uuid[i];
+		if (i)
+			*c++ = sep;
+		for (j = 3; j >= 0; j--) {
+			sprintf(c,"%02x", (unsigned char) uuid[j+4*i]);
+			c+= 2;
+		}
+	}
+	return buf;
 }
 
 #ifndef MDASSEMBLE
@@ -389,6 +420,9 @@ int is_standard(char *dev, int *nump)
 	/* tests if dev is a "standard" md dev name.
 	 * i.e if the last component is "/dNN" or "/mdNN",
 	 * where NN is a string of digits
+	 * Returns 1 if a partitionable standard,
+	 *   -1 if non-partitonable,
+	 *   0 if not a standard name.
 	 */
 	char *d = strrchr(dev, '/');
 	int type=0;
@@ -627,6 +661,23 @@ void print_r10_layout(int layout)
 }
 #endif
 
+unsigned long long calc_array_size(int level, int raid_disks, int layout,
+				   int chunksize, unsigned long long devsize)
+{
+	int data_disks = 0;
+	switch (level) {
+	case 0: data_disks = raid_disks; break;
+	case 1: data_disks = 1; break;
+	case 4:
+	case 5: data_disks = raid_disks - 1; break;
+	case 6: data_disks = raid_disks - 2; break;
+	case 10: data_disks = raid_disks / (layout & 255) / ((layout>>8)&255);
+		break;
+	}
+	devsize &= ~(unsigned long long)((chunksize>>9)-1);
+	return data_disks * devsize;
+}
+
 int get_mdp_major(void)
 {
 static int mdp_major = -1;
@@ -655,9 +706,7 @@ static int mdp_major = -1;
 	return mdp_major;
 }
 
-
 #if !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO)
-
 char *get_md_name(int dev)
 {
 	/* find /dev/md%d or /dev/md/%d or make a device /dev/.tmp.md%d */
@@ -712,26 +761,11 @@ void put_md_name(char *name)
 		unlink(name);
 }
 
-static int dev2major(int d)
-{
-	if (d >= 0)
-		return MD_MAJOR;
-	else
-		return get_mdp_major();
-}
-
-static int dev2minor(int d)
-{
-	if (d >= 0)
-		return d;
-	return (-1-d) << MdpMinorShift;
-}
-
 int find_free_devnum(int use_partitions)
 {
 	int devnum;
 	for (devnum = 127; devnum != 128;
-	     devnum = devnum ? devnum-1 : (1<<22)-1) {
+	     devnum = devnum ? devnum-1 : (1<<20)-1) {
 		char *dn;
 		int _devnum;
 
@@ -768,19 +802,79 @@ int dev_open(char *dev, int flags)
 	if (e > dev && *e == ':' && e[1] &&
 	    (minor = strtoul(e+1, &e, 0)) >= 0 &&
 	    *e == 0) {
-		snprintf(devname, sizeof(devname), "/dev/.tmp.md.%d:%d", major, minor);
+		snprintf(devname, sizeof(devname), "/dev/.tmp.md.%d:%d:%d",
+			 (int)getpid(), major, minor);
 		if (mknod(devname, S_IFBLK|0600, makedev(major, minor))==0) {
-			fd = open(devname, flags);
+			fd = open(devname, flags|O_DIRECT);
 			unlink(devname);
 		}
 	} else
-		fd = open(dev, flags);
+		fd = open(dev, flags|O_DIRECT);
 	return fd;
 }
 
-struct superswitch *superlist[] = { &super0, &super1, NULL };
+int open_dev(int devnum)
+{
+	char buf[20];
+
+	sprintf(buf, "%d:%d", dev2major(devnum), dev2minor(devnum));
+	return dev_open(buf, O_RDWR);
+}
+
+int open_dev_excl(int devnum)
+{
+	char buf[20];
+	int i;
+
+	sprintf(buf, "%d:%d", dev2major(devnum), dev2minor(devnum));
+	for (i=0 ; i<25 ; i++) {
+		int fd = dev_open(buf, O_RDWR|O_EXCL);
+		if (fd >= 0)
+			return fd;
+		if (errno != EBUSY)
+			return fd;
+		usleep(200000);
+	}
+	return -1;
+}
+
+int same_dev(char *one, char *two)
+{
+	struct stat st1, st2;
+	if (stat(one, &st1) != 0)
+		return 0;
+	if (stat(two, &st2) != 0)
+		return 0;
+	if ((st1.st_mode & S_IFMT) != S_IFBLK)
+		return 0;
+	if ((st2.st_mode & S_IFMT) != S_IFBLK)
+		return 0;
+	return st1.st_rdev == st2.st_rdev;
+}
+
+void wait_for(char *dev, int fd)
+{
+	int i;
+	struct stat stb_want;
+
+	if (fstat(fd, &stb_want) != 0 ||
+	    (stb_want.st_mode & S_IFMT) != S_IFBLK)
+		return;
+
+	for (i=0 ; i<25 ; i++) {
+		struct stat stb;
+		if (stat(dev, &stb) == 0 &&
+		    (stb.st_mode & S_IFMT) == S_IFBLK &&
+		    (stb.st_rdev == stb_want.st_rdev))
+			return;
+		usleep(200000);
+	}
+}
+
+struct superswitch *superlist[] = { &super0, &super1, &super_ddf, &super_imsm, NULL };
 
 #if !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO)
+
 struct supertype *super_by_fd(int fd)
 {
 	mdu_array_info_t array;
@@ -791,6 +885,7 @@ struct supertype *super_by_fd(int fd)
 	char *verstr;
 	char version[20];
 	int i;
+	char *subarray = NULL;
 
 	sra = sysfs_read(fd, 0, GET_VERSION);
 
@@ -810,40 +905,56 @@ struct supertype *super_by_fd(int fd)
 		sprintf(version, "%d.%d", vers, minor);
 		verstr = version;
 	}
+	if (minor == -2 && is_subarray(verstr)) {
+		char *dev = verstr+1;
+		subarray = strchr(dev, '/');
+		int devnum;
+		if (subarray)
+			*subarray++ = '\0';
+		devnum = devname2devnum(dev);
+		subarray = strdup(subarray);
+		if (sra)
+			sysfs_free(sra);
+		sra = sysfs_read(-1, devnum, GET_VERSION);
+		verstr = sra->text_version ? : "-no-metadata-";
+	}
+
 	for (i = 0; st == NULL && superlist[i] ; i++)
 		st = superlist[i]->match_metadata_desc(verstr);
 
 	if (sra)
 		sysfs_free(sra);
-	if (st)
+	if (st) {
 		st->sb = NULL;
+		if (subarray) {
+			strncpy(st->subarray, subarray, 32);
+			st->subarray[31] = 0;
+			free(subarray);
+		} else
+			st->subarray[0] = 0;
+	}
 	return st;
 }
 #endif /* !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO) */
 
 
-struct supertype *dup_super(struct supertype *st)
+struct supertype *dup_super(struct supertype *orig)
 {
-	struct supertype *stnew = NULL;
-	char *verstr = NULL;
-	char version[20];
-	int i;
+	struct supertype *st;
 
+	if (!orig)
+		return orig;
+	st = malloc(sizeof(*st));
 	if (!st)
 		return st;
-
-	if (st->minor_version == -1)
-		sprintf(version, "%d", st->ss->major);
-	else
-		sprintf(version, "%d.%d", st->ss->major, st->minor_version);
-	verstr = version;
-
-	for (i = 0; stnew == NULL && superlist[i] ; i++)
-		stnew = superlist[i]->match_metadata_desc(verstr);
-
-	if (stnew)
-		stnew->sb = NULL;
-	return stnew;
+	memset(st, 0, sizeof(*st));
+	st->ss = orig->ss;
+	st->max_devs = orig->max_devs;
+	st->minor_version = orig->minor_version;
+	strcpy(st->subarray, orig->subarray);
+	st->sb = NULL;
+	st->info = NULL;
+	return st;
 }
 
 struct supertype *guess_super(int fd)
@@ -858,11 +969,10 @@ struct supertype *guess_super(int fd)
 	int i;
 
 	st = malloc(sizeof(*st));
-	memset(st, 0, sizeof(*st));
 	for (i=0 ; superlist[i]; i++) {
 		int rv;
 		ss = superlist[i];
-		st->ss = NULL;
+		memset(st, 0, sizeof(*st));
 		rv = ss->load_super(st, fd, NULL);
 		if (rv == 0) {
 			struct mdinfo info;
@@ -877,7 +987,7 @@ struct supertype *guess_super(int fd)
 	}
 	if (bestsuper != -1) {
 		int rv;
-		st->ss = NULL;
+		memset(st, 0, sizeof(*st));
 		rv = superlist[bestsuper]->load_super(st, fd, NULL);
 		if (rv == 0) {
 			superlist[bestsuper]->free_super(st);
@@ -924,6 +1034,315 @@ void get_one_disk(int mdfd, mdu_array_info_t *ainf, mdu_disk_info_t *disk)
 		if (ioctl(mdfd, GET_DISK_INFO, disk) == 0)
 			return;
 }
+
+int open_container(int fd)
+{
+	/* 'fd' is a block device.  Find out if it is in use
+	 * by a container, and return an open fd on that container.
+	 */
+	char path[256];
+	char *e;
+	DIR *dir;
+	struct dirent *de;
+	int dfd, n;
+	char buf[200];
+	int major, minor;
+	struct stat st;
+
+	if (fstat(fd, &st) != 0)
+		return -1;
+	sprintf(path, "/sys/dev/block/%d:%d/holders",
+		(int)major(st.st_rdev), (int)minor(st.st_rdev));
+	e = path + strlen(path);
+
+	dir = opendir(path);
+	if (!dir)
+		return -1;
+	while ((de = readdir(dir))) {
+		if (de->d_ino == 0)
+			continue;
+		if (de->d_name[0] == '.')
+			continue;
+		sprintf(e, "/%s/dev", de->d_name);
+		dfd = open(path, O_RDONLY);
+		if (dfd < 0)
+			continue;
+		n = read(dfd, buf, sizeof(buf));
+		close(dfd);
+		if (n <= 0 || n >= sizeof(buf))
+			continue;
+		buf[n] = 0;
+		if (sscanf(buf, "%d:%d", &major, &minor) != 2)
+			continue;
+		sprintf(buf, "%d:%d", major, minor);
+		dfd = dev_open(buf, O_RDONLY);
+		if (dfd >= 0) {
+			closedir(dir);
+			return dfd;
+		}
+	}
+	closedir(dir);
+	return -1;
+}
+
+int add_disk(int mdfd, struct supertype *st,
+	     struct mdinfo *sra, struct mdinfo *info)
+{
+	/* Add a device to an array, in one of 2 ways. */
+	int rv;
+#ifndef MDASSEMBLE
+	if (st->ss->external) {
+		rv = sysfs_add_disk(sra, info,
+				    info->disk.state & (1<<MD_DISK_SYNC));
+		if (! rv) {
+			struct mdinfo *sd2;
+			for (sd2 = sra->devs; sd2; sd2=sd2->next)
+				if (sd2 == info)
+					break;
+			if (sd2 == NULL) {
+				sd2 = malloc(sizeof(*sd2));
+				*sd2 = *info;
+				sd2->next = sra->devs;
+				sra->devs = sd2;
+			}
+		}
+	} else
+#endif
+		rv = ioctl(mdfd, ADD_NEW_DISK, &info->disk);
+	return rv;
+}
+
+int set_array_info(int mdfd, struct supertype *st, struct mdinfo *info)
+{
+	/* Initialise kernel's knowledge of array.
+	 * This varies between externally managed arrays
+	 * and older kernels
+	 */
+	int vers = md_get_version(mdfd);
+	int rv;
+
+#ifndef MDASSEMBLE
+	if (st->ss->external)
+		rv = sysfs_set_array(info, vers);
+	else
+#endif
+		if ((vers % 100) >= 1) { /* can use different versions */
+		mdu_array_info_t inf;
+		memset(&inf, 0, sizeof(inf));
+		inf.major_version = info->array.major_version;
+		inf.minor_version = info->array.minor_version;
+		rv = ioctl(mdfd, SET_ARRAY_INFO, &inf);
+	} else
+		rv = ioctl(mdfd, SET_ARRAY_INFO, NULL);
+	return rv;
+}
+
+char *devnum2devname(int num)
+{
+	char name[100];
+	if (num > 0)
+		sprintf(name, "md%d", num);
+	else
+		sprintf(name, "md_d%d", -1-num);
+	return strdup(name);
+}
+
+int devname2devnum(char *name)
+{
+	char *ep;
+	int num;
+	if (strncmp(name, "md_d", 4)==0)
+		num = -1-strtoul(name+4, &ep, 10);
+	else
+		num = strtoul(name+2, &ep, 10);
+	return num;
+}
+
+int stat2devnum(struct stat *st)
+{
+	char path[30];
+	char link[200];
+	char *cp;
+	int n;
+
+	if ((S_IFMT & st->st_mode) == S_IFBLK) {
+		if (major(st->st_rdev) == MD_MAJOR)
+			return minor(st->st_rdev);
+		else if (major(st->st_rdev) == get_mdp_major())
+			return -1- (minor(st->st_rdev)>>MdpMinorShift);
+
+		/* must be an extended-minor partition. Look at the
+		 * /sys/dev/block/%d:%d link which must look like
+		 * ../../block/mdXXX/mdXXXpYY
+		 */
+		sprintf(path, "/sys/dev/block/%d:%d", major(st->st_rdev),
+			minor(st->st_rdev));
+		n = readlink(path, link, sizeof(link)-1);
+		if (n <= 0)
+			return NoMdDev;
+		link[n] = 0;
+		cp = strrchr(link, '/');
+		if (cp) *cp = 0;
+		cp = strchr(link, '/');
+		if (cp && strncmp(cp, "/md", 3) == 0)
+			return devname2devnum(cp+1);
+	}
+	return NoMdDev;
+
+}
+
+int fd2devnum(int fd)
+{
+	struct stat stb;
+	if (fstat(fd, &stb) == 0)
+		return stat2devnum(&stb);
+	return NoMdDev;
+}
+
+int mdmon_running(int devnum)
+{
+	char path[100];
+	char pid[10];
+	int fd;
+	int n;
+	sprintf(path, "/var/run/mdadm/%s.pid", devnum2devname(devnum));
+	fd = open(path, O_RDONLY, 0);
+
+	if (fd < 0)
+		return 0;
+	n = read(fd, pid, 9);
+	close(fd);
+	if (n <= 0)
+		return 0;
+	if (kill(atoi(pid), 0) == 0)
+		return 1;
+	return 0;
+}
+
+int signal_mdmon(int devnum)
+{
+	char path[100];
+	char pid[10];
+	int fd;
+	int n;
+	sprintf(path, "/var/run/mdadm/%s.pid", devnum2devname(devnum));
+	fd = open(path, O_RDONLY, 0);
+
+	if (fd < 0)
+		return 0;
+	n = read(fd, pid, 9);
+	close(fd);
+	if (n <= 0)
+		return 0;
+	if (kill(atoi(pid), SIGUSR1) == 0)
+		return 1;
+	return 0;
+}
+
+int start_mdmon(int devnum)
+{
+	int i;
+	int len;
+	pid_t pid;	
+	int status;
+	char pathbuf[1024];
+	char *paths[4] = {
+		pathbuf,
+		"/sbin/mdmon",
+		"mdmon",
+		NULL
+	};
+
+	if (check_env("MDADM_NO_MDMON"))
+		return 0;
+
+	len = readlink("/proc/self/exe", pathbuf, sizeof(pathbuf));
+	if (len > 0) {
+		char *sl;
+		pathbuf[len] = 0;
+		sl = strrchr(pathbuf, '/');
+		if (sl)
+			sl++;
+		else
+			sl = pathbuf;
+		strcpy(sl, "mdmon");
+	} else
+		pathbuf[0] = '\0';
+
+	switch(fork()) {
+	case 0:
+		/* FIXME yuk. CLOSE_EXEC?? */
+		for (i=3; i < 100; i++)
+			close(i);
+		for (i=0; paths[i]; i++)
+			if (paths[i][0])
+				execl(paths[i], "mdmon",
+				      devnum2devname(devnum),
+				      NULL);
+		exit(1);
+	case -1: fprintf(stderr, Name ": cannot run mdmon. "
+			 "Array remains readonly\n");
+		return -1;
+	default: /* parent - good */
+		pid = wait(&status);
+		if (pid < 0 || status != 0)
+			return -1;
+	}
+	return 0;
+}
+
+int check_env(char *name)
+{
+	char *val = getenv(name);
+
+	if (val && atoi(val) == 1)
+		return 1;
+
+	return 0;
+}
+
+#ifndef MDASSEMBLE
+int flush_metadata_updates(struct supertype *st)
+{
+	int sfd;
+	if (!st->updates) {
+		st->update_tail = NULL;
+		return -1;
+	}
+
+	sfd = connect_monitor(devnum2devname(st->container_dev));
+	if (sfd < 0)
+		return -1;
+
+	while (st->updates) {
+		struct metadata_update *mu = st->updates;
+		st->updates = mu->next;
+
+		send_message(sfd, mu, 0);
+		wait_reply(sfd, 0);
+		free(mu->buf);
+		free(mu);
+	}
+	ack(sfd, 0);
+	wait_reply(sfd, 0);
+	close(sfd);
+	st->update_tail = NULL;
+	return 0;
+}
+
+void append_metadata_update(struct supertype *st, void *buf, int len)
+{
+
+	struct metadata_update *mu = malloc(sizeof(*mu));
+
+	mu->buf = buf;
+	mu->len = len;
+	mu->space = NULL;
+	mu->next = NULL;
+	*st->update_tail = mu;
+	st->update_tail = &mu->next;
+}
+#endif /* MDASSEMBLE */
 
 #ifdef __TINYC__
 /* tinyc doesn't optimize this check in ioctl.h out ... */
