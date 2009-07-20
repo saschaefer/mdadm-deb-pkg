@@ -581,15 +581,4 @@ The latest version of this FAQ is available here:
   http://wiki.debian.org/InitramfsDebug. Please append rootdelay=10 to the
   kernel command line and try if the boot now works.
 
-27. Can mdadm please wait for the kernel to initialise all devices?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  By the time mdadm runs in the initramfs, the kernel should have readied all
-  block devices. If it fails to do that, then there is nothing mdadm can do.
-  In such cases, you should consider filing bugs against the driver(s)
-  involved, such that they do not pretend to be ready when they aren't yet.
-
-  A workaround is to append rootdelay=10 to the kernel command line, which
-  will cause the initramfs scripts to wait for 10 seconds for devices to get
-  ready and nodes to appear.
-
  -- martin f. krafft <madduck@debian.org>  Mon, 20 Jul 2009 14:59:19 +0200
