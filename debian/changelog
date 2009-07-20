@@ -9,6 +9,7 @@ mdadm (3.0-1) unstable; urgency=low
     (closes: #537460).
   * Updated German translation due to typos and old spelling rules; thanks to
     Helge Kreutzmann for the patch (closes: #534663).
+  * Bumped Standard-Version to 3.8.2; no changes necessary.
 
  -- martin f. krafft <madduck@debian.org>  Mon, 20 Jul 2009 16:12:41 +0200
 
