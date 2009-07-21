@@ -8,6 +8,7 @@
 set -eu
 
 ME="${0##*/}"
+VERSION=%VERSION%
 MDADM=/sbin/mdadm
 DEBIANCONFIG=/etc/default/mdadm
 CONFIG=/etc/mdadm/mdadm.conf
@@ -95,11 +96,13 @@ else
 fi
 
 if [ $generate -eq 1 ]; then
-  cat <<_eof
-# This file was auto-generated on $(date -R)
-# by mkconf \$Id$
-_eof
+  echo "# This file was auto-generated on $(date -R)"
+else
+  echo "# This configuration was auto-generated on $(date -R)"
+fi
+echo "# by mkconf $VERSION"
 
+if [ $generate -eq 1 ]; then
   mkdir -p /var/lib/mdadm
   md5sum $CONFIG > /var/lib/mdadm/mdadm.conf-generated
 fi

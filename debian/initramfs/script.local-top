@@ -76,8 +76,7 @@ if [ "$MD_DEVS" = all ]; then
 
   verbose && log_begin_msg "Assembling all MD arrays"
   extra_args=''
-  [ -n "$MD_HOMEHOST" ] && \
-    extra_args="--homehost='$MD_HOMEHOST' --auto-update-homehost"
+  [ -n "${MD_HOMEHOST:-}" ] && extra_args="--homehost='$MD_HOMEHOST'"
   if $MDADM --assemble --scan --run --auto=yes $extra_args; then
     verbose && log_success_msg "assembled all arrays."
   else
