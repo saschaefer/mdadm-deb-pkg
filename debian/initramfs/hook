@@ -90,21 +90,17 @@ INITRDSTART=all
 DESTMDADMCONF=$DESTDIR/etc/mdadm/mdadm.conf
 DESTCONFIG=$DESTDIR/conf/conf.d/md
 
-# save the homehost for now, even if we don't use it yet
-if [ -f $CONFIG ]; then
-  homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
-fi
+homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
 if [ -z "${homehost:-}" ] || [ "${homehost:-}" = '<system>' ]; then
-  homehost="$(hostname)"
+  echo "MD_HOMEHOST='$(hostname)'" > $DESTCONFIG
 fi
-echo "MD_HOMEHOST='$homehost'" > $DESTCONFIG
 
 install_config()
 {
   # install the configuration file
   mkdir -p ${2%/*}
-  # only copy ARRAY and DEVICE lines, and merge continuation lines into one
-  sed -e :a -re '$!N;s/\n[[:space:]]+/ /;ta' -ne '/^(ARRAY|DEVICE)/P;D' $1 > $2
+  # only copy ARRAY/DEVICE/HOMEHOST lines, and merge continuation lines into one
+  sed -e :a -re '$!N;s/\n[[:space:]]+/ /;ta' -ne '/^(ARRAY|DEVICE|HOMEHOST)/P;D' $1 > $2
 }
 
 if [ ! -f $CONFIG ]; then
