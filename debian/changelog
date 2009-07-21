@@ -1,3 +1,10 @@
+mdadm (3.0-2) unstable; urgency=low
+
+  * Add version stamps to bugscript and mkconf scripts to facilitate
+    debugging.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 21 Jul 2009 10:33:30 +0200
+
 mdadm (3.0-1) unstable; urgency=low
 
   * New stable upstream release.

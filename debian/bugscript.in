@@ -13,6 +13,8 @@
 # maximise information output even in the case of errors
 set +eu
 
+VERSION=%VERSION%
+
 if ! command -v yesno >/dev/null; then
   if [ -r /usr/share/reportbug/handle_bugscript ]; then
     exec /usr/share/reportbug/handle_bugscript ". $0" /dev/stdout
@@ -187,3 +189,6 @@ echo >&3
 echo "--- /dev:" >&3
 ls -l /dev/md* /dev/disk/by-* >&3
 echo >&3
+
+echo "Auto-generated on $(date -R)" >&3
+echo "by mdadm bugscript $VERSION" >&3

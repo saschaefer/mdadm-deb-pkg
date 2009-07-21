@@ -48,18 +48,25 @@ mdadm: configure
 	$(MAKE) $(FLAGS) all
 .PHONY: mdadm
 
+INTERPOLATED_FILES = debian/bugscript debian/mkconf
+
 clean: unpatch
 	dh_testdir
 	dh_testroot
+	rm -f $(INTERPOLATED_FILES)
 	rm -f build-stamp
 	[ ! -f Makefile ] || $(MAKE) clean
 	rm -f mdadm.udeb mdadm
 	dh_clean
 	debconf-updatepo
 
+debian/%: VERSION=$(shell dpkg-parsechangelog | sed -ne 's,^Version: ,,p')
+debian/%: debian/%.in
+	sed -re 's,%VERSION%,$(VERSION),g' < $< > $@
+
 install: DESTDIR=$(CURDIR)/debian/mdadm
 install: DESTDIR_UDEB=$(DESTDIR)-udeb
-install: build
+install: build $(INTERPOLATED_FILES)
 	dh_testdir
 	dh_clean -k
 	dh_installdirs

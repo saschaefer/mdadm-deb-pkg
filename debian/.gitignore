@@ -6,3 +6,5 @@
 /mdadm-udeb
 /*.debhelper
 /*.log
+/mkconf
+/bugscript
