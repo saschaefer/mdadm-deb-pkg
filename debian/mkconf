@@ -96,8 +96,7 @@ fi
 
 if [ $generate -eq 1 ]; then
   cat <<_eof
-# This file was auto-generated on $(date -R)
-# by mkconf \$Id$
+# This file was auto-generated on $(date -R) by mkconf
 _eof
 
   mkdir -p /var/lib/mdadm

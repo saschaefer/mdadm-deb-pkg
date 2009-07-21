@@ -12,7 +12,6 @@ PROGNAME=${0##*/}
 about()
 {
   echo "$PROGNAME -- MD array (RAID) redundancy checker tool"
-  echo '$Id$'
   echo "Copyright © martin f. krafft <madduck@debian.org>"
   echo "Released under the terms of the Artistic Licence 2.0"
 }
