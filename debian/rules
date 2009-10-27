@@ -6,10 +6,10 @@
 
 #export DH_VERBOSE=1
 
-#TG_BRANCHES="..."
+TG_BRANCHES="fixes/udev-blkid contrib/docs/raid5-vs-raid10 contrib/docs/superblock_formats contrib/docs/md.txt contrib/docs/jd-rebuilding-raid debian/conffile-location"
 
 include /usr/share/quilt/quilt.make
-#-include /usr/share/topgit/tg2quilt.mk
+-include /usr/share/topgit/tg2quilt.mk
 
 CXFLAGS = -ggdb
 CXFLAGS_UDEB := $(CXFLAGS) -fomit-frame-pointer

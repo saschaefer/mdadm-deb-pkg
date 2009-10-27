@@ -5,7 +5,7 @@
 .\"   the Free Software Foundation; either version 2 of the License, or
 .\"   (at your option) any later version.
 .\" See file COPYING in distribution for details.
-.TH MDADM 8 "" v3.0
+.TH MDADM 8 "" v3.0.3
 .SH NAME
 mdadm \- manage MD devices
 .I aka
@@ -267,9 +267,9 @@ the exact meaning of this option in different contexts.
 .TP
 .BR \-c ", " \-\-config=
 Specify the config file.  Default is to use
-.BR /etc/mdadm/mdadm.conf ,
-or if that is missing, then
-.BR /etc/mdadm.conf .
+.BR /etc/mdadm.conf ,
+or if that is missing then
+.BR /etc/mdadm/mdadm.conf .
 If the config file given is
 .B "partitions"
 then nothing will be read, but
@@ -307,7 +307,7 @@ says to get a list of array devices from
 .BR /proc/mdstat .
 
 .TP
-.B \-e ", " \-\-metadata=
+.BR \-e ", " \-\-metadata=
 Declare the style of RAID metadata (superblock) to be used.  The
 default is 0.90 for
 .BR \-\-create ,
@@ -1221,6 +1221,12 @@ reduce this as the kernel alerts
 immediately when there is any change.
 
 .TP
+.BR \-r ", " \-\-increment
+Give a percentage increment.
+.I mdadm
+will generate RebuildNN events with the given percentage increment.
+
+.TP
 .BR \-f ", " \-\-daemonise
 Tell
 .I mdadm
@@ -1320,6 +1326,8 @@ The config file is only used if explicitly named with
 or requested with (a possibly implicit)
 .BR \-\-scan .
 In the later case,
+.B /etc/mdadm.conf
+or
 .B /etc/mdadm/mdadm.conf
 is used.
 
@@ -1641,7 +1649,7 @@ or
 .B \-\-scan
 will cause the output to be less detailed and the format to be
 suitable for inclusion in
-.BR /etc/mdadm/mdadm.conf .
+.BR /etc/mdadm.conf .
 The exit status of
 .I mdadm
 will normally be 0 unless
@@ -1696,7 +1704,7 @@ or
 is given, then multiple devices that are components of the one array
 are grouped together and reported in a single entry suitable
 for inclusion in
-.BR /etc/mdadm/mdadm.conf .
+.BR /etc/mdadm.conf .
 
 Having
 .B \-\-scan
@@ -1816,8 +1824,10 @@ An md array started reconstruction. (syslog priority: Warning)
 .BI Rebuild NN
 Where
 .I NN
-is 20, 40, 60, or 80, this indicates that rebuild has passed that many
-percentage of the total. (syslog priority: Warning)
+is a two-digit number (ie. 05, 48). This indicates that rebuild
+has passed that many percent of the total. The events are generated
+with fixed increment since 0. Increment size may be specified with
+a commandline option (default is 20). (syslog priority: Warning)
 
 .TP
 .B RebuildFinished
@@ -2320,7 +2330,7 @@ uses this to find arrays when
 is given in Misc mode, and to monitor array reconstruction
 on Monitor mode.
 
-.SS /etc/mdadm/mdadm.conf
+.SS /etc/mdadm.conf
 
 The config file lists which devices may be scanned to see if
 they contain MD super block, and gives identifying information

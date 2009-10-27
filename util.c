@@ -269,17 +269,15 @@ void copy_uuid(void *a, int b[4], int swapuuid)
 		memcpy(a, b, 16);
 }
 
-char *fname_from_uuid(struct supertype *st, struct mdinfo *info, char *buf, char sep)
+char *__fname_from_uuid(int id[4], int swap, char *buf, char sep)
 {
 	int i, j;
-	int id;
 	char uuid[16];
 	char *c = buf;
 	strcpy(c, "UUID-");
 	c += strlen(c);
-	copy_uuid(uuid, info->uuid, st->ss->swapuuid);
+	copy_uuid(uuid, id, swap);
 	for (i = 0; i < 4; i++) {
-		id = uuid[i];
 		if (i)
 			*c++ = sep;
 		for (j = 3; j >= 0; j--) {
@@ -288,6 +286,12 @@ char *fname_from_uuid(struct supertype *st, struct mdinfo *info, char *buf, char
 		}
 	}
 	return buf;
+
+}
+
+char *fname_from_uuid(struct supertype *st, struct mdinfo *info, char *buf, char sep)
+{
+	return __fname_from_uuid(info->uuid, st->ss->swapuuid, buf, sep);
 }
 
 #ifndef MDASSEMBLE
@@ -863,6 +867,8 @@ void wait_for(char *dev, int fd)
 			return;
 		usleep(200000);
 	}
+	if (i == 25)
+		dprintf("%s: timeout waiting for %s\n", __func__, dev);
 }
 
 struct superswitch *superlist[] = { &super0, &super1, &super_ddf, &super_imsm, NULL };
@@ -1296,6 +1302,17 @@ int check_env(char *name)
 		return 1;
 
 	return 0;
+}
+
+__u32 random32(void)
+{
+	__u32 rv;
+	int rfd = open("/dev/urandom", O_RDONLY);
+	if (rfd < 0 || read(rfd, &rv, 4) != 4)
+		rv = random();
+	if (rfd >= 0)
+		close(rfd);
+	return rv;
 }
 
 #ifndef MDASSEMBLE

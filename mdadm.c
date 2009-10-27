@@ -89,6 +89,7 @@ int main(int argc, char *argv[])
 	int require_homehost = 1;
 	char *mailaddr = NULL;
 	char *program = NULL;
+	int increments = 20;
 	int delay = 0;
 	int daemonise = 0;
 	char *pidfile = NULL;
@@ -698,6 +699,14 @@ int main(int argc, char *argv[])
 				program = optarg;
 			continue;
 
+		case O(MONITOR,'r'): /* rebuild increments */
+			increments = atoi(optarg);
+			if (increments>99 || increments<1) {
+				fprintf(stderr, Name ": please specify positive integer between 1 and 99 as rebuild increments.\n");
+				exit(2);
+			}
+			continue;
+
 		case O(MONITOR,'d'): /* delay in seconds */
 		case O(GROW, 'd'):
 		case O(BUILD,'d'): /* delay for bitmap updates */
@@ -1254,11 +1263,18 @@ int main(int argc, char *argv[])
 					struct mdstat_ent *ms = mdstat_read(0, 1);
 					struct mdstat_ent *e;
 					struct map_ent *map = NULL;
+					int members;
 					int v = verbose>1?0:verbose+1;
 
+					for (members = 0; members <= 1; members++) {
 					for (e=ms ; e ; e=e->next) {
 						char *name;
 						struct map_ent *me;
+						int member = e->metadata_version &&
+							strncmp(e->metadata_version,
+								"external:/", 10) == 0;
+						if (members != member)
+							continue;
 						me = map_by_devnum(&map, e->devnum);
 						if (me && me->path
 						    && strcmp(me->path, "/unknown") != 0)
@@ -1276,8 +1292,9 @@ int main(int argc, char *argv[])
 								     export, test,
 								     homehost);
 						else
-							rv |= WaitClean(name, v);
+							rv |= WaitClean(name, -1, v);
 						put_md_name(name);
+					}
 					}
 					free_mdstat(ms);
 				} else	if (devmode == 'S' && scan) {
@@ -1337,7 +1354,7 @@ int main(int argc, char *argv[])
 				case 'W':
 					rv |= Wait(dv->devname); continue;
 				case Waitclean:
-					rv |= WaitClean(dv->devname, verbose-quiet); continue;
+					rv |= WaitClean(dv->devname, -1, verbose-quiet); continue;
 				}
 				mdfd = open_mddev(dv->devname, 1);
 				if (mdfd>=0) {
@@ -1377,7 +1394,7 @@ int main(int argc, char *argv[])
 		}
 		rv= Monitor(devlist, mailaddr, program,
 			    delay?delay:60, daemonise, scan, oneshot,
-			    dosyslog, test, pidfile);
+			    dosyslog, test, pidfile, increments);
 		break;
 
 	case GROW:

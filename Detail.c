@@ -122,12 +122,25 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 		    disk.minor == 0)
 			continue;
 		if ((dv=map_dev(disk.major, disk.minor, 1))) {
-			if ((!st || !st->sb) &&
+			/* some formats (imsm) have free-floating-spares
+			 * with a uuid of uuid_match_any, they don't
+			 * have very good info about the rest of the
+			 * container, so keep searching when
+			 * encountering such a device.  Otherwise, stop
+			 * after the first successful call to
+			 * ->load_super.
+			 */
+			int free_spare = memcmp(uuid_match_any,
+						info.uuid,
+						sizeof(uuid_match_any)) == 0;
+			if ((!st || !st->sb || free_spare) &&
 			    (array.raid_disks == 0 || 
 			     (disk.state & (1<<MD_DISK_ACTIVE)))) {
 				/* try to read the superblock from this device
 				 * to get more info
 				 */
+				if (free_spare)
+					st->ss->free_super(st);
 				int fd2 = dev_open(dv, O_RDONLY);
 				if (fd2 >=0 && st &&
 				    st->ss->load_super(st, fd2, NULL) == 0) {
@@ -181,7 +194,12 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 				st->ss->export_detail_super(st);
 		} else {
 			struct map_ent *mp, *map = NULL;
+			char nbuf[64];
 			mp = map_by_devnum(&map, fd2devnum(fd));
+			if (mp) {
+				__fname_from_uuid(mp->uuid, 0, nbuf, ':');
+				printf("MD_UUID=%s\n", nbuf+5);
+			}
 			if (mp && mp->path &&
 			    strncmp(mp->path, "/dev/md/", 8) == 0)
 				printf("MD_DEVNAME=%s\n", mp->path+8);
@@ -194,11 +212,11 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 		printf("ARRAY %s", dev);
 		if (brief > 1) {
 			if (array.raid_disks)
-				printf("level=%s num-devices=%d",
+				printf(" level=%s num-devices=%d",
 				       c?c:"-unknown-",
 				       array.raid_disks );
 			else
-				printf("level=container num-devices=%d",
+				printf(" level=container num-devices=%d",
 				       array.nr_disks);
 		}
 		if (container) {
@@ -523,6 +541,7 @@ This is pretty boring
 		    1, avail, avail_disks))
 		rv = 2;
 
+	free(disks);
 out:
 	close(fd);
 	return rv;
