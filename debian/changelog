@@ -2,6 +2,8 @@ mdadm (3.0-4) unstable; urgency=low
 
   * Acknowledge 3.0-3.1 NMU by Christian Kujau (patch by Marco d'Itri)
     (closes: #541884), and add util-linux dependency.
+  * Copy udev rules into initramfs, which udev stopped doing
+    (closes: #549535, #549083, #538843, #538143).
   * Switch to TopGit and split Debian diff into topic branches; add
     README.source.
 
