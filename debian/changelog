@@ -1,5 +1,6 @@
-mdadm (3.0-4) unstable; urgency=low
+mdadm (3.0.3-1) unstable; urgency=low
 
+  * New upstream release.
   * Acknowledge 3.0-3.1 NMU by Christian Kujau (patch by Marco d'Itri)
     (closes: #541884), and add util-linux dependency.
   * Copy udev rules into initramfs, which udev stopped doing
