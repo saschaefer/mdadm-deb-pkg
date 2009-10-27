@@ -5,5 +5,5 @@ Abstract: The document describes how to replace a failed component in a RAID(1) 
 Section: System/Administration
 
 Format: HTML
-Index: /usr/share/doc/mdadm/davidpashley.com_blog_2008_07_12_rebuilding-raid.html
-Files: /usr/share/doc/mdadm/davidpashley.com_blog_2008_07_12_rebuilding-raid.html
+Index: /usr/share/doc/mdadm/rebuilding-raid.html
+Files: /usr/share/doc/mdadm/rebuilding-raid.html
