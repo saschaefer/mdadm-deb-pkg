@@ -6,6 +6,7 @@ mdadm (3.0-4) unstable; urgency=low
     (closes: #549535, #549083, #538843, #538143).
   * Switch to TopGit and split Debian diff into topic branches; add
     README.source.
+  * Drop the outdated rootraiddoc.97.html document.
 
  -- martin f. krafft <madduck@debian.org>  Tue, 27 Oct 2009 18:06:13 +0100
 
