@@ -7,6 +7,5 @@ debian/README.checkarray
 debian/FAQ
 md.txt
 rootraiddoc.97.html
-RAID5_versus_RAID10.txt
 davidpashley.com_blog_2008_07_12_rebuilding-raid.html
 md_superblock_formats.txt
