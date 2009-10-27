@@ -1,0 +1,7 @@
+From: martin f. krafft <madduck@debian.org>
+Subject: RAID5 versus RAID10 (anti-RAID5) document
+
+A document presenting a case against RAID[345].
+
+Signed-off-by: martin f. krafft <madduck@debian.org>
+Origin: http://www.miracleas.com/BAARF/RAID5_versus_RAID10.txt
