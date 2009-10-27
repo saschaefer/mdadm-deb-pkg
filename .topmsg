@@ -1,0 +1,7 @@
+From: martin f. krafft <madduck@debian.org>
+Subject: Import md.txt from the kernel
+
+This patch imports md.txt from the kernel repository.
+
+Origin: http://git.kernel.org/?p=linux/kernel/git/torvalds/linux-2.6.git;a=blob_plain;f=Documentation/md.txt;hb=HEAD
+Acked-by: martin f. krafft <madduck@debian.org>
