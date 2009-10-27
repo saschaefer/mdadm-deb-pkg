@@ -6,7 +6,7 @@
 
 #export DH_VERBOSE=1
 
-TG_BRANCHES="fixes/udev-blkid contrib/docs/raid5-vs-raid10 contrib/docs/superblock_formats"
+TG_BRANCHES="fixes/udev-blkid contrib/docs/raid5-vs-raid10 contrib/docs/superblock_formats contrib/docs/md.txt"
 
 include /usr/share/quilt/quilt.make
 -include /usr/share/topgit/tg2quilt.mk
