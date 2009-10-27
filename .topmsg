@@ -1,0 +1,8 @@
+From: martin f. krafft <madduck@debian.org>
+Subject: Document on RAID superblock formats
+
+This document describes the three different superblock formats in use by Linux
+md.
+
+Acked-by: martin f. krafft <madduck@debian.org>
+Origin: http://linux-raid.osdl.org/index.php/RAID_superblock_formats
