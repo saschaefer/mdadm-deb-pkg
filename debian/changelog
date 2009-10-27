@@ -1,3 +1,17 @@
+mdadm (3.0-4) unstable; urgency=low
+
+  * Acknowledge 3.0-3.1 NMU by Christian Kujau (patch by Marco d'Itri)
+    (closes: #541884), and add util-linux dependency.
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 27 Oct 2009 18:06:13 +0100
+
+mdadm (3.0-3.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * use blkid instead of vold_id in udev-md-raid.rules (closes: #541884)
+
+ -- christian kujau <lists@nerdbynature.de>  Mon, 14 Sep 2009 10:15:21 +0200
+
 mdadm (3.0-2) unstable; urgency=low
 
   * Fixed initramfs script with patch from Steffen Hau: it was still using
