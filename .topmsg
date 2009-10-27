@@ -1,0 +1,10 @@
+From: martin f. krafft <madduck@debian.org>
+Subject: Set /etc/mdadm/mdadm.conf as primary config file location
+
+On Debian, the configuration file resides primarily in /etc/mdadm/mdadm.conf,
+/etc/mdadm.conf is only used as a backup.
+
+This is a Debian-specific patch.
+
+Forwarded: not-needed
+Reviewed-by: martin f. krafft <madduck@debian.org>
