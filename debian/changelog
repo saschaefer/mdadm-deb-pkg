@@ -2,6 +2,8 @@ mdadm (3.0-4) unstable; urgency=low
 
   * Acknowledge 3.0-3.1 NMU by Christian Kujau (patch by Marco d'Itri)
     (closes: #541884), and add util-linux dependency.
+  * Switch to TopGit and split Debian diff into topic branches; add
+    README.source.
 
  -- martin f. krafft <madduck@debian.org>  Tue, 27 Oct 2009 18:06:13 +0100
 
