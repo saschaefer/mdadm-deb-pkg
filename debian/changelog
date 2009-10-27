@@ -5,6 +5,8 @@ mdadm (3.0.3-1) unstable; urgency=low
     (closes: #541884), and add util-linux dependency.
   * Copy udev rules into initramfs, which udev stopped doing
     (closes: #549535, #549083, #538843, #538143).
+  * Fix the bug script to write debug information to the correct file
+    descriptor (closes: #537734).
   * Switch to TopGit and split Debian diff into topic branches; add
     README.source.
   * Drop the outdated rootraiddoc.97.html document.
