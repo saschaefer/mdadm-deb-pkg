@@ -1,0 +1,13 @@
+From: martin f. krafft <madduck@debian.org>
+Subject: Use blkid instead of vol_id in udev rules
+
+vol_id was removed by the udev upstream maintainer in May 2009.
+
+One should use
+  /sbin/blkid -o udev -p ...
+(from util-linux >> 2.16) instead of
+  vol_id --export ...
+
+Author: Marco d'Itri <md@linux.it>
+Bug-Debian: http://bugs.debian.org/541884
+Reviewed-by: martin f. krafft <madduck@debian.org>
