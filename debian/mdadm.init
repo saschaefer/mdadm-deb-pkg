@@ -3,14 +3,13 @@
 # Start the MD monitor daemon for all active MD arrays if desired.
 #
 # Copyright © 2001-2005 Mario Jou/3en <joussen@debian.org>
-# Copyright © 2005-2008 Martin F. Krafft <madduck@debian.org>
+# Copyright © 2005-2009 Martin F. Krafft <madduck@debian.org>
 # Distributable under the terms of the GNU GPL version 2.
 #
 ### BEGIN INIT INFO
 # Provides:          mdadm
-# Required-Start:    checkroot
-# Required-Stop:     umountroot
-# Should-Start:      module-init-tools
+# Required-Start:    $local_fs $syslog mdadm-raid
+# Required-Stop:     $local_fs $syslog mdadm-raid
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: MD monitoring daemon
