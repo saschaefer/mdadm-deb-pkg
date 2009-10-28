@@ -1,3 +1,9 @@
+mdadm (3.0.3-2) unstable; urgency=low
+
+  * Bumped Standards-Version to 3.8.3 without having to make changes.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 28 Oct 2009 08:34:43 +0100
+
 mdadm (3.0.3-1) unstable; urgency=low
 
   * New upstream release.
