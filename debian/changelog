@@ -3,8 +3,9 @@ mdadm (3.0.3-2) unstable; urgency=low
   * Bumped Standards-Version to 3.8.3 without having to make changes.
   * Fixed init dependencies of mdadm daemon init.d script; thanks Petter
     Reinholdtsen (closes: #541396).
+  * Switched source package to v3-quilt format.
 
- -- martin f. krafft <madduck@debian.org>  Wed, 28 Oct 2009 08:34:43 +0100
+ -- martin f. krafft <madduck@debian.org>  Fri, 06 Nov 2009 10:06:03 +0100
 
 mdadm (3.0.3-1) unstable; urgency=low
 
