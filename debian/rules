@@ -7,8 +7,6 @@
 #export DH_VERBOSE=1
 
 TG_BRANCHES="fixes/udev-blkid contrib/docs/raid5-vs-raid10 contrib/docs/superblock_formats contrib/docs/md.txt contrib/docs/jd-rebuilding-raid debian/conffile-location"
-
-include /usr/share/quilt/quilt.make
 -include /usr/share/topgit/tg2quilt.mk
 
 CXFLAGS = -ggdb
@@ -27,7 +25,7 @@ configure:
 debian/mdadm-startall.8: debian/mdadm-startall.sgml
 	docbook-to-man $< > $@
 
-build: configure patch build-stamp
+build: configure build-stamp
 build-stamp: debian/mdadm-startall.8
 	dh_testdir
 	$(MAKE) -f debian/rules mdadm.udeb DEBIAN=yes
@@ -50,7 +48,7 @@ mdadm: configure
 
 INTERPOLATED_FILES = debian/bugscript debian/mkconf
 
-clean: unpatch
+clean:
 	dh_testdir
 	dh_testroot
 	rm -f $(INTERPOLATED_FILES)
