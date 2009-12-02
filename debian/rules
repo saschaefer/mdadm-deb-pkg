@@ -84,7 +84,7 @@ install: build $(INTERPOLATED_FILES)
 	install -m0755 debian/mdadm-startall $(DESTDIR)/sbin
 
 	install -m0755 mdadm.udeb $(DESTDIR_UDEB)/sbin/mdadm
-	install -m0644 udev-md-raid.rules $(DESTDIR_UDEB)/lib/udev/rules.d/65-md-raid.rules
+	install -m0644 udev-md-raid.rules $(DESTDIR_UDEB)/lib/udev/rules.d/64-md-raid.rules
 
 binary-indep: build install
 
