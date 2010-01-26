@@ -1,0 +1,5 @@
+From: Arno van Amersfoort <arnova@rocky.eld.leidenuniv.nl>
+Subject: Script to add a harddisk to multi MD-array
+
+Signed-off-by: martin f. krafft <madduck@debian.org>
+URL: http://rocky.eld.leidenuniv.nl/scripts/mdadd.sh
