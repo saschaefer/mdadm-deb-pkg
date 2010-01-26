@@ -2,21 +2,13 @@ mdadm (3.1.1-1) unstable; urgency=low
 
   * New upstream release.
   * Retire fixed/blkid-dev branch.
-
- -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 10:14:25 +1300
-
-mdadm (3.0.3-4) unstable; urgency=low
-
+  * Reword warning about unbootable system when mdadm is purged
+    (closes: #544558).
   * Updated FAQ to include s2ram as one of the reasons that can prevent an
     array from being stopped; thanks to Pascal Hambourg for writing in.
-
- -- martin f. krafft <madduck@debian.org>  Mon, 11 Jan 2010 12:39:08 +1300
-
-mdadm (3.0.3-3) unstable; urgency=low
-
   * Install udev rules into udeb package (closes: #558823).
 
- -- martin f. krafft <madduck@debian.org>  Wed, 02 Dec 2009 15:17:28 +0100
+ -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 10:14:25 +1300
 
 mdadm (3.0.3-2) unstable; urgency=low
 
