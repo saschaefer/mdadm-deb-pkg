@@ -442,21 +442,28 @@ int sysfs_uevent(struct mdinfo *sra, char *event)
 	return 0;
 }	
 
-int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
-		       char *name, unsigned long long *val)
+int sysfs_get_fd(struct mdinfo *sra, struct mdinfo *dev,
+		       char *name)
 {
 	char fname[50];
-	char buf[50];
-	int n;
 	int fd;
-	char *ep;
+
 	sprintf(fname, "/sys/block/%s/md/%s/%s",
 		sra->sys_name, dev?dev->sys_name:"", name);
-	fd = open(fname, O_RDONLY);
+	fd = open(fname, O_RDWR);
 	if (fd < 0)
-		return -1;
+		fd = open(fname, O_RDONLY);
+	return fd;
+}
+
+int sysfs_fd_get_ll(int fd, unsigned long long *val)
+{
+	char buf[50];
+	int n;
+	char *ep;
+
+	lseek(fd, 0, 0);
 	n = read(fd, buf, sizeof(buf));
-	close(fd);
 	if (n <= 0)
 		return -1;
 	buf[n] = 0;
@@ -466,22 +473,43 @@ int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
 	return 0;
 }
 
-int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
-		       char *name, char *val, int size)
+int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
+		       char *name, unsigned long long *val)
 {
-	char fname[50];
 	int n;
 	int fd;
-	sprintf(fname, "/sys/block/%s/md/%s/%s",
-		sra->sys_name, dev?dev->sys_name:"", name);
-	fd = open(fname, O_RDONLY);
+
+	fd = sysfs_get_fd(sra, dev, name);
 	if (fd < 0)
 		return -1;
-	n = read(fd, val, size);
+	n = sysfs_fd_get_ll(fd, val);
 	close(fd);
+	return n;
+}
+
+int sysfs_fd_get_str(int fd, char *val, int size)
+{
+	int n;
+
+	lseek(fd, 0, 0);
+	n = read(fd, val, size);
 	if (n <= 0)
 		return -1;
 	val[n] = 0;
+	return n;
+}
+
+int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
+		       char *name, char *val, int size)
+{
+	int n;
+	int fd;
+
+	fd = sysfs_get_fd(sra, dev, name);
+	if (fd < 0)
+		return -1;
+	n = sysfs_fd_get_str(fd, val, size);
+	close(fd);
 	return n;
 }
 

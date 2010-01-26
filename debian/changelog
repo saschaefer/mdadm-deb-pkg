@@ -1,3 +1,10 @@
+mdadm (3.1.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Retire fixed/blkid-dev branch.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 10:14:25 +1300
+
 mdadm (3.0.3-4) unstable; urgency=low
 
   * Updated FAQ to include s2ram as one of the reasons that can prevent an

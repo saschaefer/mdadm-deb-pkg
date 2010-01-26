@@ -5,7 +5,7 @@
 .\"   the Free Software Foundation; either version 2 of the License, or
 .\"   (at your option) any later version.
 .\" See file COPYING in distribution for details.
-.TH MDADM 8 "" v3.0.3
+.TH MDADM 8 "" v3.1.1
 .SH NAME
 mdadm \- manage MD devices
 .I aka
@@ -123,7 +123,9 @@ missing, spare, or failed drives, so there is nothing to monitor.
 Grow (or shrink) an array, or otherwise reshape it in some way.
 Currently supported growth options including changing the active size
 of component devices and changing the number of active devices in RAID
-levels 1/4/5/6, as well as adding or removing a write-intent bitmap.
+levels 1/4/5/6, changing the RAID level between 1, 5, and 6, changing
+the chunk size and layout for RAID5 and RAID5, as well as adding or
+removing a write-intent bitmap.
 
 .TP
 .B "Incremental Assembly"
@@ -309,7 +311,7 @@ says to get a list of array devices from
 .TP
 .BR \-e ", " \-\-metadata=
 Declare the style of RAID metadata (superblock) to be used.  The
-default is 0.90 for
+default is 1.1 for
 .BR \-\-create ,
 and to guess for other operations.
 The default can be overridden by setting the
@@ -321,15 +323,16 @@ keyword in
 
 Options are:
 .RS
-.IP "0, 0.90, default"
+.IP "0, 0.90"
 Use the original 0.90 format superblock.  This format limits arrays to
 28 component devices and limits component devices of levels 1 and
 greater to 2 terabytes.
-.IP "1, 1.0, 1.1, 1.2"
+.IP "1, 1.0, 1.1, 1.2 default"
 Use the new version-1 format superblock.  This has few restrictions.
 The different sub-versions store the superblock at different locations
 on the device, either at the end (for 1.0), at the start (for 1.1) or
-4K from the start (for 1.2).
+4K from the start (for 1.2).  '1' is equivalent to '1.0', 'default' is
+equivalent to '1.1'.
 .IP ddf
 Use the "Industry Standard" DDF (Disk Data Format) format defined by
 SNIA.
@@ -422,8 +425,25 @@ This value can not be used with
 metadata such as DDF and IMSM.
 
 .TP
+.BR \-Z ", " \-\-array-size=
+This is only meaningful with
+.B \-\-grow
+and its effect is not persistent: when the array is stopped an
+restarted the default array size will be restored.
+
+Setting the array-size causes the array to appear smaller to programs
+that access the data.  This is particularly needed before reshaping an
+array so that it will be smaller.  As the reshape is not reversible,
+but setting the size with
+.B \-\-array-size
+is, it is required that the array size is reduced as appropriate
+before the number of devices in the array is reduced.
+
+.TP
 .BR \-c ", " \-\-chunk=
-Specify chunk size of kibibytes.  The default is 64.
+Specify chunk size of kibibytes.  The default when creating an
+array is 512KB.  To ensure compatibility with earlier versions, the
+default when Building and array with no persistent metadata is 64KB.
 This is only meaningful for RAID0, RAID4, RAID5, RAID6, and RAID10.
 
 .TP
@@ -433,7 +453,8 @@ component will be rounded down to a multiple of this size.
 This is a synonym for
 .B \-\-chunk
 but highlights the different meaning for Linear as compared to other
-RAID levels.
+RAID levels.  The default is 64K if a kernel earlier than 2.6.16 is in
+use, and is 0K (i.e. no rounding) in later kernels.
 
 .TP
 .BR \-l ", " \-\-level=
@@ -520,11 +541,6 @@ option to set subsequent failure modes.
 "clear" or "none" will remove any pending or periodic failure modes,
 and "flush" will clear any persistent faults.
 
-To set the parity with
-.BR \-\-grow ,
-the level of the array ("faulty")
-must be specified before the fault mode is specified.
-
 Finally, the layout options for RAID10 are one of 'n', 'o' or 'f' followed
 by a small number.  The default is 'n2'.  The supported options are:
 
@@ -549,6 +565,18 @@ can be useful.  This number can be at most equal to the number of
 devices in the array.  It does not need to divide evenly into that
 number (e.g. it is perfectly legal to have an 'n2' layout for an array
 with an odd number of devices).
+
+When an array is converted between RAID5 and RAID6 an intermediate
+RAID6 layout is used in which the second parity block (Q) is always on
+the last device.  To convert a RAID5 to RAID6 and leave it in this new
+layout (which does not require re-striping) use
+.BR \-\-layout=preserve .
+This will try to avoid any restriping.
+
+The converse of this is
+.B \-\-layout=normalise
+which will change a non-standard RAID6 layout into a more standard
+arrangement.
 
 .TP
 .BR \-\-parity=
@@ -586,8 +614,8 @@ When using a file based bitmap, the default is to use the smallest
 size that is at-least 4 and requires no more than 2^21 chunks.
 When using an
 .B internal
-bitmap, the chunksize is automatically determined to make best use of
-available space.
+bitmap, the chunksize defaults to 64Meg, or larger if necessary to
+fit the bitmap into the available space.
 
 .TP
 .BR \-W ", " \-\-write\-mostly
@@ -630,6 +658,21 @@ raid-devices in a RAID5 if there are no spare devices available.
 See the GROW MODE section below on RAID\-DEVICES CHANGES.  The file
 should be stored on a separate device, not on the RAID array being
 reshaped.
+
+.TP
+.BR \-\-array-size= ", " \-Z
+Set the size of the array which is seen by users of the device such as
+filesystems.  This can be less that the real size, but never greater.
+The size set this way does not persist across restarts of the array.
+
+This is most useful when reducing the number of devices in a RAID5 or
+RAID6.  Such arrays require the array-size to be reduced before a
+reshape can be performed that reduces the real size.
+
+A value of
+.B max
+restores the apparent size of the array to be whatever the real
+amount of available space is.
 
 .TP
 .BR \-N ", " \-\-name=
@@ -722,6 +765,7 @@ number, and there is no entry in /dev for that number and with a
 non-standard name.  Names that are not in 'standard' format are only
 allowed in "/dev/md/".
 
+.ig XX
 .\".TP
 .\".BR \-\-symlink = no
 .\"Normally when
@@ -743,6 +787,7 @@ allowed in "/dev/md/".
 .\"to enforce this even if it is suppressing
 .\".IR mdadm.conf .
 .\"
+.XX
 
 .SH For assemble:
 
@@ -946,7 +991,7 @@ This will cause
 to determine the maximum usable amount of space on each device and
 update the relevant field in the metadata.
 
-.ig XX
+.ig
 .TP
 .B \-\-auto\-update\-homehost
 This flag is only meaningful with auto-assembly (see discussion below).
@@ -954,7 +999,7 @@ In that situation, if no suitable arrays are found for this homehost,
 .I mdadm
 will rescan for any arrays at all and will assemble them and update the
 homehost to match the current host.
-.XX
+..
 
 .SH For Manage mode:
 
@@ -1429,7 +1474,7 @@ from the superblock is used to similarly create a name in
 .B /dev/md/
 (the name will have any 'host' prefix stripped first).
 
-.ig XX
+.ig
 If
 .I mdadm
 cannot find any array for the given host at all, and if
@@ -1447,7 +1492,7 @@ homehost tagging.
 The reason for requiring arrays to be tagged with the homehost for
 auto assembly is to guard against problems that can arise when moving
 devices from one host to another.
-.XX
+..
 
 .SH BUILD MODE
 
@@ -1950,7 +1995,12 @@ Currently the only support available is to
 change the "size" attribute
 for RAID1, RAID5 and RAID6.
 .IP \(bu 4
-increase the "raid\-devices" attribute of RAID1, RAID5, and RAID6.
+increase or decrease the "raid\-devices" attribute of RAID1, RAID5,
+and RAID6.
+.IP \bu 4
+change the chunk-size and layout of RAID5 and RAID6.
+.IP \bu 4
+convert between RAID1 and RAID5, and between RAID5 and RAID6.
 .IP \(bu 4
 add a write-intent bitmap to any array which supports these bitmaps, or
 remove a write-intent bitmap from such an array.
@@ -1993,10 +2043,22 @@ devices which were in those slots must be failed and removed.
 When the number of devices is increased, any hot spares that are
 present will be activated immediately.
 
-Increasing the number of active devices in a RAID5 is much more
+Changing the number of active devices in a RAID5 or RAID6 is much more
 effort.  Every block in the array will need to be read and written
-back to a new location.  From 2.6.17, the Linux Kernel is able to do
-this safely, including restarting an interrupted "reshape".
+back to a new location.  From 2.6.17, the Linux Kernel is able to
+increase the number of devices in a RAID5 safely, including restarting
+an interrupted "reshape".  From 2.6.31, the Linux Kernel is able to
+increase or decrease the number of devices in a RAID5 or RAID6.
+
+When decreasing the number of devices, the size of the array will also
+decrease.  If there was data in the array, it could get destroyed and
+this is not reversible.  To help prevent accidents,
+.I mdadm
+requires that the size of the array be decreased first with
+.BR "mdadm --grow --array-size" .
+This is a reversible change which simply makes the end of the array
+inaccessible.  The integrity of any data can then be checked before
+the non-reversible reduction in the number of devices is request.
 
 When relocating the first few stripes on a RAID5, it is not possible
 to keep the data on disk completely consistent and crash-proof.  To
@@ -2010,6 +2072,31 @@ option.  If this option is used, and the system does crash during the
 critical period, the same file must be passed to
 .B \-\-assemble
 to restore the backup and reassemble the array.
+
+.SS LEVEL CHANGES
+
+Changing the RAID level of any array happens instantaneously.  However
+in the RAID to RAID6 case this requires a non-standard layout of the
+RAID6 data, and in the RAID6 to RAID5 case that non-standard layout is
+required before the change can be accomplish.  So while the level
+change is instant, the accompanying layout change can take quite a
+long time.
+
+.SS CHUNK-SIZE AND LAYOUT CHANGES
+
+Changing the chunk-size of layout without also changing the number of
+devices as the same time will involve re-writing all blocks in-place.
+To ensure against data loss in the case of a crash, a
+.B --backup-file
+must be provided for these changes.  Small sections of the array will
+be copied to the backup file while they are being rearranged.
+
+If the reshape is interrupted for any reason, this backup file must be
+make available to
+.B "mdadm --assemble"
+so the array can be reassembled.  Consequently the file cannot be
+stored on the device being reshaped.
+
 
 .SS BITMAP CHANGES
 
@@ -2093,7 +2180,7 @@ finds any known version of metadata.  If no
 .I md
 metadata is found, the device is rejected.
 
-.ig XX
+.ig
 .IP +
 Does the metadata match an expected array?
 The metadata can match in two ways.  Either there is an array listed
@@ -2111,7 +2198,7 @@ If
 .I mdadm
 is not able to positively identify the array as belonging to the
 current host, the device will be rejected.
-.XX
+..
 
 .I mdadm
 keeps a list of arrays that it has partially assembled in
@@ -2284,6 +2371,14 @@ can be started.
 .br
 Any devices which are components of /dev/md4 will be marked as faulty
 and then remove from the array.
+
+.B "  mdadm --grow /dev/md4 --level=6 --backup-file=/root/backup-md4
+.br
+The array
+.B /dev/md4
+which is currently a RAID5 array will be converted to RAID6.  There
+should normally already be a spare drive attached to the array as a
+RAID6 needs one more drive than a matching RAID5.
 
 .B "  mdadm --create /dev/md/ddf --metadata=ddf --raid-disks 6 /dev/sd[a-f]"
 .br

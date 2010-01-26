@@ -195,7 +195,7 @@ int Create(struct supertype *st, char *mddev,
 	if (st && st->ss->external && sparedisks) {
 		fprintf(stderr,
 			Name ": This metadata type does not support "
-			"spare disks are create time\n");
+			"spare disks at create time\n");
 		return 1;
 	}
 	if (subdevs > raiddisks+sparedisks) {
@@ -234,8 +234,15 @@ int Create(struct supertype *st, char *mddev,
 	case 10:
 	case 6:
 	case 0:
-	case LEVEL_LINEAR: /* linear */
 		if (chunk == 0) {
+			chunk = 512;
+			if (verbose > 0)
+				fprintf(stderr, Name ": chunk size defaults to 512K\n");
+		}
+		break;
+	case LEVEL_LINEAR:
+		/* a chunksize of zero 0s perfectly valid (and preferred) since 2.6.16 */
+		if (get_linux_version() < 2006016 && chunk == 0) {
 			chunk = 64;
 			if (verbose > 0)
 				fprintf(stderr, Name ": chunk size defaults to 64K\n");
@@ -325,7 +332,7 @@ int Create(struct supertype *st, char *mddev,
 						       raiddisks,
 						       chunk, size*2, dname,
 						       &freesize,
-						       verbose > 0)) {
+						       verbose >= 0)) {
 
 				fprintf(stderr,
 					Name ": %s is not suitable for "
@@ -368,6 +375,17 @@ int Create(struct supertype *st, char *mddev,
 			warn |= check_ext2(fd, dname);
 			warn |= check_reiser(fd, dname);
 			warn |= check_raid(fd, dname);
+			if (st && strcmp(st->ss->name, "1.x") == 0 &&
+			    st->minor_version >= 1 &&
+			    did_default &&
+			    level == 1) {
+				warn = 1;
+				fprintf(stderr, Name ": Note: this array has metadata at the start and\n"
+					"    may not be suitable as a boot device.  If you plan to\n"
+					"    store '/' or '/boot' on this device please ensure that\n"
+					"    your boot-loader understands md/v1.x metadata, or use\n"
+					"    --metadata=1.0\n");
+			}
 			close(fd);
 		}
 	}

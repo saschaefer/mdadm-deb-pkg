@@ -149,6 +149,73 @@ int get_linux_version()
 	return (a*1000000)+(b*1000)+c;
 }
 
+#ifndef MDASSEMBLE
+long long parse_size(char *size)
+{
+	/* parse 'size' which should be a number optionally
+	 * followed by 'K', 'M', or 'G'.
+	 * Without a suffix, K is assumed.
+	 * Number returned is in sectors (half-K)
+	 */
+	char *c;
+	long long s = strtoll(size, &c, 10);
+	if (s > 0) {
+		switch (*c) {
+		case 'K':
+			c++;
+		default:
+			s *= 2;
+			break;
+		case 'M':
+			c++;
+			s *= 1024 * 2;
+			break;
+		case 'G':
+			c++;
+			s *= 1024 * 1024 * 2;
+			break;
+		}
+	}
+	if (*c)
+		s = 0;
+	return s;
+}
+
+int parse_layout_10(char *layout)
+{
+	int copies, rv;
+	char *cp;
+	/* Parse the layout string for raid10 */
+	/* 'f', 'o' or 'n' followed by a number <= raid_disks */
+	if ((layout[0] !=  'n' && layout[0] != 'f' && layout[0] != 'o') ||
+	    (copies = strtoul(layout+1, &cp, 10)) < 1 ||
+	    copies > 200 ||
+	    *cp)
+		return -1;
+	if (layout[0] == 'n')
+		rv = 256 + copies;
+	else if (layout[0] == 'o')
+		rv = 0x10000 + (copies<<8) + 1;
+	else
+		rv = 1 + (copies<<8);
+	return rv;
+}
+
+int parse_layout_faulty(char *layout)
+{
+	/* Parse the layout string for 'faulty' */
+	int ln = strcspn(layout, "0123456789");
+	char *m = strdup(layout);
+	int mode;
+	m[ln] = 0;
+	mode = map_name(faultylayout, m);
+	if (mode == UnSet)
+		return -1;
+
+	return mode | (atoi(layout+ln)<< ModeShift);
+}
+#endif
+
 void remove_partitions(int fd)
 {
 	/* remove partitions from this block devices.
@@ -194,9 +261,9 @@ int enough(int level, int raid_disks, int layout, int clean,
 		} while (first != 0);
 		return 1;
 
-	case -4:
+	case LEVEL_MULTIPATH:
 		return avail_disks>= 1;
-	case -1:
+	case LEVEL_LINEAR:
 	case 0:
 		return avail_disks == raid_disks;
 	case 1:
