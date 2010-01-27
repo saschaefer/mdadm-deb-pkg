@@ -10,6 +10,7 @@ mdadm (3.1.1-1) unstable; urgency=low
   * Update mdadd.sh (formerly /usr/share/doc/mdadm/examples/newdisk.gz) from
     Arno's website, refactoring the script into its own branch/patch
     (closes: #539103).
+  * Do not single-quote homehost in initramfs script (closes: #549083).
 
  -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 10:14:25 +1300
 
