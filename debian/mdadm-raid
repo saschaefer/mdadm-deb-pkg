@@ -92,7 +92,10 @@ case "${1:-}" in
   start)
     PREFIX="Assembling MD array"
 
-    if is_true $AUTOSTART || is_true ${MDADM_FORCE_AUTOSTART__:-0}; then
+    if is_true $INCREMENTAL; then
+      log_notice "disabled in favour of incremental assembly"
+
+    elif is_true $AUTOSTART || is_true ${MDADM_FORCE_AUTOSTART__:-0}; then
       if [ ! -f /proc/mdstat ] && [ -x "$(command -v modprobe)" ] ; then
         modprobe -q md 2>/dev/null || :
       fi
@@ -193,7 +196,10 @@ case "${1:-}" in
   stop)
     PREFIX="Stopping MD array"
 
-    if is_true $AUTOSTART; then
+    if is_true $INCREMENTAL; then
+      log_notice "disabled in favour of incremental assembly"
+
+    elif is_true $AUTOSTART; then
       if [ ! -f /proc/mdstat ]; then
         log_problem "no MD subsystem loaded"
         exit 0
