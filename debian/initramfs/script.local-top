@@ -6,21 +6,22 @@
 #
 set -eu
 
-case ${1:-} in
-  prereqs) echo "multipath"; exit 0;;
-esac
-
 . /scripts/functions
-
-maybe_break pre-mdadm
 
 if [ -e /scripts/local-top/md ]; then
   log_warning_msg "old md initialisation script found, getting out of its way..."
   exit 1
 fi
 
-MDADM=/sbin/mdadm
-[ -x "$MDADM" ] || exit 0
+maybe_break pre-mdadm
+
+is_true()
+{
+  case "${1:-}" in
+    [Yy]es|[Yy]|1|[Tt]rue|[Tt]) return 0;;
+    *) return 1;;
+  esac
+}
 
 verbose()
 {
@@ -31,24 +32,24 @@ verbose()
   esac
 }
 
-MD_DEVS=all
-MD_MODULES='linear multipath raid0 raid1 raid456 raid5 raid6 raid10'
-[ -s /conf/conf.d/md ] && . /conf/conf.d/md
-
-verbose && log_begin_msg Loading MD modules
-for module in ${MD_MODULES:-}; do
-  if modprobe -q "$module"; then
-    verbose && log_success_msg "loaded module ${module}."
-  else
-    log_failure_msg "failed to load module ${module}."
-  fi
-done
-log_end_msg
+case ${1:-} in
+  prereqs) echo "multipath"; exit 0;;
+esac
 
 if [ ! -f /proc/mdstat ]; then
-  verbose && panic "cannot initialise MD subsystem (/proc/mdstat missing)"
+  verbose && panic "MD subsystem is not initialised (/proc/mdstat missing)"
   exit 1
 fi
+
+DEBIANCONFIG=/etc/default/mdadm
+[ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
+
+if is_true "$INCREMENTAL"; then
+  exit 0
+fi
+
+MDADM=/sbin/mdadm
+[ -x "$MDADM" ] || exit 0
 
 # handle /dev/md/X nodes
 mkdir -p /dev/md

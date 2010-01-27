@@ -77,23 +77,32 @@ copy_exec $MDADM /sbin
 modules="linear multipath raid0 raid1 raid456 raid5 raid6 raid10"
 for mod in $modules; do manual_add_modules $mod; done
 
-# read in the configuration
-CONFIG=/etc/mdadm/mdadm.conf
-ALTCONFIG=/etc/mdadm.conf
-[ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG || :
+# Copy udev rules, which udev no longer does
+mkdir -p $DESTDIR/lib/udev/rules.d/
+cp /lib/udev/rules.d/64-md-raid.rules $DESTDIR/lib/udev/rules.d/
 
+# We need the Debian config to help udev figure out whether
+# incremental mode should be used
 DEBIANCONFIG=/etc/default/mdadm
+mkdir -p $DESTDIR/etc/default
+cp $DEBIANCONFIG $DESTDIR/etc/default
+
+# read in the configuration
 INITRDSTART=all
 [ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
 [ -z "$INITRDSTART" ] && INITRDSTART=none
 
+CONFIG=/etc/mdadm/mdadm.conf
+ALTCONFIG=/etc/mdadm.conf
+[ ! -f $CONFIG ] && [ -f $ALTCONFIG ] && CONFIG=$ALTCONFIG || :
+
 DESTMDADMCONF=$DESTDIR/etc/mdadm/mdadm.conf
 DESTCONFIG=$DESTDIR/conf/conf.d/md
 
-homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
-if [ -z "${homehost:-}" ] || [ "${homehost:-}" = '<system>' ]; then
-  echo "MD_HOMEHOST='$(hostname)'" > $DESTCONFIG
-fi
+uniquify()
+{
+  for i in $@; do echo "$i"; done | sort -u
+}
 
 install_config()
 {
@@ -102,6 +111,20 @@ install_config()
   # only copy ARRAY/DEVICE/HOMEHOST lines, and merge continuation lines into one
   sed -e :a -re '$!N;s/\n[[:space:]]+/ /;ta' -ne '/^(ARRAY|DEVICE|HOMEHOST)/P;D' $1 > $2
 }
+
+if is_true "$INCREMENTAL"; then
+  info "MD arrays are being incrementally assembled"
+  if [ -s $CONFIG ]; then
+    # mdadm.conf is optional with incremental assembly
+    install_config $CONFIG $DESTMDADMCONF
+  fi
+  exit 0
+fi
+
+homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
+if [ -z "${homehost:-}" ] || [ "${homehost:-}" = '<system>' ]; then
+  echo "MD_HOMEHOST='$(hostname)'" > $DESTCONFIG
+fi
 
 if [ ! -f $CONFIG ]; then
   # there is no configuration file, so let's create one
@@ -205,11 +228,6 @@ else
     done < $DESTMDADMCONF)" || exit $?
 fi
 
-uniquify()
-{
-  for i in $@; do echo "$i"; done | sort -u
-}
-
 if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   echo "MD_DEVPAIRS='${devpairs% }'" >> $DESTCONFIG
 
@@ -280,10 +298,6 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
       info "will start MD array $i from the initial ramdisk."
     done
   fi
-
-  # Copy udev rules, which udev no longer does
-  mkdir -p $DESTDIR/lib/udev/rules.d/
-  cp /lib/udev/rules.d/64-md-raid.rules $DESTDIR/lib/udev/rules.d/
 
 else
   echo "MD_DEVS=none" >> $DESTCONFIG

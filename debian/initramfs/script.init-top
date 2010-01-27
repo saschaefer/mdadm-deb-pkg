@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Copyright © 2010 Martin F. Krafft <madduck@debian.org>
+# based on the scripts in the initramfs-tools package.
+# released under the terms of the Artistic Licence 2.0.
+#
+set -eu
+
+. /scripts/functions
+
+case ${1:-} in
+  prereqs) exit 0;;
+esac
+
+verbose()
+{
+  case "$quiet" in y*|Y*|1|t*|T*)
+    return 1;;
+  *)
+    return 0;;
+  esac
+}
+
+if [ -e /proc/modules ]; then
+  verbose && log_begin_msg Loading MD module
+  if modprobe -q md_mod; then
+    verbose && log_success_msg "loaded MD module."
+  else
+    log_failure_msg "failed to load MD module (md_mod)."
+  fi
+fi
+
+exit 0
