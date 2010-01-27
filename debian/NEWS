@@ -1,3 +1,23 @@
+mdadm (3.1.1-1+incremental) experimental; urgency=low
+
+  This release of mdadm adds incremental, event-based assembly of MD arrays.
+  If you answer yes to the corresponding debconf question, then your arrays
+  shall be assembled as soon as the minimum number of required devices has
+  become available. I think that the actual result is identical to what we
+  have now, but there's a lot less code involved — most of the initramfs
+  magic, and all of the init.d script are no longer needed. Also, the
+  mdadm.conf file will become optional with this method. Therefore, the
+  long-term goal is to make incremental, event-based assembly of MD arrays the
+  default.
+
+  If you're savvy with Debian and know how to resurrect an unbootable system,
+  I would appreciate if you gave it a shot, and reported any problems to the
+  bug tracker.
+
+  I especially welcome people contributing changes to the documentation files.
+
+ -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 22:31:40 +1300
+
 mdadm (2.6.7-2) unstable; urgency=low
 
   /dev/disk symlinks:
