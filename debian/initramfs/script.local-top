@@ -1,8 +1,8 @@
 #!/bin/sh
 #
-# Copyright © 2006-2008 Martin F. Krafft <madduck@debian.org>
+# Copyright © 2006–2010 Martin F. Krafft <madduck@debian.org>
 # based on the scripts in the initramfs-tools package.
-# released under the terms of the Artistic Licence.
+# released under the terms of the Artistic Licence 2.0.
 #
 set -eu
 
