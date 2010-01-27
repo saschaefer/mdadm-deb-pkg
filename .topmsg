@@ -1,0 +1,7 @@
+From: martin f. krafft <madduck@debian.org>
+Subject: Add incremental (event-based) RAID assembly
+
+This patch to the Debian mdadm package adds event-based RAID assembly based on
+udev and mdadm's incremental mode.
+
+Signed-off-by: martin f. krafft <madduck@debian.org>
