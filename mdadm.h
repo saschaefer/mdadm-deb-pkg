@@ -370,8 +370,12 @@ extern int sysfs_set_str(struct mdinfo *sra, struct mdinfo *dev,
 extern int sysfs_set_num(struct mdinfo *sra, struct mdinfo *dev,
 			 char *name, unsigned long long val);
 extern int sysfs_uevent(struct mdinfo *sra, char *event);
+extern int sysfs_get_fd(struct mdinfo *sra, struct mdinfo *dev,
+			char *name);
+extern int sysfs_fd_get_ll(int fd, unsigned long long *val);
 extern int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
 			char *name, unsigned long long *val);
+extern int sysfs_fd_get_str(int fd, char *val, int size);
 extern int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
 			 char *name, char *val, int size);
 extern int sysfs_set_safemode(struct mdinfo *sra, unsigned long ms);
@@ -386,7 +390,8 @@ extern int load_sys(char *path, char *buf);
 extern int save_stripes(int *source, unsigned long long *offsets,
 			int raid_disks, int chunk_size, int level, int layout,
 			int nwrites, int *dest,
-			unsigned long long start, unsigned long long length);
+			unsigned long long start, unsigned long long length,
+			char *buf);
 extern int restore_stripes(int *dest, unsigned long long *offsets,
 			   int raid_disks, int chunk_size, int level, int layout,
 			   int source, unsigned long long read_offset,
@@ -708,7 +713,6 @@ extern int add_dev(const char *name, const struct stat *stb, int flag, struct FT
 extern int Manage_ro(char *devname, int fd, int readonly);
 extern int Manage_runstop(char *devname, int fd, int runstop, int quiet);
 extern int Manage_resize(char *devname, int fd, long long size, int raid_disks);
-extern int Manage_reconfig(char *devname, int fd, int layout);
 extern int Manage_subdevs(char *devname, int fd,
 			  mddev_dev_t devlist, int verbose);
 extern int autodetect(void);
@@ -716,10 +720,11 @@ extern int Grow_Add_device(char *devname, int fd, char *newdev);
 extern int Grow_addbitmap(char *devname, int fd, char *file, int chunk, int delay, int write_behind, int force);
 extern int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 			long long size,
-			int level, int layout, int chunksize, int raid_disks);
+			int level, char *layout_str, int chunksize, int raid_disks);
 extern int Grow_restart(struct supertype *st, struct mdinfo *info,
-			int *fdlist, int cnt, char *backup_file);
-
+			int *fdlist, int cnt, char *backup_file, int verbose);
+extern int Grow_continue(int mdfd, struct supertype *st,
+			 struct mdinfo *info, char *backup_file);
 
 extern int Assemble(struct supertype *st, char *mddev,
 		    mddev_ident_t ident,
@@ -775,7 +780,10 @@ extern unsigned long bitmap_sectors(struct bitmap_super_s *bsb);
 
 extern int md_get_version(int fd);
 extern int get_linux_version(void);
+extern long long parse_size(char *size);
 extern int parse_uuid(char *str, int uuid[4]);
+extern int parse_layout_10(char *layout);
+extern int parse_layout_faulty(char *layout);
 extern int check_ext2(int fd, char *name);
 extern int check_reiser(int fd, char *name);
 extern int check_raid(int fd, char *name);

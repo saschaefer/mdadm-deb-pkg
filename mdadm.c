@@ -41,8 +41,10 @@ int main(int argc, char *argv[])
 
 	int chunk = 0;
 	long long size = -1;
+	long long array_size = -1;
 	int level = UnSet;
 	int layout = UnSet;
+	char *layout_str = NULL;
 	int raiddisks = 0;
 	int max_disks = MD_SB_DISKS; /* just a default */
 	int sparedisks = 0;
@@ -102,7 +104,6 @@ int main(int argc, char *argv[])
 	int rebuild_map = 0;
 	int auto_update_home = 0;
 
-	int copies;
 	int print_help = 0;
 	FILE *outf;
 
@@ -324,6 +325,7 @@ int main(int argc, char *argv[])
 		 * could depend on the mode */
 #define O(a,b) ((a<<8)|b)
 		switch (O(mode,opt)) {
+		case O(GROW,'c'):
 		case O(CREATE,'c'):
 		case O(BUILD,'c'): /* chunk or rounding */
 			if (chunk) {
@@ -386,16 +388,36 @@ int main(int argc, char *argv[])
 			if (strcmp(optarg, "max")==0)
 				size = 0;
 			else {
-				size = strtoll(optarg, &c, 10);
-				if (!optarg[0] || *c || size < 4) {
+				size = parse_size(optarg);
+				if (size < 8) {
 					fprintf(stderr, Name ": invalid size: %s\n",
+						optarg);
+					exit(2);
+				}
+				/* convert sectors to K */
+				size /= 2;
+			}
+			continue;
+
+		case O(GROW,'Z'): /* array size */
+			if (array_size >= 0) {
+				fprintf(stderr, Name ": array-size may only be specified once. "
+					"Second value is %s.\n", optarg);
+				exit(2);
+			}
+			if (strcmp(optarg, "max") == 0)
+				array_size = 0;
+			else {
+				array_size = parse_size(optarg);
+				if (array_size <= 0) {
+					fprintf(stderr, Name ": invalid array size: %s\n",
 						optarg);
 					exit(2);
 				}
 			}
 			continue;
 
-		case O(GROW,'l'): /* hack - needed to understand layout */
+		case O(GROW,'l'):
 		case O(CREATE,'l'):
 		case O(BUILD,'l'): /* set raid level*/
 			if (level != UnSet) {
@@ -425,9 +447,18 @@ int main(int argc, char *argv[])
 			ident.level = level;
 			continue;
 
+		case O(GROW, 'p'): /* new layout */
+			if (layout_str) {
+				fprintf(stderr,Name ": layout may only be sent once.  "
+					"Second value was %s\n", optarg);
+				exit(2);
+			}
+			layout_str = optarg;
+			/* 'Grow' will parse the value */
+			continue;
+
 		case O(CREATE,'p'): /* raid5 layout */
 		case O(BUILD,'p'): /* faulty layout */
-		case O(GROW, 'p'): /* faulty reconfig */
 			if (layout != UnSet) {
 				fprintf(stderr,Name ": layout may only be sent once.  "
 					"Second value was %s\n", optarg);
@@ -460,38 +491,23 @@ int main(int argc, char *argv[])
 				break;
 
 			case 10:
-				/* 'f', 'o' or 'n' followed by a number <= raid_disks */
-				if ((optarg[0] !=  'n' && optarg[0] != 'f' && optarg[0] != 'o') ||
-				    (copies = strtoul(optarg+1, &cp, 10)) < 1 ||
-				    copies > 200 ||
-				    *cp) {
+				layout = parse_layout_10(optarg);
+				if (layout < 0) {
 					fprintf(stderr, Name ": layout for raid10 must be 'nNN', 'oNN' or 'fNN' where NN is a number, not %s\n", optarg);
 					exit(2);
 				}
-				if (optarg[0] == 'n')
-					layout = 256 + copies;
-				else if (optarg[0] == 'o')
-					layout = 0x10000 + (copies<<8) + 1;
-				else
-					layout = 1 + (copies<<8);
 				break;
-			case -5: /* Faulty
-				  * modeNNN
-				  */
-
-			{
-				int ln = strcspn(optarg, "0123456789");
-				char *m = strdup(optarg);
-				int mode;
-				m[ln] = 0;
-				mode = map_name(faultylayout, m);
-				if (mode == UnSet) {
+			case LEVEL_FAULTY:
+				/* Faulty
+				 * modeNNN
+				 */
+				layout = parse_layout_faulty(optarg);
+				if (layout == -1) {
 					fprintf(stderr, Name ": layout %s not understood for faulty.\n",
 						optarg);
 					exit(2);
 				}
-				layout = mode | (atoi(optarg+ln)<< ModeShift);
-			}
+				break;
 			}
 			continue;
 
@@ -1398,11 +1414,42 @@ int main(int argc, char *argv[])
 		break;
 
 	case GROW:
+		if (array_size >= 0) {
+			/* alway impose array size first, independent of
+			 * anything else
+			 * Do not allow level or raid_disks changes at the
+			 * same time as that can be irreversibly destructive.
+			 */
+			struct mdinfo sra;
+			int err;
+			if (raiddisks || level != UnSet) {
+				fprintf(stderr, Name ": cannot change array size in same operation "
+					"as changing raiddisks or level.\n"
+					"    Change size first, then check that data is still intact.\n");
+				rv = 1;
+				break;
+			}
+			sysfs_init(&sra, mdfd, 0);
+			if (array_size == 0)
+				err = sysfs_set_str(&sra, NULL, "array_size", "default");
+			else
+				err = sysfs_set_num(&sra, NULL, "array_size", array_size / 2);
+			if (err < 0) {
+				if (errno == E2BIG)
+					fprintf(stderr, Name ": --array-size setting"
+						" is too large.\n");
+				else
+					fprintf(stderr, Name ": current kernel does"
+						" not support setting --array-size\n");
+				rv = 1;
+				break;
+			}
+		}
 		if (devs_found > 1) {
 
 			/* must be '-a'. */
-			if (size >= 0 || raiddisks) {
-				fprintf(stderr, Name ": --size, --raiddisks, and --add are exclusing in --grow mode\n");
+			if (size >= 0 || raiddisks || chunk || layout_str != NULL || bitmap_file) {
+				fprintf(stderr, Name ": --add cannot be used with other geometry changes in --grow mode\n");
 				rv = 1;
 				break;
 			}
@@ -1411,20 +1458,21 @@ int main(int argc, char *argv[])
 				if (rv)
 					break;
 			}
-		} else if ((size >= 0) + (raiddisks != 0) +  (layout != UnSet) + (bitmap_file != NULL)> 1) {
-			fprintf(stderr, Name ": can change at most one of size, raiddisks, bitmap, and layout\n");
-			rv = 1;
-			break;
-		} else if (layout != UnSet)
-			rv = Manage_reconfig(devlist->devname, mdfd, layout);
-		else if (size >= 0 || raiddisks)
-			rv = Grow_reshape(devlist->devname, mdfd, quiet, backup_file,
-					  size, level, layout, chunk, raiddisks);
-		else if (bitmap_file) {
-			if (delay == 0) delay = DEFAULT_BITMAP_DELAY;
+		} else if (bitmap_file) {
+			if (size >= 0 || raiddisks || chunk || layout_str != NULL) {
+				fprintf(stderr, Name ": --bitmap changes cannot be used with other geometry changes in --grow mode\n");
+				rv = 1;
+				break;
+			}
+			if (delay == 0)
+				delay = DEFAULT_BITMAP_DELAY;
 			rv = Grow_addbitmap(devlist->devname, mdfd, bitmap_file,
 					    bitmap_chunk, delay, write_behind, force);
-		} else
+		} else if (size >= 0 || raiddisks != 0 || layout_str != NULL
+			   || chunk != 0 || level != UnSet) {
+			rv = Grow_reshape(devlist->devname, mdfd, quiet, backup_file,
+					  size, level, layout_str, chunk, raiddisks);
+		} else if (array_size < 0)
 			fprintf(stderr, Name ": no changes to --grow\n");
 		break;
 	case INCREMENTAL:

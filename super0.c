@@ -85,6 +85,7 @@ static void examine_super0(struct supertype *st, char *homehost)
 	mdp_super_t *sb = st->sb;
 	time_t atime;
 	int d;
+	int delta_extra = 0;
 	char *c;
 
 	printf("          Magic : %08x\n", sb->md_magic);
@@ -135,10 +136,9 @@ static void examine_super0(struct supertype *st, char *homehost)
 		printf("  Reshape pos'n : %llu%s\n", (unsigned long long)sb->reshape_position/2, human_size((long long)sb->reshape_position<<9));
 		if (sb->delta_disks) {
 			printf("  Delta Devices : %d", sb->delta_disks);
-			if (sb->delta_disks)
-				printf(" (%d->%d)\n", sb->raid_disks-sb->delta_disks, sb->raid_disks);
-			else
-				printf(" (%d->%d)\n", sb->raid_disks, sb->raid_disks+sb->delta_disks);
+			printf(" (%d->%d)\n", sb->raid_disks-sb->delta_disks, sb->raid_disks);
+			if (((int)sb->delta_disks) < 0)
+				delta_extra = - sb->delta_disks;
 		}
 		if (sb->new_level != sb->level) {
 			c = map_num(pers, sb->new_level);
@@ -147,6 +147,10 @@ static void examine_super0(struct supertype *st, char *homehost)
 		if (sb->new_layout != sb->layout) {
 			if (sb->level == 5) {
 				c = map_num(r5layout, sb->new_layout);
+				printf("     New Layout : %s\n", c?c:"-unknown-");
+			}
+			if (sb->level == 6) {
+				c = map_num(r6layout, sb->new_layout);
 				printf("     New Layout : %s\n", c?c:"-unknown-");
 			}
 			if (sb->level == 10) {
@@ -182,6 +186,10 @@ static void examine_super0(struct supertype *st, char *homehost)
 		c = map_num(r5layout, sb->layout);
 		printf("         Layout : %s\n", c?c:"-unknown-");
 	}
+	if (sb->level == 6) {
+		c = map_num(r6layout, sb->layout);
+		printf("         Layout : %s\n", c?c:"-unknown-");
+	}
 	if (sb->level == 10) {
 		printf("         Layout :");
 		print_r10_layout(sb->layout);
@@ -202,7 +210,7 @@ static void examine_super0(struct supertype *st, char *homehost)
 	}
 	printf("\n");
 	printf("      Number   Major   Minor   RaidDevice State\n");
-	for (d= -1; d<(signed int)(sb->raid_disks+sb->spare_disks); d++) {
+	for (d= -1; d<(signed int)(sb->raid_disks+delta_extra + sb->spare_disks); d++) {
 		mdp_disk_t *dp;
 		char *dv;
 		char nb[5];
@@ -371,6 +379,8 @@ static void getinfo_super0(struct supertype *st, struct mdinfo *info)
 		info->delta_disks = sb->delta_disks;
 		info->new_layout = sb->new_layout;
 		info->new_chunk = sb->new_chunk;
+		if (info->delta_disks < 0)
+			info->array.raid_disks -= info->delta_disks;
 	} else
 		info->reshape_active = 0;
 
@@ -468,7 +478,14 @@ static int update_super0(struct supertype *st, struct mdinfo *info,
 	if (strcmp(update, "assemble")==0) {
 		int d = info->disk.number;
 		int wonly = sb->disks[d].state & (1<<MD_DISK_WRITEMOSTLY);
-		if ((sb->disks[d].state & ~(1<<MD_DISK_WRITEMOSTLY))
+		int mask = (1<<MD_DISK_WRITEMOSTLY);
+		int add = 0;
+		if (sb->minor_version >= 91)
+			/* During reshape we don't insist on everything
+			 * being marked 'sync'
+			 */
+			add = (1<<MD_DISK_SYNC);
+		if (((sb->disks[d].state & ~mask) | add)
 		    != info->disk.state) {
 			sb->disks[d].state = info->disk.state | wonly;
 			rv = 1;
@@ -904,9 +921,7 @@ static struct supertype *match_metadata_desc0(char *arg)
 	while (arg[0] == '0' && arg[1] == '0')
 		arg++;
 	if (strcmp(arg, "0") == 0 ||
-	    strcmp(arg, "0.90") == 0 ||
-	    strcmp(arg, "default") == 0 ||
-	    strcmp(arg, "") == 0 /* no metadata */
+	    strcmp(arg, "0.90") == 0
 		)
 		return st;
 
@@ -955,9 +970,14 @@ static int add_internal_bitmap0(struct supertype *st, int *chunkp,
 		min_chunk *= 2;
 		bits = (bits+1)/2;
 	}
-	if (chunk == UnSet)
+	if (chunk == UnSet) {
+		/* A chunk size less than a few Megabytes gives poor
+		 * performance without increasing resync noticeably
+		 */
 		chunk = min_chunk;
-	else if (chunk < min_chunk)
+		if (chunk < 64*1024*1024)
+			chunk = 64*1024*1024;
+	} else if (chunk < min_chunk)
 		return 0; /* chunk size too small */
 
 	sb->state |= (1<<MD_SB_BITMAP_PRESENT);
@@ -1059,12 +1079,22 @@ static int validate_geometry0(struct supertype *st, int level,
 	unsigned long long ldsize;
 	int fd;
 
-	if (level == LEVEL_CONTAINER)
+	if (level == LEVEL_CONTAINER) {
+		if (verbose)
+			fprintf(stderr, Name ": 0.90 metadata does not support containers\n");
 		return 0;
-	if (raiddisks > MD_SB_DISKS)
+	}
+	if (raiddisks > MD_SB_DISKS) {
+		if (verbose)
+			fprintf(stderr, Name ": 0.90 metadata supports at most %d devices per array\n",
+				MD_SB_DISKS);
 		return 0;
-	if (size > (0x7fffffffULL<<9))
+	}
+	if (size > (0x7fffffffULL<<9)) {
+		if (verbose)
+			fprintf(stderr, Name ": 0.90 metadata supports at most 2 terrabytes per device\n");
 		return 0;
+	}
 	if (!subdev)
 		return 1;
 

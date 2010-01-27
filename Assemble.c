@@ -683,7 +683,7 @@ int Assemble(struct supertype *st, char *mddev,
 			    > devices[most_recent].i.events)
 				most_recent = devcnt;
 		}
-		if (content->array.level == -4)
+		if (content->array.level == LEVEL_MULTIPATH)
 			/* with multipath, the raid_disk from the superblock is meaningless */
 			i = devcnt;
 		else
@@ -776,8 +776,8 @@ int Assemble(struct supertype *st, char *mddev,
 		/* note: we ignore error flags in multipath arrays
 		 * as they don't make sense
 		 */
-		if (content->array.level != -4)
-			if (!(devices[j].i.disk.state & (1<<MD_DISK_SYNC))) {
+		if (content->array.level != LEVEL_MULTIPATH)
+			if (!(devices[j].i.disk.state & (1<<MD_DISK_ACTIVE))) {
 				if (!(devices[j].i.disk.state
 				      & (1<<MD_DISK_FAULTY)))
 					sparecnt++;
@@ -990,6 +990,10 @@ int Assemble(struct supertype *st, char *mddev,
 	if (content->reshape_active) {
 		int err = 0;
 		int *fdlist = malloc(sizeof(int)* bestcnt);
+		if (verbose > 0)
+			fprintf(stderr, Name ":%s has an active reshape - checking "
+				"if critical section needs to be restored\n",
+				chosen_name);
 		for (i=0; i<bestcnt; i++) {
 			int j = best[i];
 			if (j >= 0) {
@@ -1004,13 +1008,15 @@ int Assemble(struct supertype *st, char *mddev,
 				fdlist[i] = -1;
 		}
 		if (!err)
-			err = Grow_restart(st, content, fdlist, bestcnt, backup_file);
+			err = Grow_restart(st, content, fdlist, bestcnt, backup_file, verbose > 0);
 		while (i>0) {
 			i--;
 			if (fdlist[i]>=0) close(fdlist[i]);
 		}
 		if (err) {
 			fprintf(stderr, Name ": Failed to restore critical section for reshape, sorry.\n");
+			if (backup_file == NULL)
+				fprintf(stderr,"      Possibly you needed to specify the --backup-file\n");
 			close(mdfd);
 			return err;
 		}
@@ -1119,7 +1125,20 @@ int Assemble(struct supertype *st, char *mddev,
 			      content->array.layout, clean, avail, okcnt) &&
 		       (okcnt >= req_cnt || start_partial_ok)
 			     ))) {
-			if (ioctl(mdfd, RUN_ARRAY, NULL)==0) {
+			/* This array is good-to-go.
+			 * If a reshape is in progress then we might need to
+			 * continue monitoring it.  In that case we start
+			 * it read-only and let the grow code make it writable.
+			 */
+			int rv;
+#ifndef MDASSEMBLE
+			if (content->reshape_active &&
+			    content->delta_disks <= 0)
+				rv = Grow_continue(mdfd, st, content, backup_file);
+			else
+#endif
+				rv = ioctl(mdfd, RUN_ARRAY, NULL);
+			if (rv == 0) {
 				if (verbose >= 0) {
 					fprintf(stderr, Name ": %s has been started with %d drive%s",
 						mddev, okcnt, okcnt==1?"":"s");
