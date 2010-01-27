@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mdadm\n"
 "Report-Msgid-Bugs-To: mdadm@packages.debian.org\n"
-"POT-Creation-Date: 2008-02-06 18:49+0100\n"
+"POT-Creation-Date: 2010-01-27 17:30+1300\n"
 "PO-Revision-Date: 2008-02-15 20:42+0100\n"
 "Last-Translator: Florentin Duneau <fduneau@gmail.com>\n"
 "Language-Team: French <debian-l10n-french@lists.debian.org>\n"
@@ -19,6 +19,31 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms:  nplurals=2; plural=(n > 1);\n"
 "X-Generator: KBabel 1.11.4\n"
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:1001
+msgid "Assemble arrays incrementally as components become available?"
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:1001
+msgid ""
+"mdadm can incrementally assemble arrays as components become available. If "
+"this is enabled, mdadm hooks into udev so that it gets invoked every time a "
+"new block device appears on the system. For each RAID component it sees that "
+"way, it will add it to the appropriate array and subsequently try to start "
+"the array."
+msgstr ""
+
+#. Type: boolean
+#. Description
+#: ../mdadm.templates:1001
+msgid ""
+"THIS IS CURRENTLY AN EXPERIMENTAL FEATURE. DO NOT ENABLE UNLESS YOU KNOW HOW "
+"TO RESURRECT AN UNBOOTABLE DEBIAN SYSTEM."
+msgstr ""
 
 #. Type: string
 #. Description

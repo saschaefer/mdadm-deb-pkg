@@ -6,6 +6,18 @@
 #
 # Even minor modifications require translation updates and such
 # changes should be coordinated with translators and reviewers.
+Template: mdadm/incremental
+Type: boolean
+Default: false
+_Description: Assemble arrays incrementally as components become available?
+ mdadm can incrementally assemble arrays as components become available. If
+ this is enabled, mdadm hooks into udev so that it gets invoked every time
+ a new block device appears on the system. For each RAID component it sees
+ that way, it will add it to the appropriate array and subsequently try to
+ start the array.
+ .
+ THIS IS CURRENTLY AN EXPERIMENTAL FEATURE. DO NOT ENABLE UNLESS YOU KNOW
+ HOW TO RESURRECT AN UNBOOTABLE DEBIAN SYSTEM.
 
 Template: mdadm/initrdstart
 Type: string

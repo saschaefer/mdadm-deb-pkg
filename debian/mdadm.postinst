@@ -75,6 +75,8 @@ case "${1:-}" in
     fi
     unset MDADM_MAILADDR__
 
+    db_get mdadm/incremental
+    INCREMENTAL=${RET:-false}
     db_get mdadm/initrdstart
     INITRDSTART="${RET:-all}"
     db_get mdadm/autostart
@@ -95,15 +97,27 @@ case "${1:-}" in
 # rewritten.
 #
 
+# INCREMENTAL
+#   if this is true, then arrays are assembled incrementally as devices become
+#   available, and mdadm tries to start each array as soon as it can be run.
+#
+#   THIS IS CURRENTLY AN EXPERIMENTAL FEATURE. DO NOT ENABLE UNLESS YOU KNOW
+#   HOW TO RESURRECT AN UNBOOTABLE DEBIAN SYSTEM.
+INCREMENTAL='$INCREMENTAL'
+
 # INITRDSTART:
 #   list of arrays (or 'all') to start automatically when the initial ramdisk
 #   loads. This list *must* include the array holding your root filesystem. Use
 #   'none' to prevent any array from being started from the initial ramdisk.
+#
+#   This is overridden by INCREMENTAL==true.
 INITRDSTART='$INITRDSTART'
 
 # AUTOSTART:
 #   should mdadm start arrays listed in /etc/mdadm/mdadm.conf automatically
 #   during boot?
+#
+#   This is overridden by INCREMENTAL==true.
 AUTOSTART=$AUTOSTART
 
 # AUTOCHECK:
