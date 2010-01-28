@@ -115,6 +115,13 @@ echo "--- /proc/partitions:" >&3
 cat /proc/partitions >&3 2>&3 || :
 echo >&3
 
+echo "--- LVM physical volumes:" >&3
+if [ -x "$(command -v pvs)" ]; then
+  pvs >&3
+else
+  echo "LVM does not seem to be used." >&3
+fi
+
 echo "--- mount output" >&3
 mount >&3
 echo >&3
