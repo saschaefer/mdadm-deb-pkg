@@ -103,6 +103,14 @@ else
 fi
 echo >&3
 
+echo "--- /etc/default/mdadm" >&3
+if [ -r /etc/default/mdadm ]; then
+  grep '^[^#]' /etc/default/mdadm >&3
+else
+  echo no /etc/default/mdadm file. >&3
+fi
+echo >&3
+
 echo "--- /proc/mdstat:" >&3
 cat /proc/mdstat >&3 2>&3 || :
 echo >&3
