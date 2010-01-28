@@ -89,15 +89,21 @@ if [ ! -r /proc/mdstat ]; then
   #[ "$REPLY" = yep ] || exit 1
 fi
 
-echo "--- mount output" >&3
-mount >&3
-echo >&3
-
 echo "--- mdadm.conf" >&3
 if [ -r /etc/mdadm/mdadm.conf ]; then
-  cat /etc/mdadm/mdadm.conf >&3
+  grep '^[^#]' /etc/mdadm/mdadm.conf >&3
+elif [ -r /etc/mdadm.conf ]; then
+  grep '^[^#]' /etc/mdadm.conf >&3
 else
   echo no mdadm.conf file. >&3
+fi
+echo >&3
+
+echo "--- /etc/default/mdadm" >&3
+if [ -r /etc/default/mdadm ]; then
+  grep '^[^#]' /etc/default/mdadm >&3
+else
+  echo no /etc/default/mdadm file. >&3
 fi
 echo >&3
 
@@ -109,6 +115,17 @@ echo "--- /proc/partitions:" >&3
 cat /proc/partitions >&3 2>&3 || :
 echo >&3
 
+echo "--- LVM physical volumes:" >&3
+if [ -x "$(command -v pvs)" ]; then
+  pvs >&3
+else
+  echo "LVM does not seem to be used." >&3
+fi
+
+echo "--- mount output" >&3
+mount >&3
+echo >&3
+
 echo "--- initrd.img-$(uname -r):" >&3
 if [ -r /boot/initrd.img-$(uname -r) ]; then
   TEMPDIR=$(mktemp -d)
@@ -116,9 +133,20 @@ if [ -r /boot/initrd.img-$(uname -r) ]; then
   cd "$TEMPDIR"
   zcat /boot/initrd.img-$(uname -r) 2>&3 | cpio -i 2>&3
   find -regex '.*/md[a/].+' -type f -exec md5sum {} \; >&3
+
+  echo >&3
+  echo "--- initrd's /conf/conf.d/md:" >&3
+  if [ -r conf/conf.d/md ]; then
+    cat conf/conf.d/md >&3
+  else
+    echo "no conf/md file." >&3
+  fi
+
   cd "$OLDPWD"
   rm -rf "$TEMPDIR"
   unset TEMPDIR
+else
+  echo "no initrd.img-$(uname -r) found." >&3
 fi
 echo >&3
 
