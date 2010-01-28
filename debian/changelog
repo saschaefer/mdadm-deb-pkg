@@ -3,6 +3,8 @@ mdadm (3.1.1-1+incremental) experimental; urgency=low
   * Add EXPERIMENTAL support for incrementally assembling arrays based on udev
     events (closes: #398310, #521547).
   * Ignore lintian error about not stopping in runlevel 1.
+  * Include more information about the configuration, initrd, and LVM in
+    bugscript output.
 
  -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 14:42:16 +1300
 

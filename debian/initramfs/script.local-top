@@ -43,6 +43,7 @@ fi
 
 DEBIANCONFIG=/etc/default/mdadm
 [ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
+[ -s /conf/conf.d/md ] && . /conf/conf.d/md
 
 if is_true "$INCREMENTAL"; then
   exit 0
