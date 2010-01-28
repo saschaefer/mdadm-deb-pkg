@@ -133,9 +133,20 @@ if [ -r /boot/initrd.img-$(uname -r) ]; then
   cd "$TEMPDIR"
   zcat /boot/initrd.img-$(uname -r) 2>&3 | cpio -i 2>&3
   find -regex '.*/md[a/].+' -type f -exec md5sum {} \; >&3
+
+  echo >&3
+  echo "--- initrd's /conf/conf.d/md:" >&3
+  if [ -r conf/conf.d/md ]; then
+    cat conf/conf.d/md >&3
+  else
+    echo "no conf/md file." >&3
+  fi
+
   cd "$OLDPWD"
   rm -rf "$TEMPDIR"
   unset TEMPDIR
+else
+  echo "no initrd.img-$(uname -r) found." >&3
 fi
 echo >&3
 
