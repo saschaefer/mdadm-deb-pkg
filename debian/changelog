@@ -1,10 +1,16 @@
+mdadm (3.1.1-1+incremental+2) experimental; urgency=low
+
+  * Read configuration file during initramfs (closes: #567301).
+  * Include more information about the configuration, initrd, and LVM in
+    bugscript output.
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 29 Jan 2010 10:06:37 +1300
+
 mdadm (3.1.1-1+incremental) experimental; urgency=low
 
   * Add EXPERIMENTAL support for incrementally assembling arrays based on udev
     events (closes: #398310, #521547).
   * Ignore lintian error about not stopping in runlevel 1.
-  * Include more information about the configuration, initrd, and LVM in
-    bugscript output.
 
  -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 14:42:16 +1300
 
