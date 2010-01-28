@@ -95,7 +95,9 @@ echo >&3
 
 echo "--- mdadm.conf" >&3
 if [ -r /etc/mdadm/mdadm.conf ]; then
-  cat /etc/mdadm/mdadm.conf >&3
+  grep '^[^#]' /etc/mdadm/mdadm.conf >&3
+elif [ -r /etc/mdadm.conf ]; then
+  grep '^[^#]' /etc/mdadm.conf >&3
 else
   echo no mdadm.conf file. >&3
 fi
