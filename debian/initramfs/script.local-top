@@ -36,10 +36,22 @@ case ${1:-} in
   prereqs) echo "multipath"; exit 0;;
 esac
 
+if [ -e /proc/modules ]; then
+  verbose && log_begin_msg Loading MD module
+  if modprobe -q md_mod; then
+    verbose && log_success_msg "loaded MD module."
+  else
+    log_failure_msg "failed to load MD module (md_mod)."
+  fi
+fi
+
 if [ ! -f /proc/mdstat ]; then
   verbose && panic "MD subsystem is not initialised (/proc/mdstat missing)"
   exit 1
 fi
+
+# prevent writes/syncs so that resuming works (#415441).
+echo 1 > /sys/module/md_mod/parameters/start_ro
 
 DEBIANCONFIG=/etc/default/mdadm
 [ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
@@ -70,9 +82,6 @@ if [ ! -e $CONFIG ]; then
   fi
   MD_DEVS=all
 fi
-
-# prevent writes/syncs so that resuming works (#415441).
-echo 1 > /sys/module/md_mod/parameters/start_ro
 
 if [ "$MD_DEVS" = all ]; then
 

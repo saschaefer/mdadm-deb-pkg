@@ -2,7 +2,7 @@
 
 SUBSYSTEM!="block", GOTO="md_end"
 ACTION!="add|change", GOTO="md_end"
-#ACTION=="change", GOTO="md_no_incr"
+ACTION=="change", GOTO="md_no_incr"
 
 IMPORT{file}="/etc/default/mdadm"
 ENV{INCREMENTAL}!="[tTyYjJ]*|[oO]n|1", GOTO="md_no_incr"

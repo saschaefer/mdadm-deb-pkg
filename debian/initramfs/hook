@@ -112,19 +112,25 @@ install_config()
   sed -e :a -re '$!N;s/\n[[:space:]]+/ /;ta' -ne '/^(ARRAY|DEVICE|HOMEHOST)/P;D' $1 > $2
 }
 
-if is_true "$INCREMENTAL"; then
-  info "MD arrays are being incrementally assembled"
-  if [ -s $CONFIG ]; then
-    # mdadm.conf is optional with incremental assembly
-    install_config $CONFIG $DESTMDADMCONF
-  fi
-  exit 0
-fi
+warn_upgrade()
+{
+  warn 'please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz .'
+  warn 'your system MAY CURRENTLY BE UNBOOTABLE!'
+}
 
-homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
-if [ -z "${homehost:-}" ] || [ "${homehost:-}" = '<system>' ]; then
-  echo "MD_HOMEHOST='$(hostname)'" > $DESTCONFIG
-fi
+warn_emergency()
+{
+  warn 'falling back to emergency procedure in initramfs,'
+  warn 'which may well FAIL TO BOOT YOUR SYSTEM!'
+}
+
+change_notice()
+{
+  # only output this on Debian systems
+  if [ -s /etc/default/mdadm ]; then
+    info "use 'dpkg-reconfigure ${1:+--priority=$1 }mdadm' to change this."
+  fi
+}
 
 if [ ! -f $CONFIG ]; then
   # there is no configuration file, so let's create one
@@ -136,7 +142,7 @@ if [ ! -f $CONFIG ]; then
   else
     # we failed to auto-generate, so let the emergency procedure take over
     warn "failed to auto-generate the mdadm.conf file."
-    warn "please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ."
+    warn_upgrade
   fi
 
 else
@@ -147,7 +153,7 @@ else
     # work. We thus better create one and start all arrays to be sure.
 
     warn "unchecked configuration file: $CONFIG"
-    warn "please read /usr/share/doc/mdadm/README.upgrading-2.5.3.gz ."
+    warn_upgrade
 
     use_temp=1
   elif ! grep -q '^ARRAY' $CONFIG; then
@@ -177,6 +183,7 @@ else
       warn "failed to auto-generate temporary mdadm.conf file."
       if grep -q '^ARRAY' $CONFIG; then
         warn "using the unchecked file and hoping for the best..."
+        warn "your system MAY CURRENTLY BE UNBOOTABLE!"
         install_config $CONFIG $DESTMDADMCONF
       fi
     fi
@@ -188,12 +195,12 @@ fi
 # if at this point, $DESTMDADMCONF does not exist or it does not contain any
 # ARRAY statements, we must let the initramfs handle stuff.
 if [ ! -f $DESTMDADMCONF ]; then
-  warn "no configuration file available."
-  info "letting initramfs assemble auto-detected arrays."
+  warn 'no configuration file available.'
+  warn_emergency
   exit 0
 elif ! grep -q '^ARRAY' $DESTMDADMCONF; then
-  warn "no arrays defined in configuration file."
-  info "letting initramfs assemble auto-detected arrays."
+  warn 'no arrays defined in configuration file.'
+  warn_emergency
   exit 0
 else
   # obtain dev:level pairs from config file, honouring multiline entries
@@ -211,13 +218,28 @@ else
             err "invalid level specified in ARRAY statement in $CONFIG:"
             err "  $line"
             err "levels should be either raid*, linear, or multipath."
-            warn "falling back to emergency procedure in initramfs."
-            exit 1
+            warn_emergency
+            exit 0
             ;;
           (*) :;;
         esac
       done
       [ -n "${dev:-}" ] || continue
+
+      # /dev/mdX and /dev/md/X are the same, really
+      case "$dev" in
+        (/dev/md/*) alt=/dev/md${dev##*/};;
+        (/dev/md*) alt=/dev/md/${dev#/dev/md};;
+        (*)
+          err "unknown device encountered: $dev"
+          warn_emergency
+          exit 0
+          ;;
+      esac
+      if [ ! -b "$dev" ] && [ -b "$alt" ]; then
+        dev="$alt"
+      fi
+
       echo -n "${dev}:"
       if [ -n "${level:-}" ]; then
         echo -n "$level"
@@ -226,6 +248,30 @@ else
       fi
       echo -n ' '
     done < $DESTMDADMCONF)" || exit $?
+fi
+
+# make sure the configuration file knows about all running devices
+$MDADM --detail --scan | while read array device params; do
+  uuid=${params#*UUID=}; uuid=${uuid%% *}
+  if ! grep -q "UUID=$uuid" $DESTMDADMCONF; then
+    warn "the array $device with UUID $uuid"
+    warn "is currently active, but it is not listed in mdadm.conf. if"
+    warn "it is needed for boot, then YOUR SYSTEM IS NOW UNBOOTABLE!"
+    warn "please inspect the output of /usr/share/mdadm/mkconf, compare"
+    warn "it to $CONFIG, and make the necessary changes."
+  fi
+done
+
+if is_true "$INCREMENTAL"; then
+  info 'MD arrays are being incrementally assembled, thus not trying to'
+  info 'figure out which arrays should be started at boot.'
+  change_notice medium
+  exit 0
+fi
+
+homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
+if [ -z "${homehost:-}" ] || [ "${homehost:-}" = '<system>' ]; then
+  echo "MD_HOMEHOST='$(hostname)'" > $DESTCONFIG
 fi
 
 if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
@@ -242,16 +288,6 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
         ;;
       *) :;;
     esac
-  done
-
-  # see if /etc/mdadm/mdadm.conf looks like it's missing devices
-  $MDADM --detail --scan | while read array device rubbish; do
-    if ! echo $devpairs | grep -qw $device; then
-      warn "You appear to be missing $device from /etc/mdadm/mdadm.conf !"
-      warn "If this array is required to boot, you must add the following line:"
-      rubbish=`echo $rubbish | sed 's/metadata=[^ ]* //'`
-      warn "$array $device $rubbish"
-    fi
   done
 
   for i in $INITRDSTART; do
@@ -305,8 +341,6 @@ else
   info "no MD arrays will be started from the initial ramdisk."
 fi
 
-# only output this on Debian systems
-[ -s /etc/default/mdadm ] && \
-  info 'use `dpkg-reconfigure --priority=low mdadm` to change this.'
+change_notice low
 
 exit 0
