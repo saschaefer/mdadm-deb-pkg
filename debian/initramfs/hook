@@ -195,6 +195,21 @@ else
         esac
       done
       [ -n "${dev:-}" ] || continue
+
+      # /dev/mdX and /dev/md/X are the same, really
+      case "$dev" in
+        (/dev/md/*) alt=/dev/md${dev##*/};;
+        (/dev/md*) alt=/dev/md/${dev#/dev/md};;
+        (*)
+          err "unknown device encountered: $dev"
+          warn_emergency
+          exit 0
+          ;;
+      esac
+      if [ ! -b "$dev" ] && [ -b "$alt" ]; then
+        dev="$alt"
+      fi
+
       echo -n "${dev}:"
       if [ -n "${level:-}" ]; then
         echo -n "$level"
