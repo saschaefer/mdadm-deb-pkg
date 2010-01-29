@@ -1,14 +1,20 @@
-mdadm (3.1.1-1+incremental+2) experimental; urgency=low
+mdadm (3.1.1-1+incremental+3) experimental; urgency=low
 
-  * Read configuration file during initramfs (closes: #567301).
-  * Include more information about the configuration, initrd, and LVM in
-    bugscript output.
   * Check active devices against configuration file based on UUID, not device
     name.
   * Incremental mode does not make mdadm.conf obsolete, so do not skip the
     sanity checks in the initramfs hook.
   * It makes sense to check that all active devices are in the configuration
     even for incremental mode, so move it to an earlier location.
+  * It is necessary to load the md_mod module to be able to set parameters.
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 29 Jan 2010 18:53:29 +1300
+
+mdadm (3.1.1-1+incremental+2) experimental; urgency=low
+
+  * Read configuration file during initramfs (closes: #567301).
+  * Include more information about the configuration, initrd, and LVM in
+    bugscript output.
 
  -- martin f. krafft <madduck@debian.org>  Fri, 29 Jan 2010 10:06:37 +1300
 
