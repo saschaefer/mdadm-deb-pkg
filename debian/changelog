@@ -1,3 +1,10 @@
+mdadm (3.1.1-1+incremental+4) experimental; urgency=low
+
+  * Cherry-pick fc7e81e from upstream to fix map locking problems.
+  * Bump Standards-Version to 3.8.4 without having to make changes.
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 29 Jan 2010 23:33:10 +1300
+
 mdadm (3.1.1-1+incremental+3) experimental; urgency=low
 
   * Check active devices against configuration file based on UUID, not device
@@ -8,8 +15,6 @@ mdadm (3.1.1-1+incremental+3) experimental; urgency=low
     even for incremental mode, so move it to an earlier location.
   * It is necessary to load the md_mod module to be able to set parameters.
   * When preparing the list of devices, treat /dev/mdX and /dev/md/X equally.
-  * Cherry-pick fc7e81e from upstream to fix map locking problems.
-  * Bump Standards-Version to 3.8.4 without having to make changes.
 
  -- martin f. krafft <madduck@debian.org>  Fri, 29 Jan 2010 18:53:29 +1300
 
