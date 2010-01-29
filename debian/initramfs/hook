@@ -250,6 +250,18 @@ else
     done < $DESTMDADMCONF)" || exit $?
 fi
 
+# make sure the configuration file knows about all running devices
+$MDADM --detail --scan | while read array device params; do
+  uuid=${params#*UUID=}; uuid=${uuid%% *}
+  if ! grep -q "UUID=$uuid" $DESTMDADMCONF; then
+    warn "the array $device with UUID $uuid"
+    warn "is currently active, but it is not listed in mdadm.conf. if"
+    warn "it is needed for boot, then YOUR SYSTEM IS NOW UNBOOTABLE!"
+    warn "please inspect the output of /usr/share/mdadm/mkconf, compare"
+    warn "it to $CONFIG, and make the necessary changes."
+  fi
+done
+
 if is_true "$INCREMENTAL"; then
   info 'MD arrays are being incrementally assembled, thus not trying to'
   info 'figure out which arrays should be started at boot.'
@@ -276,18 +288,6 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
         ;;
       *) :;;
     esac
-  done
-
-  # make sure the configuration file knows about all running devices
-  $MDADM --detail --scan | while read array device params; do
-    uuid=${params#*UUID=}; uuid=${uuid%% *}
-    if ! grep -q "UUID=$uuid" $DESTMDADMCONF; then
-      warn "the array $device with UUID $uuid"
-      warn "is currently active, but it is not listed in mdadm.conf. if"
-      warn "it is needed for boot, then YOUR SYSTEM IS NOW UNBOOTABLE!"
-      warn "please inspect the output of /usr/share/mdadm/mkconf, compare"
-      warn "it to $CONFIG, and make the necessary changes."
-    fi
   done
 
   for i in $INITRDSTART; do
