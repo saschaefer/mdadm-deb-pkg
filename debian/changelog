@@ -6,6 +6,7 @@ mdadm (3.1.1-2) UNRELEASED; urgency=low
   * Check active devices against configuration file based on UUID, not device
     name.
   * When preparing the list of devices, treat /dev/mdX and /dev/md/X equally.
+  * Bump Standards-Version to 3.8.4 without having to make changes.
 
  -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 14:42:16 +1300
 
