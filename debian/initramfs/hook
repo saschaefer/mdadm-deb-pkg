@@ -218,6 +218,21 @@ else
         esac
       done
       [ -n "${dev:-}" ] || continue
+
+      # /dev/mdX and /dev/md/X are the same, really
+      case "$dev" in
+        (/dev/md/*) alt=/dev/md${dev##*/};;
+        (/dev/md*) alt=/dev/md/${dev#/dev/md};;
+        (*)
+          err "unknown device encountered: $dev"
+          warn_emergency
+          exit 0
+          ;;
+      esac
+      if [ ! -b "$dev" ] && [ -b "$alt" ]; then
+        dev="$alt"
+      fi
+
       echo -n "${dev}:"
       if [ -n "${level:-}" ]; then
         echo -n "$level"
@@ -244,13 +259,15 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
     esac
   done
 
-  # see if /etc/mdadm/mdadm.conf looks like it's missing devices
-  $MDADM --detail --scan | while read array device rubbish; do
-    if ! echo $devpairs | grep -qw $device; then
-      warn "You appear to be missing $device from /etc/mdadm/mdadm.conf !"
-      warn "If this array is required to boot, you must add the following line:"
-      rubbish=`echo $rubbish | sed 's/metadata=[^ ]* //'`
-      warn "$array $device $rubbish"
+  # make sure the configuration file knows about all running devices
+  $MDADM --detail --scan | while read array device params; do
+    uuid=${params#*UUID=}; uuid=${uuid%% *}
+    if ! grep -q "UUID=$uuid" $DESTMDADMCONF; then
+      warn "the array $device with UUID $uuid"
+      warn "is currently active, but it is not listed in mdadm.conf. if"
+      warn "it is needed for boot, then YOUR SYSTEM IS NOW UNBOOTABLE!"
+      warn "please inspect the output of /usr/share/mdadm/mkconf, compare"
+      warn "it to $CONFIG, and make the necessary changes."
     fi
   done
 
