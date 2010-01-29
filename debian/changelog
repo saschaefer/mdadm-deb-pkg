@@ -3,6 +3,8 @@ mdadm (3.1.1-2) UNRELEASED; urgency=low
   * Ignore lintian error about not stopping in runlevel 1.
   * Include more information about the configuration, initrd, and LVM in
     bugscript output.
+  * Check active devices against configuration file based on UUID, not device
+    name.
 
  -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 14:42:16 +1300
 
