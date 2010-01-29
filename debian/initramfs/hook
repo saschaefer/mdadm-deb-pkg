@@ -112,20 +112,6 @@ install_config()
   sed -e :a -re '$!N;s/\n[[:space:]]+/ /;ta' -ne '/^(ARRAY|DEVICE|HOMEHOST)/P;D' $1 > $2
 }
 
-if is_true "$INCREMENTAL"; then
-  info "MD arrays are being incrementally assembled"
-  if [ -s $CONFIG ]; then
-    # mdadm.conf is optional with incremental assembly
-    install_config $CONFIG $DESTMDADMCONF
-  fi
-  exit 0
-fi
-
-homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
-if [ -z "${homehost:-}" ] || [ "${homehost:-}" = '<system>' ]; then
-  echo "MD_HOMEHOST='$(hostname)'" > $DESTCONFIG
-fi
-
 if [ ! -f $CONFIG ]; then
   # there is no configuration file, so let's create one
 
@@ -188,12 +174,12 @@ fi
 # if at this point, $DESTMDADMCONF does not exist or it does not contain any
 # ARRAY statements, we must let the initramfs handle stuff.
 if [ ! -f $DESTMDADMCONF ]; then
-  warn "no configuration file available."
-  info "letting initramfs assemble auto-detected arrays."
+  warn no configuration file available.
+  warn falling back to emergency procedure in initramfs.
   exit 0
 elif ! grep -q '^ARRAY' $DESTMDADMCONF; then
-  warn "no arrays defined in configuration file."
-  info "letting initramfs assemble auto-detected arrays."
+  warn no arrays defined in configuration file.
+  warn falling back to emergency procedure in initramfs.
   exit 0
 else
   # obtain dev:level pairs from config file, honouring multiline entries
@@ -212,7 +198,7 @@ else
             err "  $line"
             err "levels should be either raid*, linear, or multipath."
             warn "falling back to emergency procedure in initramfs."
-            exit 1
+            exit 0
             ;;
           (*) :;;
         esac
@@ -241,6 +227,22 @@ else
       fi
       echo -n ' '
     done < $DESTMDADMCONF)" || exit $?
+fi
+
+if is_true "$INCREMENTAL"; then
+  info MD arrays are being incrementally assembled,
+  info thus not trying to figure out which arrays should be
+  info started at boot.
+
+  # only output this on Debian systems
+  [ -s /etc/default/mdadm ] && \
+    info 'use `dpkg-reconfigure --priority=medium mdadm` to change this.'
+  exit 0
+fi
+
+homehost="$(sed -ne 's,^[[:space:]]*HOMEHOST[[:space:]]*,,p' $CONFIG)"
+if [ -z "${homehost:-}" ] || [ "${homehost:-}" = '<system>' ]; then
+  echo "MD_HOMEHOST='$(hostname)'" > $DESTCONFIG
 fi
 
 if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
