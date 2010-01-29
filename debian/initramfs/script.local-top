@@ -36,11 +36,6 @@ case ${1:-} in
   prereqs) echo "multipath"; exit 0;;
 esac
 
-if [ ! -f /proc/mdstat ]; then
-  verbose && panic "MD subsystem is not initialised (/proc/mdstat missing)"
-  exit 1
-fi
-
 DEBIANCONFIG=/etc/default/mdadm
 [ -s $DEBIANCONFIG ] && . $DEBIANCONFIG
 [ -s /conf/conf.d/md ] && . /conf/conf.d/md
