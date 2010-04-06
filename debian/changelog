@@ -1,3 +1,10 @@
+mdadm (3.1.1-2+incremental) UNRELEASED; urgency=low
+
+  * Amend initramfs script for new prerequisite caching code (0.94)
+    (closes: #576641)
+
+ -- martin f. krafft <madduck@debian.org>  Tue, 06 Apr 2010 21:49:14 +0200
+
 mdadm (3.1.1-2) UNRELEASED; urgency=low
 
   * Ignore lintian error about not stopping in runlevel 1.

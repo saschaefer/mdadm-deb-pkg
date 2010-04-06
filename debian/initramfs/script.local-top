@@ -6,6 +6,10 @@
 #
 set -eu
 
+case ${1:-} in
+  prereqs) echo "multipath"; exit 0;;
+esac
+
 . /scripts/functions
 
 if [ -e /scripts/local-top/md ]; then
@@ -31,10 +35,6 @@ verbose()
     return 0;;
   esac
 }
-
-case ${1:-} in
-  prereqs) echo "multipath"; exit 0;;
-esac
 
 if [ -e /proc/modules ]; then
   verbose && log_begin_msg Loading MD module
