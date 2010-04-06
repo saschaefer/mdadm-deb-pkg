@@ -17,7 +17,7 @@
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel:( \[ *[[:digit:]]+\.[[:digit:]]+\])? RAID([01456]|10) conf printout:$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel:( \[ *[[:digit:]]+\.[[:digit:]]+\])?[[:space:]]+---( [wrf]d:[[:digit:]]+){2,3}$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ kernel:( \[ *[[:digit:]]+\.[[:digit:]]+\])?[[:space:]]+disk [[:digit:]]+,( wo:[[:digit:]]+,)? o:[[:digit:]]+, dev:[[:alnum:]]+$
-^\w{3} [ :0-9]{11} [._[:alnum:]-]+ mdadm(\[[[:digit:]]+\])?: Rebuild((Start|Finish)ed|[2468]0) event detected on md device /dev/[-_./[:alnum:]]+$
+^\w{3} [ :0-9]{11} [._[:alnum:]-]+ mdadm(\[[[:digit:]]+\])?: Rebuild((Start|Finish)ed|[[:digit]]+) event detected on md device /dev/[-_./[:alnum:]]+$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ mdadm(\[[[:digit:]]+\])?: SpareActive event detected on md device /dev/[-_./[:alnum:]]+, component device /dev/[-_./[:alnum:]]+$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ mdadm(\[[[:digit:]]+\])?: (New|Degraded)Array event detected on md device /dev/[-_./[:alnum:]]+$
 ^\w{3} [ :0-9]{11} [._[:alnum:]-]+ mdadm(\[[[:digit:]]+\])?: DeviceDisappeared event detected on md device /dev/[-_./[:alnum:]]+$
