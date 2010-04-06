@@ -1,11 +1,11 @@
 .\" See file COPYING in distribution for details.
-.TH MDMON 8 "" v3.1.1
+.TH MDMON 8 "" v3.1.2
 .SH NAME
 mdmon \- monitor MD external metadata arrays
 
 .SH SYNOPSIS
 
-.BI mdmon " CONTAINER [NEWROOT]"
+.BI mdmon " [--all] [--takeover] CONTAINER"
 
 .SH OVERVIEW
 The 2.6.27 kernel brings the ability to support external metadata arrays.
@@ -21,7 +21,7 @@ To service metadata update requests a daemon,
 is introduced.
 .I Mdmon
 is tasked with polling the sysfs namespace looking for changes in
-.BR array_state , 
+.BR array_state ,
 .BR sync_action ,
 and per disk
 .BR state
@@ -128,26 +128,44 @@ device>/<member index>" if the array is to remain readonly.
 CONTAINER
 The
 .B container
-device to monitor.  It can be a full path like /dev/md/container, a simple md
-device name like md127, or /proc/mdstat which tells
-.I mdmon
-to scan for containers and launch an
-.I mdmon
-instance for each one found.
+device to monitor.  It can be a full path like /dev/md/container, or a
+simple md device name like md127.
 .TP
-[NEWROOT]
-In order to support an external metadata raid array as the rootfs
+.B \-\-takeover
+This instructs
 .I mdmon
-needs to be started in the initramfs environment.  Once the initramfs
-environment mounts the final rootfs
+to replace any active
 .I mdmon
-needs to be restarted in the new namespace.  When NEWROOT is specified
+which is currently monitoring the array.  This is primarily used late
+in the boot process to replace any
 .I mdmon
-will terminate any
+which was started from an
+.B initramfs
+before the root filesystem was mounted.  This avoids holding a
+reference on that
+.B initramfs
+indefinitely and ensures that the
+.I pid
+and
+.I sock
+files used to communicate with
 .I mdmon
-instances that are running in the current namespace,
-.IR chroot (2)
-to NEWROOT, and continue monitoring the container.
+are in a standard place.
+.TP
+.B \-\-all
+This tells mdmon to find any active containers and start monitoring
+each of them if appropriate.  This is normally used with
+.B \-\-takeover
+late in the boot sequence.
+A separate
+.I mdmon
+process is started for each container as the
+.B \-\-all
+argument is over-written with the name of the container.  To allow for
+containers with names longer than 5 characters, this argument can be
+arbitrarily extended, e.g. to
+.BR \-\-all-active-arrays .
+
 .PP
 Note that
 .I mdmon
@@ -159,6 +177,78 @@ RAID arrays.  The only times it is run other that by
 is when the boot scripts need to restart it after mounting the new
 root filesystem.
 
+.SH START UP AND SHUTDOWN
+
+As
+.I mdmon
+needs to be running whenever any filesystem on the monitored device is
+mounted there are special considerations when the root filesystem is
+mounted from an
+.I mdmon
+monitored device.
+Note that in general
+.I mdmon
+is needed even if the filesystem is mounted read-only as some
+filesystems can still write to the device in those circumstances, for
+example to replay a journal after an unclean shutdown.
+
+When the array is assembled by the
+.B initramfs
+code, mdadm will automatically start
+.I mdmon
+as required.  This means that
+.I mdmon
+must be installed on the
+.B initramfs
+and there must be a writable filesystem (typically tmpfs) which
+.B mdmon
+can create a
+.B .pid
+and
+.B .sock
+file on.  The particular filesystem to use is given to mdmon at compile
+time and defaults to
+.BR /lib/init/rw .
+
+This filesystem must persist through to the end of the boot sequence.
+
+After the final root filesystem has be instantiated (usually with
+.BR pivot_root )
+and after
+.B /var
+is mounted writable,
+.I mdmon
+should be run with
+.I "\-\-all \-\-takeover"
+so that the
+.I mdmon
+running from the
+.B initramfs
+can be replaced with one running in the main root.
+
+At shutdown time,
+.I mdmon
+should not be killed along with other processes.  Also as it holds a
+file (socket actually) open in
+.B /var
+it will not be possible to unmount
+.B /var
+if it is a separate filesystem.  Rather the
+.B /var
+filesystem, like the root filesystem, should be remounted read-only.
+
+
+
+.SH EXAMPLES
+
+.B "  mdmon \-\-all-active-arrays \-\-takeover"
+.br
+Any
+.I mdmon
+which is currently running is killed and a new instance is started.
+This should be run late in the boot sequence and particularly after
+.B /var
+is mounted and writable.
 .SH SEE ALSO
 .IR mdadm (8),
 .IR md (4).
