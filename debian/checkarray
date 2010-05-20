@@ -109,7 +109,7 @@ if [ -z "$(ls /sys/block/md* 2>/dev/null)" ]; then
     echo "$PROGNAME: W: no active MD arrays found." >&2
     echo "$PROGNAME: W: (maybe uninstall the mdadm package?)" >&2
   fi
-  exit 5
+  exit 0
 fi
 
 if [ -z "$(ls /sys/block/md*/md/level 2>/dev/null)" ]; then
