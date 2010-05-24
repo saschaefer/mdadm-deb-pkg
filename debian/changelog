@@ -11,6 +11,10 @@ mdadm (3.1.1-2) UNRELEASED; urgency=low
     are now arbitrary, no longer multiples of 20 (closes: #570315).
   * checkarray: do not exit non-zero when there are no arrays found (see
     #582360).
+  * Do not exit checkarray cronjob non-zero when the tests whether to run
+    fail (closes: #580825). This is related to a recent change in behaviour in
+    cron 3.0pl1-110 (see e.g. #581612). Thanks to everyone for their
+    suggestions!
 
  -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 14:42:16 +1300
 
