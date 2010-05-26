@@ -5,7 +5,7 @@ mdadm (3.1.2-1) UNRELEASED; urgency=low
   * Include more information about the configuration, initrd, and LVM in
     bugscript output.
   * Check active devices against configuration file based on UUID, not device
-    name.
+    name (closes: #553896).
   * When preparing the list of devices, treat /dev/mdX and /dev/md/X equally.
   * Bump Standards-Version to 3.8.4 without having to make changes.
   * Fix logcheck rule with patch from Frédéric Brière, since Rebuild events
