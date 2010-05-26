@@ -18,13 +18,15 @@ case "${1:-}" in
       echo 'W: mdadm: failed to load MD subsystem.' >&2
     fi
 
+    MAKEDEV=/dev/MAKEDEV
     if [ ! -e /dev/md15 ] \
       && [ ! -e /dev/.static/dev/md15 ] \
-      && [ ! -e /dev/.devfsd ]; then
+      && [ ! -e /dev/.devfsd ] \
+      && [ -x $MAKEDEV ]; then
 
         echo -n 'Generating array device nodes... ' >&2
         cd /dev
-        if /dev/MAKEDEV md >&2 >/dev/null; then
+        if $MAKEDEV md >&2 >/dev/null; then
           echo 'done.' >&2
         else
           echo 'failed.' >&2

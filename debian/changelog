@@ -16,6 +16,8 @@ mdadm (3.1.2-1) UNRELEASED; urgency=low
     fail (closes: #580825). This is related to a recent change in behaviour in
     cron 3.0pl1-110 (see e.g. #581612). Thanks to everyone for their
     suggestions!
+  * Call MAKEDEV to create device nodes only if MAKEDEV is installed
+    (closes: #569360).
 
  -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 14:42:16 +1300
 
