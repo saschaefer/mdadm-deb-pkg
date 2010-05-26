@@ -1,5 +1,6 @@
-mdadm (3.1.1-2) UNRELEASED; urgency=low
+mdadm (3.1.2-1) UNRELEASED; urgency=low
 
+  * New upstream release (closes: #567167).
   * Ignore lintian error about not stopping in runlevel 1.
   * Include more information about the configuration, initrd, and LVM in
     bugscript output.
