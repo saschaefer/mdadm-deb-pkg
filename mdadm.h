@@ -68,6 +68,29 @@ extern __off64_t lseek64 __P ((int __fd, __off64_t __offset, int __whence));
 #define DEFAULT_BITMAP_DELAY 5
 #define DEFAULT_MAX_WRITE_BEHIND 256
 
+/* VAR_RUN is where pid and socket files used for communicating
+ * with mdmon normally live.  It should be /var/run, but if
+ * it is too hard to remount /var/run as read-only rather than
+ * unmounting it at shutdown time, then it should be
+ * redefined to some place that comfortably persists until
+ * final shutdown, possibly in /dev if that is a tmpfs.
+ * Note: VAR_RUN does not need to be writable at shutdown,
+ * only during boot when "mdmon --takeover" is run.
+ */
+#ifndef VAR_RUN
+#define VAR_RUN "/var/run/mdadm"
+#endif /* VAR_RUN */
+/* ALT_RUN should be somewhere that persists across the pivotroot
+ * from early boot to late boot.
+ * If you don't have /lib/init/rw you might want to use /dev/.something
+ */
+#ifndef ALT_RUN
+#define ALT_RUN "/lib/init/rw/mdadm"
+#endif /* ALT_RUN */
+#ifndef ALT_MAPFILE
+#define ALT_MAPFILE "map"
+#endif /* ALT_MAPFILE */
+
 #include	"md_u.h"
 #include	"md_p.h"
 #include	"bitmap.h"
@@ -129,6 +152,22 @@ extern __off64_t lseek64 __P ((int __fd, __off64_t __offset, int __whence));
 #endif /* __KLIBC__ */
 
 
+/*
+ * min()/max()/clamp() macros that also do
+ * strict type-checking.. See the
+ * "unnecessary" pointer comparison.
+ */
+#define min(x, y) ({                            \
+	typeof(x) _min1 = (x);                  \
+	typeof(y) _min2 = (y);                  \
+	(void) (&_min1 == &_min2);              \
+	_min1 < _min2 ? _min1 : _min2; })
+
+#define max(x, y) ({                            \
+	typeof(x) _max1 = (x);                  \
+	typeof(y) _max2 = (y);                  \
+	(void) (&_max1 == &_max2);              \
+	_max1 > _max2 ? _max1 : _max2; })
 
 /* general information that might be extracted from a superblock */
 struct mdinfo {
@@ -146,7 +185,11 @@ struct mdinfo {
 						    */
 	int			reshape_active;
 	unsigned long long	reshape_progress;
-	unsigned long long	resync_start;
+	union {
+		unsigned long long resync_start; /* per-array resync position */
+		unsigned long long recovery_start; /* per-device rebuild position */
+		#define MaxSector  (~0ULL) /* resync/recovery complete position */
+	};
 	unsigned long		safe_mode_delay; /* ms delay to mark clean */
 	int			new_level, delta_disks, new_layout, new_chunk;
 	int			errors;
@@ -168,6 +211,7 @@ struct mdinfo {
 	struct mdinfo *next;
 
 	/* Device info for mdmon: */
+	int recovery_fd;
 	int state_fd;
 	#define DS_FAULTY	1
 	#define	DS_INSYNC	2
@@ -271,6 +315,10 @@ typedef struct mddev_ident_s {
 	char	*member;	/* subarray within a container */
 
 	struct mddev_ident_s *next;
+	union {
+		/* fields needed by different users of this structure */
+		int assembled;	/* set when assembly succeeds */
+	};
 } *mddev_ident_t;
 
 /* List of device names - wildcards expanded */
@@ -324,6 +372,7 @@ struct map_ent {
 };
 extern int map_update(struct map_ent **mpp, int devnum, char *metadata,
 		      int uuid[4], char *path);
+extern void map_remove(struct map_ent **map, int devnum);
 extern struct map_ent *map_by_uuid(struct map_ent **map, int uuid[4]);
 extern struct map_ent *map_by_devnum(struct map_ent **map, int devnum);
 extern struct map_ent *map_by_name(struct map_ent **map, char *name);
@@ -370,14 +419,17 @@ extern int sysfs_set_str(struct mdinfo *sra, struct mdinfo *dev,
 extern int sysfs_set_num(struct mdinfo *sra, struct mdinfo *dev,
 			 char *name, unsigned long long val);
 extern int sysfs_uevent(struct mdinfo *sra, char *event);
+extern int sysfs_get_fd(struct mdinfo *sra, struct mdinfo *dev,
+			char *name);
+extern int sysfs_fd_get_ll(int fd, unsigned long long *val);
 extern int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
 			char *name, unsigned long long *val);
+extern int sysfs_fd_get_str(int fd, char *val, int size);
 extern int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
 			 char *name, char *val, int size);
 extern int sysfs_set_safemode(struct mdinfo *sra, unsigned long ms);
 extern int sysfs_set_array(struct mdinfo *info, int vers);
-extern int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd,
-			  int in_sync);
+extern int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int resume);
 extern int sysfs_disk_to_scsi_id(int fd, __u32 *id);
 extern int sysfs_unique_holder(int devnum, long rdev);
 extern int load_sys(char *path, char *buf);
@@ -386,7 +438,8 @@ extern int load_sys(char *path, char *buf);
 extern int save_stripes(int *source, unsigned long long *offsets,
 			int raid_disks, int chunk_size, int level, int layout,
 			int nwrites, int *dest,
-			unsigned long long start, unsigned long long length);
+			unsigned long long start, unsigned long long length,
+			char *buf);
 extern int restore_stripes(int *dest, unsigned long long *offsets,
 			   int raid_disks, int chunk_size, int level, int layout,
 			   int source, unsigned long long read_offset,
@@ -708,7 +761,6 @@ extern int add_dev(const char *name, const struct stat *stb, int flag, struct FT
 extern int Manage_ro(char *devname, int fd, int readonly);
 extern int Manage_runstop(char *devname, int fd, int runstop, int quiet);
 extern int Manage_resize(char *devname, int fd, long long size, int raid_disks);
-extern int Manage_reconfig(char *devname, int fd, int layout);
 extern int Manage_subdevs(char *devname, int fd,
 			  mddev_dev_t devlist, int verbose);
 extern int autodetect(void);
@@ -716,10 +768,11 @@ extern int Grow_Add_device(char *devname, int fd, char *newdev);
 extern int Grow_addbitmap(char *devname, int fd, char *file, int chunk, int delay, int write_behind, int force);
 extern int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 			long long size,
-			int level, int layout, int chunksize, int raid_disks);
+			int level, char *layout_str, int chunksize, int raid_disks);
 extern int Grow_restart(struct supertype *st, struct mdinfo *info,
-			int *fdlist, int cnt, char *backup_file);
-
+			int *fdlist, int cnt, char *backup_file, int verbose);
+extern int Grow_continue(int mdfd, struct supertype *st,
+			 struct mdinfo *info, char *backup_file);
 
 extern int Assemble(struct supertype *st, char *mddev,
 		    mddev_ident_t ident,
@@ -751,7 +804,7 @@ extern int Monitor(mddev_dev_t devlist,
 		   int period, int daemonise, int scan, int oneshot,
 		   int dosyslog, int test, char *pidfile, int increments);
 
-extern int Kill(char *dev, int force, int quiet, int noexcl);
+extern int Kill(char *dev, struct supertype *st, int force, int quiet, int noexcl);
 extern int Wait(char *dev);
 extern int WaitClean(char *dev, int sock, int verbose);
 
@@ -775,10 +828,14 @@ extern unsigned long bitmap_sectors(struct bitmap_super_s *bsb);
 
 extern int md_get_version(int fd);
 extern int get_linux_version(void);
+extern long long parse_size(char *size);
 extern int parse_uuid(char *str, int uuid[4]);
+extern int parse_layout_10(char *layout);
+extern int parse_layout_faulty(char *layout);
 extern int check_ext2(int fd, char *name);
 extern int check_reiser(int fd, char *name);
 extern int check_raid(int fd, char *name);
+extern int check_partitions(int fd, char *dname, unsigned long long freesize);
 
 extern int get_mdp_major(void);
 extern int dev_open(char *dev, int flags);
@@ -791,7 +848,7 @@ extern int parse_auto(char *str, char *msg, int config);
 extern mddev_ident_t conf_get_ident(char *dev);
 extern mddev_dev_t conf_get_devs(void);
 extern int conf_test_dev(char *devname);
-extern int conf_test_metadata(const char *version);
+extern int conf_test_metadata(const char *version, int is_homehost);
 extern struct createinfo *conf_get_create_info(void);
 extern void set_conffile(char *file);
 extern char *conf_get_mailaddr(void);
@@ -819,6 +876,7 @@ extern int enough(int level, int raid_disks, int layout, int clean,
 extern int ask(char *mesg);
 extern unsigned long long get_component_size(int fd);
 extern void remove_partitions(int fd);
+extern int test_partition(int fd);
 extern unsigned long long calc_array_size(int level, int raid_disks, int layout,
 				   int chunksize, unsigned long long devsize);
 extern int flush_metadata_updates(struct supertype *st);
@@ -830,6 +888,7 @@ extern int assemble_container_content(struct supertype *st, int mdfd,
 extern int add_disk(int mdfd, struct supertype *st,
 		    struct mdinfo *sra, struct mdinfo *info);
 extern int set_array_info(int mdfd, struct supertype *st, struct mdinfo *info);
+unsigned long long min_recovery_start(struct mdinfo *array);
 
 extern char *human_size(long long bytes);
 extern char *human_size_brief(long long bytes);
@@ -847,13 +906,15 @@ extern int create_mddev(char *dev, char *name, int autof, int trustworthy,
 			char *chosen);
 /* values for 'trustworthy' */
 #define	LOCAL	1
+#define	LOCAL_ANY 10
 #define	FOREIGN	2
 #define	METADATA 3
 extern int open_mddev(char *dev, int report_errors);
 extern int open_container(int fd);
 
+extern char *pid_dir;
 extern int mdmon_running(int devnum);
-extern int signal_mdmon(int devnum);
+extern int mdmon_pid(int devnum);
 extern int check_env(char *name);
 extern __u32 random32(void);
 extern int start_mdmon(int devnum);
@@ -992,4 +1053,11 @@ static inline int xasprintf(char **strp, const char *fmt, ...) {
 #define ALGORITHM_RIGHT_SYMMETRIC_6	19
 #define ALGORITHM_PARITY_0_6		20
 #define ALGORITHM_PARITY_N_6		ALGORITHM_PARITY_N
+
+/* Define PATH_MAX in case we don't use glibc or standard library does
+ * not have PATH_MAX defined. Assume max path length is 4K characters.
+ */
+#ifndef PATH_MAX
+#define PATH_MAX	4096
+#endif
 

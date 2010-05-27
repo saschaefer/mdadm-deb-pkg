@@ -112,8 +112,10 @@ static void close_aa(struct active_array *aa)
 {
 	struct mdinfo *d;
 
-	for (d = aa->info.devs; d; d = d->next)
+	for (d = aa->info.devs; d; d = d->next) {
+		close(d->recovery_fd);
 		close(d->state_fd);
+	}
 
 	close(aa->action_fd);
 	close(aa->info.state_fd);
@@ -209,16 +211,22 @@ struct metadata_update *update_queue = NULL;
 struct metadata_update *update_queue_handled = NULL;
 struct metadata_update *update_queue_pending = NULL;
 
-void check_update_queue(struct supertype *container)
+static void free_updates(struct metadata_update **update)
 {
-	while (update_queue_handled) {
-		struct metadata_update *this = update_queue_handled;
-		update_queue_handled = this->next;
+	while (*update) {
+		struct metadata_update *this = *update;
+
+		*update = this->next;
 		free(this->buf);
-		if (this->space)
-			free(this->space);
+		free(this->space);
 		free(this);
 	}
+}
+
+void check_update_queue(struct supertype *container)
+{
+	free_updates(&update_queue_handled);
+
 	if (update_queue == NULL &&
 	    update_queue_pending) {
 		update_queue = update_queue_pending;
@@ -376,8 +384,9 @@ static void manage_member(struct mdstat_ent *mdstat,
 
 	if (a->check_degraded) {
 		struct metadata_update *updates = NULL;
-		struct mdinfo *newdev;
+		struct mdinfo *newdev = NULL;
 		struct active_array *newa;
+		struct mdinfo *d;
 
 		a->check_degraded = 0;
 
@@ -385,34 +394,46 @@ static void manage_member(struct mdstat_ent *mdstat,
 		 * to check.
 		 */
 		newdev = a->container->ss->activate_spare(a, &updates);
-		if (newdev) {
-			struct mdinfo *d;
-			/* Cool, we can add a device or several. */
-			newa = duplicate_aa(a);
-			/* suspend recovery - maybe not needed */
+		if (!newdev)
+			return;
 
-			/* Add device to array and set offset/size/slot.
-			 * and open files for each newdev */
-			for (d = newdev; d ; d = d->next) {
-				struct mdinfo *newd;
-				if (sysfs_add_disk(&newa->info, d, 0) < 0)
-					continue;
-				newd = malloc(sizeof(*newd));
-				*newd = *d;
-				newd->next = newa->info.devs;
-				newa->info.devs = newd;
+		newa = duplicate_aa(a);
+		if (!newa)
+			goto out;
+		/* Cool, we can add a device or several. */
 
-				newd->state_fd = sysfs_open(a->devnum,
-							    newd->sys_name,
-							    "state");
-				newd->prev_state
-					= read_dev_state(newd->state_fd);
-				newd->curr_state = newd->prev_state;
+		/* Add device to array and set offset/size/slot.
+		 * and open files for each newdev */
+		for (d = newdev; d ; d = d->next) {
+			struct mdinfo *newd;
+
+			newd = malloc(sizeof(*newd));
+			if (!newd)
+				continue;
+			if (sysfs_add_disk(&newa->info, d, 0) < 0) {
+				free(newd);
+				continue;
 			}
-			queue_metadata_update(updates);
-			replace_array(a->container, a, newa);
-			sysfs_set_str(&a->info, NULL, "sync_action", "recover");
+			*newd = *d;
+			newd->next = newa->info.devs;
+			newa->info.devs = newd;
+
+			newd->state_fd = sysfs_open(a->devnum, newd->sys_name,
+						    "state");
+			newd->prev_state = read_dev_state(newd->state_fd);
+			newd->curr_state = newd->prev_state;
 		}
+		queue_metadata_update(updates);
+		updates = NULL;
+		replace_array(a->container, a, newa);
+		sysfs_set_str(&a->info, NULL, "sync_action", "recover");
+ out:
+		while (newdev) {
+			d = newdev->next;
+			free(newdev);
+			newdev = d;
+		}
+		free_updates(&updates);
 	}
 }
 
@@ -498,6 +519,9 @@ static void manage_new(struct mdstat_ent *mdstat,
 			newd->state_fd = sysfs_open(new->devnum,
 						    newd->sys_name,
 						    "state");
+			newd->recovery_fd = sysfs_open(new->devnum,
+						      newd->sys_name,
+						      "recovery_start");
 
 			newd->prev_state = read_dev_state(newd->state_fd);
 			newd->curr_state = newd->prev_state;
@@ -522,7 +546,6 @@ static void manage_new(struct mdstat_ent *mdstat,
 	new->info.state_fd = sysfs_open(new->devnum, NULL, "array_state");
 	new->resync_start_fd = sysfs_open(new->devnum, NULL, "resync_start");
 	new->metadata_fd = sysfs_open(new->devnum, NULL, "metadata_version");
-	get_resync_start(new);
 	dprintf("%s: inst: %d action: %d state: %d\n", __func__, atoi(inst),
 		new->action_fd, new->info.state_fd);
 
@@ -654,14 +677,10 @@ void do_manager(struct supertype *container)
 {
 	struct mdstat_ent *mdstat;
 	sigset_t set;
-	int proc_fd;
 
 	sigprocmask(SIG_UNBLOCK, NULL, &set);
 	sigdelset(&set, SIGUSR1);
-	sigdelset(&set, SIGHUP);
-	sigdelset(&set, SIGALRM);
 	sigdelset(&set, SIGTERM);
-	proc_fd = open("/proc/mounts", O_RDONLY);
 
 	do {
 
@@ -679,21 +698,6 @@ void do_manager(struct supertype *container)
 
 			read_sock(container);
 
-			if (container->sock < 0 || socket_hup_requested) {
-				/* If this fails, we hope it already exists
-				 * pid file lives in /var/run/mdadm/mdXX.pid
-				 */
-				mkdir("/var", 0600);
-				mkdir("/var/run", 0600);
-				mkdir("/var/run/mdadm", 0600);
-				close(container->sock);
-				container->sock = make_control_sock(container->devname);
-				make_pidfile(container->devname, 0);
-				socket_hup_requested = 0;
-			}
-			if (container->sock < 0)
-				alarm(30);
-
 			free_mdstat(mdstat);
 		}
 		remove_old();
@@ -705,12 +709,9 @@ void do_manager(struct supertype *container)
 		if (sigterm)
 			wakeup_monitor();
 
-		if (update_queue == NULL) {
-			if (container->sock < 0)
-				mdstat_wait_fd(proc_fd, &set);
-			else
-				mdstat_wait_fd(container->sock, &set);
-		} else
+		if (update_queue == NULL)
+			mdstat_wait_fd(container->sock, &set);
+		else
 			/* If an update is happening, just wait for signal */
 			pselect(0, NULL, NULL, NULL, NULL, &set);
 	} while(1);

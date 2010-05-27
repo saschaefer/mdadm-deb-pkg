@@ -29,7 +29,7 @@
  */
 
 /* /var/run/mdadm.map is used to track arrays being created in --incremental
- * more.  It particularly allows lookup from UUID to array device, but
+ * mode.  It particularly allows lookup from UUID to array device, but
  * also allows the array device name to be easily found.
  *
  * The map file is line based with space separated fields.  The fields are:
@@ -42,20 +42,22 @@
  * However /var/run may not exist or be writable in early boot.  And if
  * no-one has created /var/run/mdadm, we still want to survive.
  * So possible locations are:
- *   /var/run/mdadm/map  /var/run/mdadm.map  /dev/.mdadm.map
- * the last, because udev requires a writable /dev very early.
+ *   /var/run/mdadm/map  /var/run/mdadm.map  /lib/initrw/madam/map
+ * The last can easily be change at compile to e.g. somewhere in /dev.
  * We read from the first one that exists and write to the first
  * one that we can.
  */
 #include	"mdadm.h"
+#include	<sys/file.h>
 #include	<ctype.h>
 
-#define mapnames(base) { #base, #base ".new", #base ".lock"}
+#define mapnames(base) { base, base ".new", base ".lock"}
 char *mapname[3][3] = {
-	mapnames(/var/run/mdadm/map),
-	mapnames(/var/run/mdadm.map),
-	mapnames(/dev/.mdadm.map)
+	mapnames(VAR_RUN "/map"),
+	mapnames("/var/run/mdadm.map"),
+	mapnames(ALT_RUN "/" ALT_MAPFILE)
 };
+char *mapdir[3] = { VAR_RUN, NULL, ALT_RUN };
 
 int mapmode[3] = { O_RDONLY, O_RDWR|O_CREAT, O_RDWR|O_CREAT | O_TRUNC };
 char *mapsmode[3] = { "r", "w", "w"};
@@ -63,8 +65,16 @@ char *mapsmode[3] = { "r", "w", "w"};
 FILE *open_map(int modenum, int *choice)
 {
 	int i;
+
 	for (i = 0 ; i < 3 ; i++) {
-		int fd = open(mapname[i][modenum], mapmode[modenum], 0600);
+		int fd;
+		if ((mapmode[modenum] & O_CREAT) &&
+		    mapdir[modenum])
+			/* Attempt to create directory, don't worry about
+			 * failure.
+			 */
+			mkdir(mapdir[modenum], 0755);
+		fd = open(mapname[i][modenum], mapmode[modenum], 0600);
 		if (fd >= 0) {
 			*choice = i;
 			return fdopen(fd, mapsmode[modenum]);
@@ -115,7 +125,7 @@ int map_lock(struct map_ent **melp)
 		lf = open_map(2, &lwhich);
 		if (lf == NULL)
 			return -1;
-		if (lockf(fileno(lf), F_LOCK, 0) != 0) {
+		if (flock(fileno(lf), LOCK_EX) != 0) {
 			fclose(lf);
 			lf = NULL;
 			return -1;
@@ -129,8 +139,10 @@ int map_lock(struct map_ent **melp)
 
 void map_unlock(struct map_ent **melp)
 {
-	if (lf)
+	if (lf) {
+		flock(fileno(lf), LOCK_UN);
 		fclose(lf);
+	}
 	unlink(mapname[lwhich][2]);
 	lf = NULL;
 }
@@ -237,6 +249,16 @@ void map_delete(struct map_ent **mapp, int devnum)
 		} else
 			mapp = & mp->next;
 	}
+}
+
+void map_remove(struct map_ent **mapp, int devnum)
+{
+	if (devnum == NoMdDev)
+		return;
+
+	map_delete(mapp, devnum);
+	map_write(*mapp);
+	map_free(*mapp);
 }
 
 struct map_ent *map_by_uuid(struct map_ent **map, int uuid[4])
@@ -459,12 +481,14 @@ void RebuildMap(void)
 		}
 		sysfs_free(sra);
 	}
-	map_write(map);
+	/* Only trigger a change if we wrote a new map file */
+	if (map_write(map))
+		for (md = mdstat ; md ; md = md->next) {
+			struct mdinfo *sra = sysfs_read(-1, md->devnum,
+							GET_VERSION);
+			sysfs_uevent(sra, "change");
+			sysfs_free(sra);
+		}
 	map_free(map);
-	for (md = mdstat ; md ; md = md->next) {
-		struct mdinfo *sra = sysfs_read(-1, md->devnum, GET_VERSION);
-		sysfs_uevent(sra, "change");
-		sysfs_free(sra);
-	}
 	free_mdstat(mdstat);
 }
