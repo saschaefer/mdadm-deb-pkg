@@ -375,16 +375,27 @@ int Create(struct supertype *st, char *mddev,
 			warn |= check_ext2(fd, dname);
 			warn |= check_reiser(fd, dname);
 			warn |= check_raid(fd, dname);
-			if (st && strcmp(st->ss->name, "1.x") == 0 &&
+			if (strcmp(st->ss->name, "1.x") == 0 &&
+			    st->minor_version >= 1)
+				/* metadata at front */
+				warn |= check_partitions(fd, dname, 0);
+			else if (level == 1 || level == LEVEL_CONTAINER)
+				/* partitions could be meaningful */
+				warn |= check_partitions(fd, dname, freesize*2);
+			else
+				/* partitions cannot be meaningful */
+				warn |= check_partitions(fd, dname, 0);
+			if (strcmp(st->ss->name, "1.x") == 0 &&
 			    st->minor_version >= 1 &&
 			    did_default &&
-			    level == 1) {
-				warn = 1;
+			    level == 1 &&
+			    (warn & 1024) == 0) {
+				warn |= 1024;
 				fprintf(stderr, Name ": Note: this array has metadata at the start and\n"
 					"    may not be suitable as a boot device.  If you plan to\n"
-					"    store '/' or '/boot' on this device please ensure that\n"
+					"    store '/boot' on this device please ensure that\n"
 					"    your boot-loader understands md/v1.x metadata, or use\n"
-					"    --metadata=1.0\n");
+					"    --metadata=0.90\n");
 			}
 			close(fd);
 		}
@@ -527,7 +538,7 @@ int Create(struct supertype *st, char *mddev,
 	     assume_clean
 		) {
 		info.array.state = 1; /* clean, but one+ drive will be missing*/
-		info.resync_start = ~0ULL;
+		info.resync_start = MaxSector;
 	} else {
 		info.array.state = 0; /* not clean, but no errors */
 		info.resync_start = 0;

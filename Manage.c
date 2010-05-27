@@ -236,11 +236,32 @@ int Manage_runstop(char *devname, int fd, int runstop, int quiet)
 			   mdi->array.major_version == -1 &&
 			   mdi->array.minor_version == -2 &&
 			   !is_subarray(mdi->text_version)) {
+			struct mdstat_ent *mds, *m;
 			/* container, possibly mdmon-managed.
 			 * Make sure mdmon isn't opening it, which
 			 * would interfere with the 'stop'
 			 */
 			ping_monitor(mdi->sys_name);
+
+			/* now check that there are no existing arrays
+			 * which are members of this array
+			 */
+			mds = mdstat_read(0, 0);
+			for (m=mds; m; m=m->next)
+				if (m->metadata_version &&
+				    strncmp(m->metadata_version, "external:", 9)==0 &&
+				    is_subarray(m->metadata_version+9) &&
+				    devname2devnum(m->metadata_version+10) == devnum) {
+					if (!quiet)
+						fprintf(stderr, Name
+							": Cannot stop container %s: "
+							"member %s still active\n",
+							devname, m->dev);
+					free_mdstat(mds);
+					if (mdi)
+						sysfs_free(mdi);
+					return 1;
+				}
 		}
 
 		if (fd >= 0 && ioctl(fd, STOP_ARRAY, NULL)) {
@@ -425,14 +446,22 @@ int Manage_subdevs(char *devname, int fd,
 			j = 0;
 
 			tfd = dev_open(dv->devname, O_RDONLY);
-			if (tfd < 0 || fstat(tfd, &stb) != 0) {
-				fprintf(stderr, Name ": cannot find %s: %s\n",
-					dv->devname, strerror(errno));
-				if (tfd >= 0)
-					close(tfd);
-				return 1;
+			if (tfd < 0 && dv->disposition == 'r' &&
+			    lstat(dv->devname, &stb) == 0)
+				/* Be happy, the lstat worked, that is
+				 * enough for --remove
+				 */
+				;
+			else {
+				if (tfd < 0 || fstat(tfd, &stb) != 0) {
+					fprintf(stderr, Name ": cannot find %s: %s\n",
+						dv->devname, strerror(errno));
+					if (tfd >= 0)
+						close(tfd);
+					return 1;
+				}
+				close(tfd);
 			}
-			close(tfd);
 			if ((stb.st_mode & S_IFMT) != S_IFBLK) {
 				fprintf(stderr, Name ": %s is not a "
 					"block device.\n",
@@ -565,7 +594,10 @@ int Manage_subdevs(char *devname, int fd,
 							disc.state |= 1 << MD_DISK_WRITEMOSTLY;
 						if (dv->writemostly == 2)
 							disc.state &= ~(1 << MD_DISK_WRITEMOSTLY);
-						if (ioctl(fd, ADD_NEW_DISK, &disc) == 0) {
+						/* don't even try if disk is marked as faulty */
+						errno = 0;
+						if ((disc.state & 1) == 0 &&
+						    ioctl(fd, ADD_NEW_DISK, &disc) == 0) {
 							if (verbose >= 0)
 								fprintf(stderr, Name ": re-added %s\n", dv->devname);
 							continue;
@@ -696,6 +728,7 @@ int Manage_subdevs(char *devname, int fd,
 				tst->ss->getinfo_super(tst, &new_mdi);
 				new_mdi.disk.major = disc.major;
 				new_mdi.disk.minor = disc.minor;
+				new_mdi.recovery_start = 0;
 				if (sysfs_add_disk(sra, &new_mdi, 0) != 0) {
 					fprintf(stderr, Name ": add new device to external metadata"
 						" failed for %s\n", dv->devname);

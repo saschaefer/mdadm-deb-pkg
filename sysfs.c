@@ -100,13 +100,8 @@ void sysfs_init(struct mdinfo *mdi, int fd, int devnum)
 
 struct mdinfo *sysfs_read(int fd, int devnum, unsigned long options)
 {
-	/* Longest possible name in sysfs, mounted at /sys, is
-	 *  /sys/block/md_dXXX/md/dev-XXXXX/block/dev
-	 *  /sys/block/md_dXXX/md/metadata_version
-	 * which is about 41 characters.  50 should do for now
-	 */
-	char fname[50];
-	char buf[1024];
+	char fname[PATH_MAX];
+	char buf[PATH_MAX];
 	char *base;
 	char *dbase;
 	struct mdinfo *sra;
@@ -572,10 +567,10 @@ int sysfs_set_array(struct mdinfo *info, int vers)
 	return rv;
 }
 
-int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int in_sync)
+int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int resume)
 {
-	char dv[100];
-	char nm[100];
+	char dv[PATH_MAX];
+	char nm[PATH_MAX];
 	char *dname;
 	int rv;
 
@@ -595,15 +590,24 @@ int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int in_sync)
 	strcpy(sd->sys_name, "dev-");
 	strcpy(sd->sys_name+4, dname);
 
+	/* test write to see if 'recovery_start' is available */
+	if (resume && sd->recovery_start < MaxSector &&
+	    sysfs_set_num(sra, sd, "recovery_start", 0)) {
+		sysfs_set_str(sra, sd, "state", "remove");
+		return -1;
+	}
+
 	rv = sysfs_set_num(sra, sd, "offset", sd->data_offset);
 	rv |= sysfs_set_num(sra, sd, "size", (sd->component_size+1) / 2);
 	if (sra->array.level != LEVEL_CONTAINER) {
-		if (in_sync)
+		if (sd->recovery_start == MaxSector)
 			/* This can correctly fail if array isn't started,
 			 * yet, so just ignore status for now.
 			 */
-			sysfs_set_str(sra, sd, "state", "in_sync");
+			sysfs_set_str(sra, sd, "state", "insync");
 		rv |= sysfs_set_num(sra, sd, "slot", sd->disk.raid_disk);
+		if (resume)
+			sysfs_set_num(sra, sd, "recovery_start", sd->recovery_start);
 	}
 	return rv;
 }

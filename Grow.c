@@ -563,16 +563,27 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 		} else
 			rv = ioctl(fd, SET_ARRAY_INFO, &array);
 		if (rv != 0) {
+			int err = errno;
 			fprintf(stderr, Name ": Cannot set device size for %s: %s\n",
-				devname, strerror(errno));
+				devname, strerror(err));
+			if (err == EBUSY && 
+			    (array.state & (1<<MD_SB_BITMAP_PRESENT)))
+				fprintf(stderr, "       Bitmap must be removed before size can be changed\n");
 			rv = 1;
 			goto release;
 		}
 		ioctl(fd, GET_ARRAY_INFO, &array);
+		size = get_component_size(fd)/2;
+		if (size == 0)
+			size = array.size;
 		if (!quiet)
-			fprintf(stderr, Name ": component size of %s has been set to %dK\n",
-				devname, array.size);
+			fprintf(stderr, Name ": component size of %s has been set to %lluK\n",
+				devname, size);
 		changed = 1;
+	} else {
+		size = get_component_size(fd)/2;
+		if (size == 0)
+			size = array.size;
 	}
 
 	/* ======= set level =========== */
@@ -659,8 +670,12 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 			}
 			err = sysfs_set_str(sra, NULL, "level", c);
 			if (err) {
+				err = errno;
 				fprintf(stderr, Name ": %s: could not set level to %s\n",
 					devname, c);
+				if (err == EBUSY && 
+				    (array.state & (1<<MD_SB_BITMAP_PRESENT)))
+					fprintf(stderr, "       Bitmap must be removed before level can be changed\n");
 				rv = 1;
 				goto release;
 			}
@@ -726,9 +741,14 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 			c = map_num(pers, level);
 			if (c) {
 				rv = sysfs_set_str(sra, NULL, "level", c);
-				if (rv)
+				if (rv) {
+					int err = errno;
 					fprintf(stderr, Name ": %s: could not set level to %s\n",
 						devname, c);
+					if (err == EBUSY && 
+					    (array.state & (1<<MD_SB_BITMAP_PRESENT)))
+						fprintf(stderr, "       Bitmap must be removed before level can be changed\n");
+				}
 			}
 		} else if (!changed && !quiet)
 			fprintf(stderr, Name ": %s: no change requested\n",
@@ -844,10 +864,10 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 
 		if (chunksize) {
 			nchunk = chunksize * 1024;
-			if (array.size % chunksize) {
-				fprintf(stderr, Name ": component size %dK is not"
+			if (size % chunksize) {
+				fprintf(stderr, Name ": component size %lluK is not"
 					" a multiple of chunksize %dK\n",
-					array.size, chunksize);
+					size, chunksize);
 				break;
 			}
 		}
@@ -891,13 +911,12 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 		}
 
 		/* Check that we can hold all the data */
-		size = ndata * array.size;
 		get_dev_size(fd, NULL, &array_size);
-		if (size < (array_size/1024)) {
+		if (ndata * size < (array_size/1024)) {
 			fprintf(stderr, Name ": this change will reduce the size of the array.\n"
 				"       use --grow --array-size first to truncate array.\n"
 				"       e.g. mdadm --grow %s --array-size %llu\n",
-				devname, size);
+				devname, ndata * size);
 			rv = 1;
 			break;
 		}
@@ -1060,12 +1079,16 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 		if (ochunk == nchunk && olayout == nlayout) {
 			array.raid_disks = ndisks;
 			if (ioctl(fd, SET_ARRAY_INFO, &array) != 0) {
+				int err = errno;
 				rv = 1;
 				fprintf(stderr, Name ": Cannot set device shape for %s: %s\n",
 					devname, strerror(errno));
 				if (ndisks < odisks &&
 				    get_linux_version() < 2006030)
 					fprintf(stderr, Name ": linux 2.6.30 or later required\n");
+				if (err == EBUSY && 
+				    (array.state & (1<<MD_SB_BITMAP_PRESENT)))
+					fprintf(stderr, "       Bitmap must be removed before shape can be changed\n");
 
 				break;
 			}
@@ -1073,17 +1096,24 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 			/* set them all just in case some old 'new_*' value
 			 * persists from some earlier problem
 			 */
+			int err = err; /* only used if rv==1, and always set if
+					* rv==1, so initialisation not needed,
+					* despite gcc warning
+					*/
 			if (sysfs_set_num(sra, NULL, "chunk_size", nchunk) < 0)
-				rv = 1;
-			if (sysfs_set_num(sra, NULL, "layout", nlayout) < 0)
-				rv = 1;
-			if (sysfs_set_num(sra, NULL, "raid_disks", ndisks) < 0)
-				rv = 1;
+				rv = 1, err = errno;
+			if (!rv && sysfs_set_num(sra, NULL, "layout", nlayout) < 0)
+				rv = 1, err = errno;
+			if (!rv && sysfs_set_num(sra, NULL, "raid_disks", ndisks) < 0)
+				rv = 1, err = errno;
 			if (rv) {
 				fprintf(stderr, Name ": Cannot set device shape for %s\n",
 					devname);
 				if (get_linux_version() < 2006030)
 					fprintf(stderr, Name ": linux 2.6.30 or later required\n");
+				if (err == EBUSY && 
+				    (array.state & (1<<MD_SB_BITMAP_PRESENT)))
+					fprintf(stderr, "       Bitmap must be removed before shape can be changed\n");
 				break;
 			}
 		}
@@ -1224,6 +1254,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
  * 
  */
 
+/* FIXME return status is never checked */
 int grow_backup(struct mdinfo *sra,
 		unsigned long long offset, /* per device */
 		unsigned long stripes, /* per device */
@@ -1306,16 +1337,19 @@ int grow_backup(struct mdinfo *sra,
 			bsb.sb_csum2 = bsb_csum((char*)&bsb,
 						((char*)&bsb.sb_csum2)-((char*)&bsb));
 
-		lseek64(destfd[i], destoffsets[i] - 4096, 0);
-		write(destfd[i], &bsb, 512);
+		if (lseek64(destfd[i], destoffsets[i] - 4096, 0) != destoffsets[i] - 4096)
+			rv = 1;
+		rv = rv ?: write(destfd[i], &bsb, 512);
 		if (destoffsets[i] > 4096) {
-			lseek64(destfd[i], destoffsets[i]+stripes*chunk*odata, 0);
-			write(destfd[i], &bsb, 512);
+			if (lseek64(destfd[i], destoffsets[i]+stripes*chunk*odata, 0) !=
+			    destoffsets[i]+stripes*chunk*odata)
+				rv = 1;
+			rv = rv ?: write(destfd[i], &bsb, 512);
 		}
 		fsync(destfd[i]);
 	}
 
-	return 0;
+	return rv;
 }
 
 /* in 2.6.30, the value reported by sync_completed can be
@@ -1328,6 +1362,7 @@ int grow_backup(struct mdinfo *sra,
  * The various caller give appropriate values so that
  * every works.
  */
+/* FIXME return value is often ignored */
 int wait_backup(struct mdinfo *sra,
 		unsigned long long offset, /* per device */
 		unsigned long long blocks, /* per device */
@@ -1341,6 +1376,7 @@ int wait_backup(struct mdinfo *sra,
 	int fd = sysfs_get_fd(sra, NULL, "sync_completed");
 	unsigned long long completed;
 	int i;
+	int rv;
 
 	if (fd < 0)
 		return -1;
@@ -1372,24 +1408,28 @@ int wait_backup(struct mdinfo *sra,
 		bsb.length = __cpu_to_le64(0);
 	}
 	bsb.mtime = __cpu_to_le64(time(0));
+	rv = 0;
 	for (i = 0; i < dests; i++) {
 		bsb.devstart = __cpu_to_le64(destoffsets[i]/512);
 		bsb.sb_csum = bsb_csum((char*)&bsb, ((char*)&bsb.sb_csum)-((char*)&bsb));
 		if (memcmp(bsb.magic, "md_backup_data-2", 16) == 0)
 			bsb.sb_csum2 = bsb_csum((char*)&bsb,
 						((char*)&bsb.sb_csum2)-((char*)&bsb));
-		lseek64(destfd[i], destoffsets[i]-4096, 0);
-		write(destfd[i], &bsb, 512);
+		if (lseek64(destfd[i], destoffsets[i]-4096, 0) !=
+		    destoffsets[i]-4096)
+			rv = 1;
+		rv = rv ?: write(destfd[i], &bsb, 512);
 		fsync(destfd[i]);
 	}
-	return 0;
+	return rv;
 }
 
 static void fail(char *msg)
 {
-	write(2, msg, strlen(msg));
-	write(2, "\n", 1);
-	exit(1);
+	int rv;
+	rv = write(2, msg, strlen(msg));
+	rv |= write(2, "\n", 1);
+	exit(rv ? 1 : 2);
 }
 
 static char *abuf, *bbuf;
@@ -1425,27 +1465,33 @@ static void validate(int afd, int bfd, unsigned long long offset)
 			free(abuf);
 			free(bbuf);
 			abuflen = len;
-			posix_memalign((void**)&abuf, 4096, abuflen);
-			posix_memalign((void**)&bbuf, 4096, abuflen);
+			if (posix_memalign((void**)&abuf, 4096, abuflen) ||
+			    posix_memalign((void**)&bbuf, 4096, abuflen)) {
+				abuflen = 0;
+				/* just stop validating on mem-alloc failure */
+				return;
+			}
 		}
 
 		lseek64(bfd, offset, 0);
 		if (read(bfd, bbuf, len) != len) {
-			printf("len %llu\n", len);
+			//printf("len %llu\n", len);
 			fail("read first backup failed");
 		}
 		lseek64(afd, __le64_to_cpu(bsb2.arraystart)*512, 0);
 		if (read(afd, abuf, len) != len)
 			fail("read first from array failed");
 		if (memcmp(bbuf, abuf, len) != 0) {
+			#if 0
 			int i;
 			printf("offset=%llu len=%llu\n",
-			       __le64_to_cpu(bsb2.arraystart)*512, len);
+			       (unsigned long long)__le64_to_cpu(bsb2.arraystart)*512, len);
 			for (i=0; i<len; i++)
 				if (bbuf[i] != abuf[i]) {
 					printf("first diff byte %d\n", i);
 					break;
 				}
+			#endif
 			fail("data1 compare failed");
 		}
 	}
@@ -1479,7 +1525,9 @@ static int child_grow(int afd, struct mdinfo *sra, unsigned long stripes,
 	char *buf;
 	int degraded = 0;
 
-	posix_memalign((void**)&buf, 4096, disks * chunk);
+	if (posix_memalign((void**)&buf, 4096, disks * chunk))
+		/* Don't start the 'reshape' */
+		return 0;
 	sysfs_set_num(sra, NULL, "suspend_hi", 0);
 	sysfs_set_num(sra, NULL, "suspend_lo", 0);
 	grow_backup(sra, 0, stripes,
@@ -1507,7 +1555,8 @@ static int child_shrink(int afd, struct mdinfo *sra, unsigned long stripes,
 	int rv;
 	int degraded = 0;
 
-	posix_memalign((void**)&buf, 4096, disks * chunk);
+	if (posix_memalign((void**)&buf, 4096, disks * chunk))
+		return 0;
 	start = sra->component_size - stripes * chunk/512;
 	sysfs_set_num(sra, NULL, "sync_max", start);
 	sysfs_set_str(sra, NULL, "sync_action", "reshape");
@@ -1546,7 +1595,8 @@ static int child_same_size(int afd, struct mdinfo *sra, unsigned long stripes,
 	int degraded = 0;
 
 
-	posix_memalign((void**)&buf, 4096, disks * chunk);
+	if (posix_memalign((void**)&buf, 4096, disks * chunk))
+		return 0;
 
 	sysfs_set_num(sra, NULL, "suspend_lo", 0);
 	sysfs_set_num(sra, NULL, "suspend_hi", 0);
@@ -1698,11 +1748,23 @@ int Grow_restart(struct supertype *st, struct mdinfo *info, int *fdlist, int cnt
 			continue; /* Wrong uuid */
 		}
 
-		if (info->array.utime > __le64_to_cpu(bsb.mtime) + 10*60 ||
+		/* array utime and backup-mtime should be updated at much the same time, but it seems that
+		 * sometimes they aren't... So allow considerable flexability in matching, and allow
+		 * this test to be overridden by an environment variable.
+		 */
+		if (info->array.utime > __le64_to_cpu(bsb.mtime) + 2*60*60 ||
 		    info->array.utime < __le64_to_cpu(bsb.mtime) - 10*60) {
-			if (verbose)
-				fprintf(stderr, Name ": too-old timestamp on backup-metadata on %s\n", devname);
-			continue; /* time stamp is too bad */
+			if (check_env("MDADM_GROW_ALLOW_OLD")) {
+				fprintf(stderr, Name ": accepting backup with timestamp %lu "
+					"for array with timestamp %lu\n",
+					(unsigned long)__le64_to_cpu(bsb.mtime),
+					(unsigned long)info->array.utime);
+			} else {
+				if (verbose)
+					fprintf(stderr, Name ": too-old timestamp on "
+						"backup-metadata on %s\n", devname);
+				continue; /* time stamp is too bad */
+			}
 		}
 
 		if (bsb.magic[15] == '1') {

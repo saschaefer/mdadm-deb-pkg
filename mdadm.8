@@ -5,7 +5,7 @@
 .\"   the Free Software Foundation; either version 2 of the License, or
 .\"   (at your option) any later version.
 .\" See file COPYING in distribution for details.
-.TH MDADM 8 "" v3.1.1
+.TH MDADM 8 "" v3.1.2
 .SH NAME
 mdadm \- manage MD devices
 .I aka
@@ -250,18 +250,6 @@ Avoid printing purely informative messages.  With this,
 will be silent unless there is something really important to report.
 
 .TP
-.BR \-b ", " \-\-brief
-Be less verbose.  This is used with
-.B \-\-detail
-and
-.BR \-\-examine .
-Using
-.B \-\-brief
-with
-.B \-\-verbose
-gives an intermediate level of verbosity.
-
-.TP
 .BR \-f ", " \-\-force
 Be more forceful about certain operations.  See the various modes for
 the exact meaning of this option in different contexts.
@@ -311,7 +299,7 @@ says to get a list of array devices from
 .TP
 .BR \-e ", " \-\-metadata=
 Declare the style of RAID metadata (superblock) to be used.  The
-default is 1.1 for
+default is 1.2 for
 .BR \-\-create ,
 and to guess for other operations.
 The default can be overridden by setting the
@@ -332,7 +320,7 @@ Use the new version-1 format superblock.  This has few restrictions.
 The different sub-versions store the superblock at different locations
 on the device, either at the end (for 1.0), at the start (for 1.1) or
 4K from the start (for 1.2).  '1' is equivalent to '1.0', 'default' is
-equivalent to '1.1'.
+equivalent to '1.2'.
 .IP ddf
 Use the "Industry Standard" DDF (Disk Data Format) format defined by
 SNIA.
@@ -515,7 +503,7 @@ These layouts are:
 .BR left\-asymmetric\-6 ,
 .BR right\-asymmetric\-6 ,
 and
-.BR pairty\-first\-6 .
+.BR parity\-first\-6 .
 
 When setting the failure mode for level
 .I faulty,
@@ -648,6 +636,12 @@ data will be affected unless you actually write to the array.  It can
 also be used when creating a RAID1 or RAID10 if you want to avoid the
 initial resync, however this practice \(em while normally safe \(em is not
 recommended.  Use this only if you really know what you are doing.
+.IP
+When the devices that will be part of a new array were filled
+with zeros before creation the operator knows the array is
+actually clean. If that is the case, such as after running
+badblocks, this argument can be used to tell mdadm the
+facts the operator knows.
 
 .TP
 .BR \-\-backup\-file=
@@ -1474,6 +1468,25 @@ from the superblock is used to similarly create a name in
 .B /dev/md/
 (the name will have any 'host' prefix stripped first).
 
+This behaviour can be modified by the
+.I AUTO
+line in the
+.I mdadm.conf
+configuration file.  This line can indicate that specific metadata
+type should, or should not, be automatically assembled.  If an array
+is found which is not listed in
+.I mdadm.conf
+and has a metadata format that is denied by the
+.I AUTO
+line, then it will not be assembled.
+The
+.I AUTO
+line can also request that all arrays identified as being for this
+homehost should be assembled regardless of their metadata type.
+See
+.IR mdadm.conf (5)
+for further details.
+
 .ig
 If
 .I mdadm
@@ -1787,6 +1800,18 @@ For
 .BR \-\-examine,
 .B \-\-scan
 causes all devices listed in the config file to be examined.
+
+.TP
+.BR \-b ", " \-\-brief
+Be less verbose.  This is used with
+.B \-\-detail
+and
+.BR \-\-examine .
+Using
+.B \-\-brief
+with
+.B \-\-verbose
+gives an intermediate level of verbosity.
 
 .SH MONITOR MODE
 
