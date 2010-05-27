@@ -7,10 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: mdadm-debconf\n"
 "Report-Msgid-Bugs-To: mdadm@packages.debian.org\n"
-"POT-Creation-Date: 2008-02-06 18:49+0100\n"
+"POT-Creation-Date: 2008-04-11 15:03+0200\n"
 "PO-Revision-Date: Y2008-04-30 11:00+0100\n"
 "Last-Translator: Piarres Beobide <pi@beobide.net>\n"
 "Language-Team: Euskara <debian-l10n-basque@lists.debian.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -45,9 +46,10 @@ msgid ""
 "to be started early during the boot sequence. If it is located on a logical "
 "volume (LVM), which is on MD, all constituent arrays need to be started."
 msgstr ""
-"Sistemaren erro fitxategi-sistema MD array (RAID) batetan kokaturik badago, berau "
-"abio sekuentziaren hasieran abiarazi behar da. MD batetan kokaturiko bolumen "
-"logiko (LVM) batetan badago osatzen duten array guztiak abiarazi behar dira."
+"Sistemaren erro fitxategi-sistema MD array (RAID) batetan kokaturik badago, "
+"berau abio sekuentziaren hasieran abiarazi behar da. MD batetan kokaturiko "
+"bolumen logiko (LVM) batetan badago osatzen duten array guztiak abiarazi "
+"behar dira."
 
 #. Type: text
 #. Description
@@ -60,8 +62,8 @@ msgid ""
 msgstr ""
 "Erro fitxategi-sistema erabiltzeko beharrezkoak diren arrayak zehazki jakin "
 "eta beste array-en abiaraztea abioaren beranduagoko puntu batetara atzeratu "
-"nahi baduzu, idatzi abiarazi beharreko array-ak hemen. Bestela idatzi 'denak' "
-"array erabilgarri guztiak abiarazteko."
+"nahi baduzu, idatzi abiarazi beharreko array-ak hemen. Bestela idatzi "
+"'denak' array erabilgarri guztiak abiarazteko."
 
 #. Type: text
 #. Description
@@ -72,8 +74,8 @@ msgid ""
 "using kernel autostart or do not need any arrays to boot."
 msgstr ""
 "Ez baduzu erro fitxategi sistemarako array-rik abiarazi behar, hutsik utzi "
-"ezazu (edo 'batez' idatzi). Hau abioan array-rik behar ez duzulako edo kernel "
-"auto-abioa erabiltzen duzulako izan daiteke."
+"ezazu (edo 'batez' idatzi). Hau abioan array-rik behar ez duzulako edo "
+"kernel auto-abioa erabiltzen duzulako izan daiteke."
 
 #. Type: text
 #. Description
@@ -97,7 +99,8 @@ msgstr "Errore bat gertatu da: ez da MD array bat"
 #. Description
 #: ../mdadm.templates:7001
 msgid "An error occurred: array not listed in mdadm.conf file"
-msgstr "Errore bat gertatu da: array-a ez dago mdadm.conf fitxategian zerrendaturik"
+msgstr ""
+"Errore bat gertatu da: array-a ez dago mdadm.conf fitxategian zerrendaturik"
 
 #. Type: boolean
 #. Description
@@ -114,8 +117,8 @@ msgid ""
 "the configuration file and recreate the initial ramdisk."
 msgstr ""
 "Zehazturiko (${array}) array-a ez dago (${config}) konfigurazio fitxategian "
-"zerrendaturiko. Horregatik ezin da abioan abiarazi zuk konfigurazio fitxategia "
-"konpondu eta abio ramdiskoa bersortu arte."
+"zerrendaturiko. Horregatik ezin da abioan abiarazi zuk konfigurazio "
+"fitxategia konpondu eta abio ramdiskoa bersortu arte."
 
 #. Type: boolean
 #. Description
@@ -124,8 +127,8 @@ msgid ""
 "Please refer to /usr/share/doc/mdadm/README.upgrading-2.5.3.gz if you intend "
 "to continue."
 msgstr ""
-"Mesedez irakurri /usr/share/doc/mdadm/README.upgrading-2.5.3.gz aurrera jarraitu "
-"nahi baduzu."
+"Mesedez irakurri /usr/share/doc/mdadm/README.upgrading-2.5.3.gz aurrera "
+"jarraitu nahi baduzu."
 
 #. Type: boolean
 #. Description
@@ -137,11 +140,11 @@ msgid ""
 "you can simply continue. Alternatively, choose not to continue and enter "
 "'none' when prompted which arrays to start from the initial ramdisk."
 msgstr ""
-"Abisu hau abiarazi ahal izateko ramdisk.etik array-ak baiaraztea behar baduzu "
-"bakarrik da garrantzitsua. Kernel auto-abioa erabiltzen baduzu edo ez baduzu "
-"ramdisk-etik hasieran array-rik kargatzea behar aurrera jarraitu dezakezu. "
-"Bestela ez jarraitzea hautatu eta 'batez' idatzi hasierako ramdisk-etik "
-"kargatu beharreko array-ez galdetzean."
+"Abisu hau abiarazi ahal izateko ramdisk.etik array-ak baiaraztea behar "
+"baduzu bakarrik da garrantzitsua. Kernel auto-abioa erabiltzen baduzu edo ez "
+"baduzu ramdisk-etik hasieran array-rik kargatzea behar aurrera jarraitu "
+"dezakezu. Bestela ez jarraitzea hautatu eta 'batez' idatzi hasierako ramdisk-"
+"etik kargatu beharreko array-ez galdetzean."
 
 #. Type: boolean
 #. Description
@@ -162,15 +165,16 @@ msgstr ""
 "Behin oinarri sistema abiarazi denean, mdadm-ek /etc/mdadm/mdadm.conf-en "
 "konfiguraturiko eta oraindik abiarazi ez diren MD array (RAID) guztiak "
 "abiarazi ditzake. Hau gomendagarria da ez bada gailu anitzeko (MD) onarpena "
-"kernelan konpilaturik eta partizio guztiak MD array partaide bezala markaturik "
-"badaude, 0xfd mota erabiliaz (horrela hauek eta hauek bakarrik abiaraziko "
-"ditu automatikoki kernelak)."
+"kernelan konpilaturik eta partizio guztiak MD array partaide bezala "
+"markaturik badaude, 0xfd mota erabiliaz (horrela hauek eta hauek bakarrik "
+"abiaraziko ditu automatikoki kernelak)."
 
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:10001
 msgid "Should mdadm run monthly redundancy checks of the MD arrays?"
-msgstr "Mdadm-ek hilabetero egin behar al du MD array-en erredundantzia egiaztapena?"
+msgstr ""
+"Mdadm-ek hilabetero egin behar al du MD array-en erredundantzia egiaztapena?"
 
 #. Type: boolean
 #. Description
@@ -183,12 +187,13 @@ msgid ""
 "errors are found; if errors are found, mdadm will try to correct them, which "
 "may result in write access to the media."
 msgstr ""
-"Kernelak onartzen badu (2.6.14 baino bertsio berriagoak), mdadm-ek aldiro "
-"MD array-en (RAID-en) erredundantzia aldiro egiazta dezake. Hau errekurtso-behar "
-"handiko prozesu bat izan daiteke, konfigurazio lokalaren arabera, baina datu "
-"galera kasuak saihesten lagundu dezake. Kontutan izan errorerik aurkitzen ez bada "
-"irakurketa-soileko egiaztapen bat dela; errorerik arukituko balitz mdadm "
-"konpontzen saiatuko da, honetarako euskarrian idaztea beharrezko izan daitekeelarik."
+"Kernelak onartzen badu (2.6.14 baino bertsio berriagoak), mdadm-ek aldiro MD "
+"array-en (RAID-en) erredundantzia aldiro egiazta dezake. Hau errekurtso-"
+"behar handiko prozesu bat izan daiteke, konfigurazio lokalaren arabera, "
+"baina datu galera kasuak saihesten lagundu dezake. Kontutan izan errorerik "
+"aurkitzen ez bada irakurketa-soileko egiaztapen bat dela; errorerik "
+"arukituko balitz mdadm konpontzen saiatuko da, honetarako euskarrian idaztea "
+"beharrezko izan daitekeelarik."
 
 #. Type: boolean
 #. Description
@@ -215,6 +220,7 @@ msgid ""
 msgstr ""
 "MD (RAID) monitore deabruak eposta bidezko berri-emateak bidaltzen ditu "
 "gertaera garrantzitsuetan (disko erroreen antzerakoetan)."
+
 #. Type: boolean
 #. Description
 #: ../mdadm.templates:11001
@@ -234,5 +240,5 @@ msgid ""
 "Please enter the email address of the user who should get the email "
 "notifications for important MD events."
 msgstr ""
-"Mesedez idatzi MD gertaera garrantzitsuen berri emate mezuak jaso "
-"behar dituen erabiltzailearen eposta helbidea."
+"Mesedez idatzi MD gertaera garrantzitsuen berri emate mezuak jaso behar "
+"dituen erabiltzailearen eposta helbidea."

@@ -151,13 +151,10 @@ int main(int argc, char *argv[])
 			continue;
 
 		case 'b':
-			if (mode == ASSEMBLE || mode == BUILD || mode == CREATE || mode == GROW)
+			if (mode == ASSEMBLE || mode == BUILD || mode == CREATE || mode == GROW ||
+			    mode == INCREMENTAL || mode == MANAGE)
 				break; /* b means bitmap */
 			brief = 1;
-			if (optarg) {
-				fprintf(stderr, Name ": -b cannot have any extra immediately after it, sorry.\n");
-				exit(2);
-			}
 			continue;
 
 		case 'Y': export++;
@@ -267,7 +264,8 @@ int main(int argc, char *argv[])
 					continue;
 				}
 				/* No mode yet, and this is the second device ... */
-				fprintf(stderr, Name ": An option must be given to set the mode before a second device is listed\n");
+				fprintf(stderr, Name ": An option must be given to set the mode before a second device\n"
+					"       (%s) is listed\n", optarg);
 				exit(2);
 			}
 			if (option_index >= 0)
@@ -874,7 +872,8 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			/* probable typo */
-			fprintf(stderr, Name ": bitmap file must contain a '/', or be 'internal', or 'none'\n");
+			fprintf(stderr, Name ": bitmap file must contain a '/', or be 'internal', or 'none'\n"
+				"       not '%s'\n", optarg);
 			exit(2);
 
 		case O(GROW,BitmapChunk):
@@ -1047,6 +1046,12 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	if ((mode != MISC || devmode != 'E') &&
+	    geteuid() != 0) {
+		fprintf(stderr, Name ": must be super-user to perform this action\n");
+		exit(1);
+	}
+
 	ident.autof = autof;
 
 	rv = 0;
@@ -1115,9 +1120,10 @@ int main(int argc, char *argv[])
 					       verbose-quiet, force);
 			}
 		} else {
-			mddev_ident_t array_list =  conf_get_ident(NULL);
+			mddev_ident_t a, array_list =  conf_get_ident(NULL);
 			mddev_dev_t devlist = conf_get_devs();
 			int cnt = 0;
+			int failures, successes;
 			if (devlist == NULL) {
 				fprintf(stderr, Name ": No devices listed in conf file were found.\n");
 				exit(1);
@@ -1130,21 +1136,38 @@ int main(int argc, char *argv[])
 				fprintf(stderr, Name ": --backup_file not meaningful with a --scan assembly.\n");
 				exit(1);
 			}
-			for (; array_list; array_list = array_list->next) {
-				if (array_list->devname &&
-				    strcasecmp(array_list->devname, "<ignore>") == 0)
-					continue;
-				if (array_list->autof == 0)
-					array_list->autof = autof;
-				
-				rv |= Assemble(ss, array_list->devname,
-					       array_list,
-					       NULL, NULL,
-					       readonly, runstop, NULL,
-					       homehost, require_homehost,
-					       verbose-quiet, force);
-				cnt++;
+			for (a = array_list; a ; a = a->next) {
+				a->assembled = 0;
+				if (a->autof == 0)
+					a->autof = autof;
 			}
+			do {
+				failures = 0;
+				successes = 0;
+				rv = 0;
+				for (a = array_list; a ; a = a->next) {
+					int r;
+					if (a->assembled)
+						continue;
+					if (a->devname &&
+					    strcasecmp(a->devname, "<ignore>") == 0)
+						continue;
+				
+					r = Assemble(ss, a->devname,
+						     a,
+						     NULL, NULL,
+						     readonly, runstop, NULL,
+						     homehost, require_homehost,
+						     verbose-quiet, force);
+					if (r == 0) {
+						a->assembled = 1;
+						successes++;
+					} else
+						failures++;
+					rv |= r;
+					cnt++;
+				}
+			} while (failures && successes);
 			if (homehost && cnt == 0) {
 				/* Maybe we can auto-assemble something.
 				 * Repeatedly call Assemble in auto-assemble mode
@@ -1361,7 +1384,16 @@ int main(int argc, char *argv[])
 						     export, test, homehost);
 					continue;
 				case 'K': /* Zero superblock */
-					rv |= Kill(dv->devname, force, quiet,0);
+					if (ss)
+						rv |= Kill(dv->devname, ss, force, quiet,0);
+					else {
+						int q = quiet;
+						do {
+							rv |= Kill(dv->devname, NULL, force, q, 0);
+							q = 1;
+						} while (rv == 0);
+						rv &= ~2;
+					}
 					continue;
 				case 'Q':
 					rv |= Query(dv->devname); continue;

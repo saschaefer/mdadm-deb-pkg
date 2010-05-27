@@ -9,4 +9,4 @@
 # the month is less than or equal to 7. Thus, only run on the first Sunday of
 # each month. crontab(5) sucks, unfortunately, in this regard; therefore this
 # hack (see #380425).
-57 0 * * 0 root [ -x /usr/share/mdadm/checkarray ] && [ $(date +\%d) -le 7 ] && /usr/share/mdadm/checkarray --cron --all --quiet
+57 0 * * 0 root if [ -x /usr/share/mdadm/checkarray ] && [ $(date +\%d) -le 7 ]; then /usr/share/mdadm/checkarray --cron --all --quiet; fi

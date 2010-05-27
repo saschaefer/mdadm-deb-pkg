@@ -113,28 +113,19 @@ static struct superswitch *find_metadata_methods(char *vers)
 	return NULL;
 }
 
-static int test_pidfile(char *devname)
-{
-	char path[100];
-	struct stat st;
-
-	sprintf(path, "/var/run/mdadm/%s.pid", devname);
-	return stat(path, &st);
-}
-
-int make_pidfile(char *devname, int o_excl)
+static int make_pidfile(char *devname)
 {
 	char path[100];
 	char pid[10];
 	int fd;
 	int n;
 
-	if (sigterm)
-		return -1;
+	if (mkdir(pid_dir, 0600) < 0 &&
+	    errno != EEXIST)
+		return -errno;
+	sprintf(path, "%s/%s.pid", pid_dir, devname);
 
-	sprintf(path, "/var/run/mdadm/%s.pid", devname);
-
-	fd = open(path, O_RDWR|O_CREAT|o_excl, 0600);
+	fd = open(path, O_RDWR|O_CREAT|O_EXCL, 0600);
 	if (fd < 0)
 		return -errno;
 	sprintf(pid, "%d\n", getpid());
@@ -157,29 +148,12 @@ int is_container_member(struct mdstat_ent *mdstat, char *container)
 	return 1;
 }
 
-pid_t devname2mdmon(char *devname)
-{
-	char buf[100];
-	pid_t pid = -1;
-	int fd;
-
-	sprintf(buf, "/var/run/mdadm/%s.pid", devname);
-	fd = open(buf, O_RDONLY|O_NOATIME);
-	if (fd < 0)
-		return -1;
-
-	if (read(fd, buf, sizeof(buf)) > 0)
-		sscanf(buf, "%d\n", &pid);
-	close(fd);
-
-	return pid;
-}
-
 static void try_kill_monitor(pid_t pid, char *devname, int sock)
 {
 	char buf[100];
 	int fd;
-	struct mdstat_ent *mdstat;
+	int n;
+	long fl;
 
 	/* first rule of survival... don't off yourself */
 	if (pid == getpid())
@@ -191,39 +165,40 @@ static void try_kill_monitor(pid_t pid, char *devname, int sock)
 	if (fd < 0)
 		return;
 
-	if (read(fd, buf, sizeof(buf)) < 0) {
-		close(fd);
-		return;
-	}
+	n = read(fd, buf, sizeof(buf)-1);
+	buf[sizeof(buf)-1] = 0;
+	close(fd);
 
-	if (!strstr(buf, "mdmon"))
+	if (n < 0 || !strstr(buf, "mdmon"))
 		return;
 
 	kill(pid, SIGTERM);
 
-	mdstat = mdstat_read(0, 0);
-	for ( ; mdstat; mdstat = mdstat->next)
-		if (is_container_member(mdstat, devname)) {
-			sprintf(buf, "/dev/%s", mdstat->dev);
-			WaitClean(buf, sock, 0);
-		}
-	free_mdstat(mdstat);
+	/* Wait for monitor to exit by reading from the socket, after
+	 * clearing the non-blocking flag */
+	fl = fcntl(sock, F_GETFL, 0);
+	fl &= ~O_NONBLOCK;
+	fcntl(sock, F_SETFL, fl);
+	n = read(sock, buf, 100);
+	/* Ignore result, it is just the wait that
+	 * matters 
+	 */
 }
 
 void remove_pidfile(char *devname)
 {
 	char buf[100];
 
-	if (sigterm)
-		return;
-
-	sprintf(buf, "/var/run/mdadm/%s.pid", devname);
+	sprintf(buf, "%s/%s.pid", pid_dir, devname);
 	unlink(buf);
-	sprintf(buf, "/var/run/mdadm/%s.sock", devname);
+	sprintf(buf, "%s/%s.sock", pid_dir, devname);
 	unlink(buf);
+	if (strcmp(pid_dir, ALT_RUN) == 0)
+		/* try to clean up when we are finished with this dir */
+		rmdir(pid_dir);
 }
 
-int make_control_sock(char *devname)
+static int make_control_sock(char *devname)
 {
 	char path[100];
 	int sfd;
@@ -233,7 +208,7 @@ int make_control_sock(char *devname)
 	if (sigterm)
 		return -1;
 
-	sprintf(path, "/var/run/mdadm/%s.sock", devname);
+	sprintf(path, "%s/%s.sock", pid_dir, devname);
 	unlink(path);
 	sfd = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sfd < 0)
@@ -250,12 +225,6 @@ int make_control_sock(char *devname)
 	fl |= O_NONBLOCK;
 	fcntl(sfd, F_SETFL, fl);
 	return sfd;
-}
-
-int socket_hup_requested;
-static void hup(int sig)
-{
-	socket_hup_requested = 1;
 }
 
 static void term(int sig)
@@ -281,36 +250,42 @@ static int do_fork(void)
 
 void usage(void)
 {
-	fprintf(stderr, "Usage: mdmon /device/name/for/container [target_dir]\n");
+	fprintf(stderr, "Usage: mdmon [--all] [--takeover] CONTAINER\n");
 	exit(2);
 }
 
-int mdmon(char *devname, int devnum, int scan, char *switchroot);
+static int mdmon(char *devname, int devnum, int must_fork, int takeover);
 
 int main(int argc, char *argv[])
 {
 	char *container_name = NULL;
-	char *switchroot = NULL;
 	int devnum;
 	char *devname;
-	int scan = 0;
 	int status = 0;
+	int arg;
+	int all = 0;
+	int takeover = 0;
 
-	switch (argc) {
-	case 3:
-		switchroot = argv[2];
-	case 2:
-		container_name = argv[1];
-		break;
-	default:
-		usage();
+	for (arg = 1; arg < argc; arg++) {
+		if (strncmp(argv[arg], "--all",5) == 0 ||
+		    strcmp(argv[arg], "/proc/mdstat") == 0) {
+			container_name = argv[arg];
+			all = 1;
+		} else if (strcmp(argv[arg], "--takeover") == 0)
+			takeover = 1;
+		else if (container_name == NULL)
+			container_name = argv[arg];
+		else
+			usage();
 	}
+	if (container_name == NULL)
+		usage();
 
-	if (strcmp(container_name, "/proc/mdstat") == 0) {
+	if (all) {
 		struct mdstat_ent *mdstat, *e;
+		int container_len = strlen(container_name);
 
 		/* launch an mdmon instance for each container found */
-		scan = 1;
 		mdstat = mdstat_read(0, 0);
 		for (e = mdstat; e; e = e->next) {
 			if (strncmp(e->metadata_version, "external:", 9) == 0 &&
@@ -319,12 +294,12 @@ int main(int argc, char *argv[])
 				/* update cmdline so this mdmon instance can be
 				 * distinguished from others in a call to ps(1)
 				 */
-				if (strlen(devname) <= strlen(container_name)) {
-					memset(container_name, 0, strlen(container_name));
+				if (strlen(devname) <= container_len) {
+					memset(container_name, 0, container_len);
 					sprintf(container_name, "%s", devname);
 				}
-				status |= mdmon(devname, e->devnum, scan,
-						switchroot);
+				status |= mdmon(devname, e->devnum, 1,
+						takeover);
 			}
 		}
 		free_mdstat(mdstat);
@@ -352,10 +327,10 @@ int main(int argc, char *argv[])
 			container_name);
 		exit(1);
 	}
-	return mdmon(devname, devnum, scan, switchroot);
+	return mdmon(devname, devnum, do_fork(), takeover);
 }
 
-int mdmon(char *devname, int devnum, int scan, char *switchroot)
+static int mdmon(char *devname, int devnum, int must_fork, int takeover)
 {
 	int mdfd;
 	struct mdinfo *mdi, *di;
@@ -368,30 +343,7 @@ int mdmon(char *devname, int devnum, int scan, char *switchroot)
 	pid_t victim = -1;
 	int victim_sock = -1;
 
-	dprintf("starting mdmon for %s in %s\n",
-		devname, switchroot ? : "/");
-
-	/* try to spawn mdmon instances from the target file system */
-	if (switchroot && strcmp(switchroot, "/") != 0) {
-		char path[1024];
-		pid_t pid;
-
-		sprintf(path, "%s/sbin/mdmon", switchroot);
-		switch (fork()) {
-		case 0:
-			execl(path, "mdmon", devname, NULL);
-			exit(1);
-		case -1:
-			return 1;
-		default:
-			pid = wait(&status);
-			if (pid > -1 && WIFEXITED(status) &&
-			    WEXITSTATUS(status) == 0)
-				return 0;
-			else
-				return 1;
-		}
-	}
+	dprintf("starting mdmon for %s\n", devname);
 
 	mdfd = open_dev(devnum);
 	if (mdfd < 0) {
@@ -406,7 +358,7 @@ int mdmon(char *devname, int devnum, int scan, char *switchroot)
 	}
 
 	/* Fork, and have the child tell us when they are ready */
-	if (do_fork() || scan) {
+	if (must_fork) {
 		if (pipe(pfd) != 0) {
 			fprintf(stderr, "mdmon: failed to create pipe\n");
 			return 1;
@@ -483,42 +435,33 @@ int mdmon(char *devname, int devnum, int scan, char *switchroot)
 	 */
 	sigemptyset(&set);
 	sigaddset(&set, SIGUSR1);
-	sigaddset(&set, SIGHUP);
-	sigaddset(&set, SIGALRM);
 	sigaddset(&set, SIGTERM);
 	sigprocmask(SIG_BLOCK, &set, NULL);
 	act.sa_handler = wake_me;
 	act.sa_flags = 0;
 	sigaction(SIGUSR1, &act, NULL);
-	sigaction(SIGALRM, &act, NULL);
-	act.sa_handler = hup;
-	sigaction(SIGHUP, &act, NULL);
 	act.sa_handler = term;
 	sigaction(SIGTERM, &act, NULL);
 	act.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &act, NULL);
 
-	if (switchroot) {
-		/* we assume we assume that /sys /proc /dev are available in
-		 * the new root
-		 */
-		victim = devname2mdmon(container->devname);
-		victim_sock = connect_monitor(container->devname);
-		if (chroot(switchroot) != 0) {
-			fprintf(stderr, "mdmon: failed to chroot to '%s': %s\n",
-				switchroot, strerror(errno));
-			exit(4);
-		}
+	pid_dir = VAR_RUN;
+	victim = mdmon_pid(container->devnum);
+	if (victim < 0) {
+		pid_dir = ALT_RUN;
+		victim = mdmon_pid(container->devnum);
 	}
+	if (victim >= 0)
+		victim_sock = connect_monitor(container->devname);
 
 	ignore = chdir("/");
-	if (victim < 0 && test_pidfile(container->devname) == 0) {
-		if (ping_monitor(container->devname) == 0) {
+	if (!takeover && victim > 0 && victim_sock >= 0) {
+		if (fping_monitor(victim_sock) == 0) {
 			fprintf(stderr, "mdmon: %s already managed\n",
 				container->devname);
 			exit(3);
-		} else if (victim < 0)
-			victim = devname2mdmon(container->devname);
+		}
+		close(victim_sock);
 	}
 	if (container->ss->load_super(container, mdfd, devname)) {
 		fprintf(stderr, "mdmon: Cannot load metadata for %s\n",
@@ -529,11 +472,39 @@ int mdmon(char *devname, int devnum, int scan, char *switchroot)
 
 	/* Ok, this is close enough.  We can say goodbye to our parent now.
 	 */
+	if (victim > 0)
+		remove_pidfile(devname);
+	pid_dir = VAR_RUN;
+	if (make_pidfile(devname) < 0) {
+		/* Try the alternate */
+		pid_dir = ALT_RUN;
+		if (make_pidfile(devname) < 0) {
+			fprintf(stderr, "mdmon: Neither %s nor %s are writable\n"
+				"       cannot create .pid or .sock files.  Aborting\n",
+				VAR_RUN, ALT_RUN);
+			exit(3);
+		}
+	}
+	container->sock = make_control_sock(devname);
+
 	status = 0;
 	if (write(pfd[1], &status, sizeof(status)) < 0)
 		fprintf(stderr, "mdmon: failed to notify our parent: %d\n",
 			getppid());
 	close(pfd[1]);
+
+	mlockall(MCL_CURRENT | MCL_FUTURE);
+
+	if (clone_monitor(container) < 0) {
+		fprintf(stderr, "mdmon: failed to start monitor process: %s\n",
+			strerror(errno));
+		exit(2);
+	}
+
+	if (victim > 0) {
+		try_kill_monitor(victim, container->devname, victim_sock);
+		close(victim_sock);
+	}
 
 	setsid();
 	close(0);
@@ -545,18 +516,6 @@ int mdmon(char *devname, int devnum, int scan, char *switchroot)
 	ignore = dup(0);
 #endif
 
-	mlockall(MCL_CURRENT | MCL_FUTURE);
-
-	if (clone_monitor(container) < 0) {
-		fprintf(stderr, "mdmon: failed to start monitor process: %s\n",
-			strerror(errno));
-		exit(2);
-	}
-
-	if (victim > -1) {
-		try_kill_monitor(victim, container->devname, victim_sock);
-		close(victim_sock);
-	}
 	do_manager(container);
 
 	exit(0);

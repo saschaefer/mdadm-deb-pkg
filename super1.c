@@ -612,6 +612,11 @@ static void getinfo_super1(struct supertype *st, struct mdinfo *info)
 	strncpy(info->name, sb->set_name, 32);
 	info->name[32] = 0;
 
+	if (sb->feature_map & __le32_to_cpu(MD_FEATURE_RECOVERY_OFFSET))
+		info->recovery_start = __le32_to_cpu(sb->recovery_offset);
+	else
+		info->recovery_start = MaxSector;
+
 	if (sb->feature_map & __le32_to_cpu(MD_FEATURE_RESHAPE_ACTIVE)) {
 		info->reshape_active = 1;
 		info->reshape_progress = __le64_to_cpu(sb->reshape_position);
@@ -659,9 +664,9 @@ static int update_super1(struct supertype *st, struct mdinfo *info,
 		switch(__le32_to_cpu(sb->level)) {
 		case 5: case 4: case 6:
 			/* need to force clean */
-			if (sb->resync_offset != ~0ULL)
+			if (sb->resync_offset != MaxSector)
 				rv = 1;
-			sb->resync_offset = ~0ULL;
+			sb->resync_offset = MaxSector;
 		}
 	}
 	if (strcmp(update, "assemble")==0) {
@@ -855,7 +860,7 @@ static int init_super1(struct supertype *st, mdu_array_info_t *info,
 	sb->utime = sb->ctime;
 	sb->events = __cpu_to_le64(1);
 	if (info->state & (1<<MD_SB_CLEAN))
-		sb->resync_offset = ~0ULL;
+		sb->resync_offset = MaxSector;
 	else
 		sb->resync_offset = 0;
 	sb->max_dev = __cpu_to_le32((1024- sizeof(struct mdp_superblock_1))/
@@ -989,6 +994,8 @@ static unsigned long choose_bm_space(unsigned long devsize)
 {
 	/* if the device is bigger than 8Gig, save 64k for bitmap usage,
 	 * if bigger than 200Gig, save 128k
+	 * NOTE: result must be multiple of 4K else bad things happen
+	 * on 4K-sector devices.
 	 */
 	if (devsize < 64*2) return 0;
 	if (devsize - 64*2 >= 200*1024*1024*2)
@@ -1006,6 +1013,7 @@ static int write_init_super1(struct supertype *st)
 	int rfd;
 	int rv = 0;
 	int bm_space;
+	unsigned long long reserved;
 	struct devinfo *di;
 	unsigned long long dsize, array_size;
 	long long sb_offset;
@@ -1016,8 +1024,8 @@ static int write_init_super1(struct supertype *st)
 		if (di->fd < 0)
 			continue;
 
-		Kill(di->devname, 0, 1, 1);
-		Kill(di->devname, 0, 1, 1);
+		while (Kill(di->devname, NULL, 0, 1, 1) == 0)
+			;
 
 		sb->dev_number = __cpu_to_le32(di->disk.number);
 		if (di->disk.state & (1<<MD_DISK_WRITEMOSTLY))
@@ -1083,16 +1091,23 @@ static int write_init_super1(struct supertype *st)
 			sb_offset &= ~(4*2-1);
 			sb->super_offset = __cpu_to_le64(sb_offset);
 			sb->data_offset = __cpu_to_le64(0);
-		if (sb_offset - bm_space < array_size)
-			bm_space = sb_offset - array_size;
+			if (sb_offset - bm_space < array_size)
+				bm_space = sb_offset - array_size;
 			sb->data_size = __cpu_to_le64(sb_offset - bm_space);
 			break;
 		case 1:
 			sb->super_offset = __cpu_to_le64(0);
-			if (4*2 + bm_space + __le64_to_cpu(sb->size) > dsize)
-				bm_space = dsize - __le64_to_cpu(sb->size) -4*2;
-			sb->data_offset = __cpu_to_le64(bm_space + 4*2);
-			sb->data_size = __cpu_to_le64(dsize - bm_space - 4*2);
+			reserved = bm_space + 4*2;
+			/* Try for multiple of 1Meg so it is nicely aligned */
+			#define ONE_MEG (2*1024)
+			reserved = ((reserved + ONE_MEG-1)/ONE_MEG) * ONE_MEG;
+			if (reserved + __le64_to_cpu(sb->size) > dsize)
+				reserved = dsize - __le64_to_cpu(sb->size);
+			/* force 4K alignment */
+			reserved &= ~7ULL;
+
+			sb->data_offset = __cpu_to_le64(reserved);
+			sb->data_size = __cpu_to_le64(dsize - reserved);
 			break;
 		case 2:
 			sb_offset = 4*2;
@@ -1101,9 +1116,18 @@ static int write_init_super1(struct supertype *st)
 			    > dsize)
 				bm_space = dsize - __le64_to_cpu(sb->size)
 					- 4*2 - 4*2;
-			sb->data_offset = __cpu_to_le64(4*2 + 4*2 + bm_space);
-			sb->data_size = __cpu_to_le64(dsize - 4*2 - 4*2
-						      - bm_space );
+
+			reserved = bm_space + 4*2 + 4*2;
+			/* Try for multiple of 1Meg so it is nicely aligned */
+			#define ONE_MEG (2*1024)
+			reserved = ((reserved + ONE_MEG-1)/ONE_MEG) * ONE_MEG;
+			if (reserved + __le64_to_cpu(sb->size) > dsize)
+				reserved = dsize - __le64_to_cpu(sb->size);
+			/* force 4K alignment */
+			reserved &= ~7ULL;
+
+			sb->data_offset = __cpu_to_le64(reserved);
+			sb->data_size = __cpu_to_le64(dsize - reserved);
 			break;
 		default:
 			return -EINVAL;
@@ -1352,13 +1376,13 @@ static struct supertype *match_metadata_desc1(char *arg)
 	}
 	if (strcmp(arg, "1.1") == 0 ||
 	    strcmp(arg, "1.01") == 0 ||
-	    strcmp(arg, "default") == 0 ||
 	    strcmp(arg, "") == 0 /* no metadata */
 		) {
 		st->minor_version = 1;
 		return st;
 	}
 	if (strcmp(arg, "1.2") == 0 ||
+	    strcmp(arg, "default") == 0 ||
 	    strcmp(arg, "1.02") == 0) {
 		st->minor_version = 2;
 		return st;
@@ -1395,10 +1419,19 @@ static __u64 avail_size1(struct supertype *st, __u64 devsize)
 	}
 #endif
 
+	if (st->minor_version < 0)
+		/* not specified, so time to set default */
+		st->minor_version = 2;
+	if (super == NULL && st->minor_version > 0) {
+		/* haven't committed to a size yet, so allow some
+		 * slack for alignment of data_offset.
+		 * We haven't access to device details so allow
+		 * 1 Meg if bigger than 1Gig
+		 */
+		if (devsize > 1024*1024*2)
+			devsize -= 1024*2;
+	}
 	switch(st->minor_version) {
-	case -1: /* no specified.  Now time to set default */
-		st->minor_version = 0;
-		/* FALL THROUGH */
 	case 0:
 		/* at end */
 		return ((devsize - 8*2 ) & ~(4*2-1));
@@ -1440,8 +1473,8 @@ add_internal_bitmap1(struct supertype *st,
 
 	switch(st->minor_version) {
 	case 0:
-		/* either 3K after the superblock, or some amount of space
-		 * before.
+		/* either 3K after the superblock (when hot-add),
+		 * or some amount of space before.
 		 */
 		if (may_change) {
 			/* We are creating array, so we *know* how much room has
@@ -1449,11 +1482,6 @@ add_internal_bitmap1(struct supertype *st,
 			 */
 			offset = 0;
 			room = choose_bm_space(__le64_to_cpu(sb->size));
-			if (room == 4*2) {
-				/* make it 3K after the superblock */
-				room = 3*2;
-				offset = 2;
-			}
 		} else {
 			room = __le64_to_cpu(sb->super_offset)
 				- __le64_to_cpu(sb->data_offset)
@@ -1514,8 +1542,12 @@ add_internal_bitmap1(struct supertype *st,
 		return 0;
 
 	if (offset == 0) {
+		/* start bitmap on a 4K boundary with enough space for
+		 * the bitmap
+		 */
 		bits = (size*512) / chunk + 1;
-		room = ((bits+7)/8 + sizeof(bitmap_super_t) +511)/512;
+		room = ((bits+7)/8 + sizeof(bitmap_super_t) +4095)/4096;
+		room *= 8; /* convert 4K blocks to sectors */
 		offset = -room;
 	}
 
