@@ -58,7 +58,16 @@ CONFFILE = $(SYSCONFDIR)/mdadm/mdadm.conf
 CONFFILE2 = $(SYSCONFDIR)/mdadm.conf
 MAILCMD =/usr/sbin/sendmail -t
 CONFFILEFLAGS = -DCONFFILE=\"$(CONFFILE)\" -DCONFFILE2=\"$(CONFFILE2)\"
-CFLAGS = $(CWFLAGS) $(CXFLAGS) -DSendmail=\""$(MAILCMD)"\" $(CONFFILEFLAGS)
+# ALT_RUN should be somewhere that persists across the pivotroot
+# from early boot to late boot.
+# If you don't have /lib/init/rw you might want to use /dev/.something
+#  e.g. make ALT_RUN=/dev/.mdadm
+ALT_RUN = /lib/init/rw/mdadm
+ALT_MAPFILE = map
+VAR_RUN = /var/run/mdadm
+ALTFLAGS = -DALT_RUN=\"$(ALT_RUN)\" -DALT_MAPFILE=\"$(ALT_MAPFILE)\"
+VARFLAGS = -DVAR_RUN=\"$(VAR_RUN)\"
+CFLAGS = $(CWFLAGS) $(CXFLAGS) -DSendmail=\""$(MAILCMD)"\" $(CONFFILEFLAGS) $(ALTFLAGS) $(VARFLAGS)
 
 # If you want a static binary, you might uncomment these
 # LDFLAGS = -static
@@ -91,6 +100,10 @@ MON_OBJS = mdmon.o monitor.o managemon.o util.o mdstat.o sysfs.o config.o \
 	super-ddf.o sha1.o crc32.o msg.o bitmap.o \
 	platform-intel.o probe_roms.o
 
+MON_SRCS = mdmon.c monitor.c managemon.c util.c mdstat.c sysfs.c config.c \
+	Kill.c sg_io.c dlink.c ReadMe.c super0.c super1.c super-intel.c \
+	super-ddf.c sha1.c crc32.c msg.c bitmap.c \
+	platform-intel.c probe_roms.c
 
 STATICSRC = pwgr.c
 STATICOBJS = pwgr.o
@@ -132,8 +145,11 @@ mdadm.klibc : $(SRCS) mdadm.h
 mdadm.Os : $(SRCS) mdadm.h
 	$(CC) -o mdadm.Os $(CFLAGS)  -DHAVE_STDINT_H -Os $(SRCS)
 
-mdadm.O2 : $(SRCS) mdadm.h
-	$(CC) -o mdadm.O2 $(CFLAGS)  -DHAVE_STDINT_H -O2 $(SRCS)
+mdadm.O2 : $(SRCS) mdadm.h mdmon.O2
+	$(CC) -o mdadm.O2 $(CFLAGS)  -DHAVE_STDINT_H -O2 -D_FORTIFY_SOURCE=2 $(SRCS)
+
+mdmon.O2 : $(MON_SRCS) mdadm.h mdmon.h
+	$(CC) -o mdmon.O2 $(CFLAGS)  -DHAVE_STDINT_H -O2 -D_FORTIFY_SOURCE=2 $(MON_SRCS)
 
 mdmon : $(MON_OBJS)
 	$(CC) $(LDFLAGS) -o mdmon $(MON_OBJS) $(LDLIBS)
@@ -218,8 +234,8 @@ test: mdadm mdmon test_stripe swap_super
 
 clean : 
 	rm -f mdadm mdmon $(OBJS) $(MON_OBJS) $(STATICOBJS) core *.man \
-	mdadm.tcc mdadm.uclibc mdadm.static *.orig *.porig *.rej *.alt \
-	mdadm.Os mdadm.O2 \
+	mdadm.tcc mdadm.uclibc mdadm.static *.orig *.porig *.rej *.alt .merge_file_* \
+	mdadm.Os mdadm.O2 mdmon.O2 \
 	mdassemble mdassemble.static mdassemble.auto mdassemble.uclibc \
 	mdassemble.klibc swap_super \
 	init.cpio.gz mdadm.uclibc.static test_stripe mdmon

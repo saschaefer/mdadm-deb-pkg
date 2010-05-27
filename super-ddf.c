@@ -783,6 +783,10 @@ static int load_super_ddf(struct supertype *st, int fd,
 	if (get_dev_size(fd, devname, &dsize) == 0)
 		return 1;
 
+	if (test_partition(fd))
+		/* DDF is not allowed on partitions */
+		return 1;
+
 	/* 32M is a lower bound */
 	if (dsize <= 32*1024*1024) {
 		if (devname)
@@ -1260,7 +1264,11 @@ static int match_home_ddf(struct supertype *st, char *homehost)
 	 * the hostname
 	 */
 	struct ddf_super *ddf = st->sb;
-	int len = strlen(homehost);
+	int len;
+
+	if (!homehost)
+		return 0;
+	len = strlen(homehost);
 
 	return (memcmp(ddf->controller.guid, T10, 8) == 0 &&
 		len < sizeof(ddf->controller.vendor_data) &&
@@ -1366,9 +1374,10 @@ static void getinfo_super_ddf(struct supertype *st, struct mdinfo *info)
 		info->disk.raid_disk = -1;
 //		info->disk.raid_disk = find refnum in the table and use index;
 	}
-	info->disk.state = (1 << MD_DISK_SYNC);
+	info->disk.state = (1 << MD_DISK_SYNC) | (1 << MD_DISK_ACTIVE);
 
 
+	info->recovery_start = MaxSector;
 	info->reshape_active = 0;
 	info->name[0] = 0;
 
@@ -1427,13 +1436,15 @@ static void getinfo_super_ddf_bvd(struct supertype *st, struct mdinfo *info)
 
 	info->container_member = ddf->currentconf->vcnum;
 
+	info->recovery_start = MaxSector;
 	info->resync_start = 0;
+	info->reshape_active = 0;
 	if (!(ddf->virt->entries[info->container_member].state
 	      & DDF_state_inconsistent)  &&
 	    (ddf->virt->entries[info->container_member].init_state
 	     & DDF_initstate_mask)
 	    == DDF_init_full)
-		info->resync_start = ~0ULL;
+		info->resync_start = MaxSector;
 
 	uuid_from_super_ddf(st, info->uuid);
 
@@ -1739,7 +1750,7 @@ static int init_super_ddf(struct supertype *st,
 
 	memset(pd, 0xff, pdsize);
 	memset(pd, 0, sizeof(*pd));
-	pd->magic = DDF_PHYS_DATA_MAGIC;
+	pd->magic = DDF_PHYS_RECORDS_MAGIC;
 	pd->used_pdes = __cpu_to_be16(0);
 	pd->max_pdes = __cpu_to_be16(max_phys_disks);
 	memset(pd->pad, 0xff, 52);
@@ -2406,8 +2417,12 @@ static int write_init_super_ddf(struct supertype *st)
 
 		/* FIXME I need to close the fds! */
 		return 0;
-	} else 
+	} else {	
+		struct dl *d;
+		for (d = ddf->dlist; d; d=d->next)
+			while (Kill(d->devname, NULL, 0, 1, 1) == 0);
 		return __write_init_super_ddf(st, 1);
+	}
 }
 
 #endif
@@ -2555,8 +2570,12 @@ static int validate_geometry_ddf(struct supertype *st,
 		for (i=0; ddf_level_num[i].num1 != MAXINT; i++)
 			if (ddf_level_num[i].num2 == level)
 				break;
-		if (ddf_level_num[i].num1 == MAXINT)
+		if (ddf_level_num[i].num1 == MAXINT) {
+			if (verbose)
+				fprintf(stderr, Name ": DDF does not support level %d arrays\n",
+					level);
 			return 0;
+		}
 		/* Should check layout? etc */
 
 		if (st->sb && freesize) {
@@ -2604,7 +2623,7 @@ static int validate_geometry_ddf(struct supertype *st,
 		if (verbose)
 			fprintf(stderr,
 				Name ": ddf: Cannot create this array "
-				"on device %s\n",
+				"on device %s - a container is required.\n",
 				dev);
 		return 0;
 	}
@@ -2696,8 +2715,11 @@ static int validate_geometry_ddf_bvd(struct supertype *st,
 	struct extent *e;
 	int i;
 	/* ddf/bvd supports lots of things, but not containers */
-	if (level == LEVEL_CONTAINER)
+	if (level == LEVEL_CONTAINER) {
+		if (verbose)
+			fprintf(stderr, Name ": DDF cannot create a container within an container\n");
 		return 0;
+	}
 	/* We must have the container info already read in. */
 	if (!ddf)
 		return 0;
@@ -2914,7 +2936,7 @@ static struct mdinfo *container_content_ddf(struct supertype *st)
 			this->resync_start = 0;
 		} else {
 			this->array.state = 1;
-			this->resync_start = ~0ULL;
+			this->resync_start = MaxSector;
 		}
 		memcpy(this->name, ddf->virt->entries[i].name, 16);
 		this->name[16]=0;
@@ -2961,6 +2983,7 @@ static struct mdinfo *container_content_ddf(struct supertype *st)
 			dev->disk.minor = d->minor;
 			dev->disk.raid_disk = i;
 			dev->disk.state = (1<<MD_DISK_SYNC)|(1<<MD_DISK_ACTIVE);
+			dev->recovery_start = MaxSector;
 
 			dev->events = __be32_to_cpu(ddf->primary.seq);
 			dev->data_offset = __be64_to_cpu(vc->lba_offset[i]);
@@ -3059,7 +3082,7 @@ static int ddf_set_array_state(struct active_array *a, int consistent)
 	if (consistent == 2) {
 		/* Should check if a recovery should be started FIXME */
 		consistent = 1;
-		if (!is_resync_complete(a))
+		if (!is_resync_complete(&a->info))
 			consistent = 0;
 	}
 	if (consistent)
@@ -3071,9 +3094,9 @@ static int ddf_set_array_state(struct active_array *a, int consistent)
 
 	old = ddf->virt->entries[inst].init_state;
 	ddf->virt->entries[inst].init_state &= ~DDF_initstate_mask;
-	if (is_resync_complete(a))
+	if (is_resync_complete(&a->info))
 		ddf->virt->entries[inst].init_state |= DDF_init_full;
-	else if (a->resync_start == 0)
+	else if (a->info.resync_start == 0)
 		ddf->virt->entries[inst].init_state |= DDF_init_not;
 	else
 		ddf->virt->entries[inst].init_state |= DDF_init_quick;
@@ -3081,7 +3104,7 @@ static int ddf_set_array_state(struct active_array *a, int consistent)
 		ddf->updates_pending = 1;
 
 	dprintf("ddf mark %d %s %llu\n", inst, consistent?"clean":"dirty",
-		a->resync_start);
+		a->info.resync_start);
 	return consistent;
 }
 
@@ -3540,6 +3563,7 @@ static struct mdinfo *ddf_activate_spare(struct active_array *a,
 			di->disk.major = dl->major;
 			di->disk.minor = dl->minor;
 			di->disk.state = 0;
+			di->recovery_start = 0;
 			di->data_offset = pos;
 			di->component_size = a->info.component_size;
 			di->container_member = dl->pdnum;

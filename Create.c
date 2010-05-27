@@ -195,7 +195,7 @@ int Create(struct supertype *st, char *mddev,
 	if (st && st->ss->external && sparedisks) {
 		fprintf(stderr,
 			Name ": This metadata type does not support "
-			"spare disks are create time\n");
+			"spare disks at create time\n");
 		return 1;
 	}
 	if (subdevs > raiddisks+sparedisks) {
@@ -234,8 +234,15 @@ int Create(struct supertype *st, char *mddev,
 	case 10:
 	case 6:
 	case 0:
-	case LEVEL_LINEAR: /* linear */
 		if (chunk == 0) {
+			chunk = 512;
+			if (verbose > 0)
+				fprintf(stderr, Name ": chunk size defaults to 512K\n");
+		}
+		break;
+	case LEVEL_LINEAR:
+		/* a chunksize of zero 0s perfectly valid (and preferred) since 2.6.16 */
+		if (get_linux_version() < 2006016 && chunk == 0) {
 			chunk = 64;
 			if (verbose > 0)
 				fprintf(stderr, Name ": chunk size defaults to 64K\n");
@@ -325,7 +332,7 @@ int Create(struct supertype *st, char *mddev,
 						       raiddisks,
 						       chunk, size*2, dname,
 						       &freesize,
-						       verbose > 0)) {
+						       verbose >= 0)) {
 
 				fprintf(stderr,
 					Name ": %s is not suitable for "
@@ -368,6 +375,28 @@ int Create(struct supertype *st, char *mddev,
 			warn |= check_ext2(fd, dname);
 			warn |= check_reiser(fd, dname);
 			warn |= check_raid(fd, dname);
+			if (strcmp(st->ss->name, "1.x") == 0 &&
+			    st->minor_version >= 1)
+				/* metadata at front */
+				warn |= check_partitions(fd, dname, 0);
+			else if (level == 1 || level == LEVEL_CONTAINER)
+				/* partitions could be meaningful */
+				warn |= check_partitions(fd, dname, freesize*2);
+			else
+				/* partitions cannot be meaningful */
+				warn |= check_partitions(fd, dname, 0);
+			if (strcmp(st->ss->name, "1.x") == 0 &&
+			    st->minor_version >= 1 &&
+			    did_default &&
+			    level == 1 &&
+			    (warn & 1024) == 0) {
+				warn |= 1024;
+				fprintf(stderr, Name ": Note: this array has metadata at the start and\n"
+					"    may not be suitable as a boot device.  If you plan to\n"
+					"    store '/boot' on this device please ensure that\n"
+					"    your boot-loader understands md/v1.x metadata, or use\n"
+					"    --metadata=0.90\n");
+			}
 			close(fd);
 		}
 	}
@@ -509,7 +538,7 @@ int Create(struct supertype *st, char *mddev,
 	     assume_clean
 		) {
 		info.array.state = 1; /* clean, but one+ drive will be missing*/
-		info.resync_start = ~0ULL;
+		info.resync_start = MaxSector;
 	} else {
 		info.array.state = 0; /* not clean, but no errors */
 		info.resync_start = 0;
@@ -620,6 +649,11 @@ int Create(struct supertype *st, char *mddev,
 	if (bitmap_file && strcmp(bitmap_file, "internal")==0) {
 		if ((vers%100) < 2) {
 			fprintf(stderr, Name ": internal bitmaps not supported by this kernel.\n");
+			goto abort;
+		}
+		if (!st->ss->add_internal_bitmap) {
+			fprintf(stderr, Name ": internal bitmaps not supported with %s metadata\n",
+				st->ss->name);
 			goto abort;
 		}
 		if (!st->ss->add_internal_bitmap(st, &bitmap_chunk,
@@ -755,8 +789,10 @@ int Create(struct supertype *st, char *mddev,
 				if (fd >= 0)
 					remove_partitions(fd);
 				if (st->ss->add_to_super(st, &inf->disk,
-							 fd, dv->devname))
+							 fd, dv->devname)) {
+					ioctl(mdfd, STOP_ARRAY, NULL);
 					goto abort;
+				}
 				st->ss->getinfo_super(st, inf);
 				safe_mode_delay = inf->safe_mode_delay;
 
@@ -860,7 +896,7 @@ int Create(struct supertype *st, char *mddev,
 			if (ioctl(mdfd, RUN_ARRAY, &param)) {
 				fprintf(stderr, Name ": RUN_ARRAY failed: %s\n",
 					strerror(errno));
-				Manage_runstop(mddev, mdfd, -1, 0);
+				ioctl(mdfd, STOP_ARRAY, NULL);
 				goto abort;
 			}
 		}
@@ -881,6 +917,10 @@ int Create(struct supertype *st, char *mddev,
 	return 0;
 
  abort:
+	map_lock(&map);
+	map_remove(&map, fd2devnum(mdfd));
+	map_unlock(&map);
+
 	if (mdfd >= 0)
 		close(mdfd);
 	return 1;

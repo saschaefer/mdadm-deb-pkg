@@ -65,6 +65,73 @@ struct blkpg_partition {
 	char volname[BLKPG_VOLNAMELTH];	/* volume label */
 };
 
+/* partition table structures so we can check metadata position
+ * against the end of the last partition.
+ * Only handle MBR ant GPT partition tables.
+ */
+struct MBR_part_record {
+  __u8 bootable;
+  __u8 first_head;
+  __u8 first_sector;
+  __u8 first_cyl;
+  __u8 part_type;
+  __u8 last_head;
+  __u8 last_sector;
+  __u8 last_cyl;
+  __u32 first_sect_lba;
+  __u32 blocks_num;
+};
+
+struct MBR {
+	__u8 pad[446];
+	struct MBR_part_record parts[4];
+	__u16 magic;
+} __attribute__((packed));
+
+struct GPT_part_entry {
+  unsigned char type_guid[16];
+  unsigned char partition_guid[16];
+  __u64 starting_lba;
+  __u64 ending_lba;
+  unsigned char attr_bits[8];
+  unsigned char name[72];
+} __attribute__((packed));
+
+struct GPT {
+	__u64 magic;
+	__u32 revision;
+	__u32 header_size;
+	__u32 crc;
+	__u32 pad1;
+	__u64 current_lba;
+	__u64 backup_lba;
+	__u64 first_lba;
+	__u64 last_lba;
+	__u8 guid[16];
+	__u64 part_start;
+	__u32 part_cnt;
+	__u32 part_size;
+	__u32 part_crc;
+	__u8 pad2[420];
+} __attribute__((packed));
+
+/* Force a compilation error if condition is true */
+#define BUILD_BUG_ON(condition) ((void)BUILD_BUG_ON_ZERO(condition))
+
+/* Force a compilation error if condition is true, but also produce a
+   result (of value 0 and type size_t), so the expression can be used
+   e.g. in a structure initializer (or where-ever else comma expressions
+   aren't permitted). */
+#define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:-!!(e); }))
+
+
+/* MBR/GPT magic numbers */
+#define	MBR_SIGNATURE_MAGIC	__cpu_to_le16(0xAA55)
+#define	GPT_SIGNATURE_MAGIC	__cpu_to_le64(0x5452415020494645ULL)
+
+#define MBR_PARTITIONS               4
+#define MBR_GPT_PARTITION_TYPE       0xEE
+
 /*
  * Parse a 128 bit uuid in 4 integers
  * format is 32 hexx nibbles with options :.<space> separator
@@ -149,6 +216,73 @@ int get_linux_version()
 	return (a*1000000)+(b*1000)+c;
 }
 
+#ifndef MDASSEMBLE
+long long parse_size(char *size)
+{
+	/* parse 'size' which should be a number optionally
+	 * followed by 'K', 'M', or 'G'.
+	 * Without a suffix, K is assumed.
+	 * Number returned is in sectors (half-K)
+	 */
+	char *c;
+	long long s = strtoll(size, &c, 10);
+	if (s > 0) {
+		switch (*c) {
+		case 'K':
+			c++;
+		default:
+			s *= 2;
+			break;
+		case 'M':
+			c++;
+			s *= 1024 * 2;
+			break;
+		case 'G':
+			c++;
+			s *= 1024 * 1024 * 2;
+			break;
+		}
+	}
+	if (*c)
+		s = 0;
+	return s;
+}
+
+int parse_layout_10(char *layout)
+{
+	int copies, rv;
+	char *cp;
+	/* Parse the layout string for raid10 */
+	/* 'f', 'o' or 'n' followed by a number <= raid_disks */
+	if ((layout[0] !=  'n' && layout[0] != 'f' && layout[0] != 'o') ||
+	    (copies = strtoul(layout+1, &cp, 10)) < 1 ||
+	    copies > 200 ||
+	    *cp)
+		return -1;
+	if (layout[0] == 'n')
+		rv = 256 + copies;
+	else if (layout[0] == 'o')
+		rv = 0x10000 + (copies<<8) + 1;
+	else
+		rv = 1 + (copies<<8);
+	return rv;
+}
+
+int parse_layout_faulty(char *layout)
+{
+	/* Parse the layout string for 'faulty' */
+	int ln = strcspn(layout, "0123456789");
+	char *m = strdup(layout);
+	int mode;
+	m[ln] = 0;
+	mode = map_name(faultylayout, m);
+	if (mode == UnSet)
+		return -1;
+
+	return mode | (atoi(layout+ln)<< ModeShift);
+}
+#endif
+
 void remove_partitions(int fd)
 {
 	/* remove partitions from this block devices.
@@ -167,6 +301,31 @@ void remove_partitions(int fd)
 		ioctl(fd, BLKPG, &a);
 #endif
 }
+
+int test_partition(int fd)
+{
+	/* Check if fd is a whole-disk or a partition.
+	 * BLKPG will return EINVAL on a partition, and BLKPG_DEL_PARTITION
+	 * will return ENXIO on an invalid partition number.
+	 */
+	struct blkpg_ioctl_arg a;
+	struct blkpg_partition p;
+	a.op = BLKPG_DEL_PARTITION;
+	a.data = (void*)&p;
+	a.datalen = sizeof(p);
+	a.flags = 0;
+	memset(a.data, 0, a.datalen);
+	p.pno = 1<<30;
+	if (ioctl(fd, BLKPG, &a) == 0)
+		/* Very unlikely, but not a partition */
+		return 0;
+	if (errno == ENXIO)
+		/* not a partition */
+		return 0;
+
+	return 1;
+}
+
 
 int enough(int level, int raid_disks, int layout, int clean,
 	   char *avail, int avail_disks)
@@ -194,9 +353,9 @@ int enough(int level, int raid_disks, int layout, int clean,
 		} while (first != 0);
 		return 1;
 
-	case -4:
+	case LEVEL_MULTIPATH:
 		return avail_disks>= 1;
-	case -1:
+	case LEVEL_LINEAR:
 	case 0:
 		return avail_disks == raid_disks;
 	case 1:
@@ -291,7 +450,12 @@ char *__fname_from_uuid(int id[4], int swap, char *buf, char sep)
 
 char *fname_from_uuid(struct supertype *st, struct mdinfo *info, char *buf, char sep)
 {
-	return __fname_from_uuid(info->uuid, st->ss->swapuuid, buf, sep);
+	// dirty hack to work around an issue with super1 superblocks...
+	// super1 superblocks need swapuuid set in order for assembly to
+	// work, but can't have it set if we want this printout to match
+	// all the other uuid printouts in super1.c, so we force swapuuid
+	// to 1 to make our printout match the rest of super1
+	return __fname_from_uuid(info->uuid, (st->ss == &super1) ? 1 : st->ss->swapuuid, buf, sep);
 }
 
 #ifndef MDASSEMBLE
@@ -1029,6 +1193,146 @@ int get_dev_size(int fd, char *dname, unsigned long long *sizep)
 	return 1;
 }
 
+
+/* Sets endofpart parameter to the last block used by the last GPT partition on the device.
+ * Returns: 1 if successful
+ *         -1 for unknown partition type
+ *          0 for other errors
+ */
+static int get_gpt_last_partition_end(int fd, unsigned long long *endofpart)
+{
+	struct GPT gpt;
+	unsigned char buf[512];
+	unsigned char empty_gpt_entry[16]= {0};
+	struct GPT_part_entry *part;
+	unsigned long long curr_part_end;
+	unsigned all_partitions, entry_size;
+	int part_nr;
+
+	*endofpart = 0;
+
+	BUILD_BUG_ON(sizeof(gpt) != 512);
+	/* read GPT header */
+	lseek(fd, 512, SEEK_SET);
+	if (read(fd, &gpt, 512) != 512)
+		return 0;
+
+	/* get the number of partition entries and the entry size */
+	all_partitions = __le32_to_cpu(gpt.part_cnt);
+	entry_size = __le32_to_cpu(gpt.part_size);
+
+	/* Check GPT signature*/
+	if (gpt.magic != GPT_SIGNATURE_MAGIC)
+		return -1;
+
+	/* sanity checks */
+	if (all_partitions > 1024 ||
+	    entry_size > 512)
+		return -1;
+
+	/* read first GPT partition entries */
+	if (read(fd, buf, 512) != 512)
+		return 0;
+
+	part = (struct GPT_part_entry*)buf;
+
+	for (part_nr=0; part_nr < all_partitions; part_nr++) {
+		/* is this valid partition? */
+		if (memcmp(part->type_guid, empty_gpt_entry, 16) != 0) {
+			/* check the last lba for the current partition */
+			curr_part_end = __le64_to_cpu(part->ending_lba);
+			if (curr_part_end > *endofpart)
+				*endofpart = curr_part_end;
+		}
+
+		part = (struct GPT_part_entry*)((unsigned char*)part + entry_size);
+
+		if ((unsigned char *)part >= buf + 512) {
+			if (read(fd, buf, 512) != 512)
+				return 0;
+			part = (struct GPT_part_entry*)buf;
+		}
+	}
+	return 1;
+}
+
+/* Sets endofpart parameter to the last block used by the last partition on the device.
+ * Returns: 1 if successful
+ *         -1 for unknown partition type
+ *          0 for other errors
+ */
+static int get_last_partition_end(int fd, unsigned long long *endofpart)
+{
+	struct MBR boot_sect;
+	struct MBR_part_record *part;
+	unsigned long long curr_part_end;
+	int part_nr;
+	int retval = 0;
+
+	*endofpart = 0;
+
+	BUILD_BUG_ON(sizeof(boot_sect) != 512);
+	/* read MBR */
+	lseek(fd, 0, 0);
+	if (read(fd, &boot_sect, 512) != 512)
+		goto abort;
+
+	/* check MBP signature */
+	if (boot_sect.magic == MBR_SIGNATURE_MAGIC) {
+		retval = 1;
+		/* found the correct signature */
+		part = boot_sect.parts;
+
+		for (part_nr=0; part_nr < MBR_PARTITIONS; part_nr++) {
+			/* check for GPT type */
+			if (part->part_type == MBR_GPT_PARTITION_TYPE) {
+				retval = get_gpt_last_partition_end(fd, endofpart);
+				break;
+			}
+			/* check the last used lba for the current partition  */
+			curr_part_end = __le32_to_cpu(part->first_sect_lba) +
+				__le32_to_cpu(part->blocks_num);
+			if (curr_part_end > *endofpart)
+				*endofpart = curr_part_end;
+
+			part++;
+		}
+	} else {
+		/* Unknown partition table */
+		retval = -1;
+	}
+ abort:
+	return retval;
+}
+
+int check_partitions(int fd, char *dname, unsigned long long freesize)
+{
+	/*
+	 * Check where the last partition ends
+	 */
+	unsigned long long endofpart;
+	int ret;
+
+	if ((ret = get_last_partition_end(fd, &endofpart)) > 0) {
+		/* There appears to be a partition table here */
+		if (freesize == 0) {
+			/* partitions will not be visible in new device */
+			fprintf(stderr,
+				Name ": partition table exists on %s but will be lost or\n"
+				"       meaningless after creating array\n",
+				dname);
+			return 1;
+		} else if (endofpart > freesize) {
+			/* last partition overlaps metadata */
+			fprintf(stderr,
+				Name ": metadata will over-write last partition on %s.\n",
+				dname);
+			return 1;
+		}
+	}
+	return 0;
+}
+
 void get_one_disk(int mdfd, mdu_array_info_t *ainf, mdu_disk_info_t *disk)
 {
 	int d;
@@ -1095,8 +1399,11 @@ int add_disk(int mdfd, struct supertype *st,
 	int rv;
 #ifndef MDASSEMBLE
 	if (st->ss->external) {
-		rv = sysfs_add_disk(sra, info,
-				    info->disk.state & (1<<MD_DISK_SYNC));
+		if (info->disk.state & (1<<MD_DISK_SYNC))
+			info->recovery_start = MaxSector;
+		else
+			info->recovery_start = 0;
+		rv = sysfs_add_disk(sra, info, 0);
 		if (! rv) {
 			struct mdinfo *sd2;
 			for (sd2 = sra->devs; sd2; sd2=sd2->next)
@@ -1140,10 +1447,25 @@ int set_array_info(int mdfd, struct supertype *st, struct mdinfo *info)
 	return rv;
 }
 
+unsigned long long min_recovery_start(struct mdinfo *array)
+{
+	/* find the minimum recovery_start in an array for metadata
+	 * formats that only record per-array recovery progress instead
+	 * of per-device
+	 */
+	unsigned long long recovery_start = MaxSector;
+	struct mdinfo *d;
+
+	for (d = array->devs; d; d = d->next)
+		recovery_start = min(recovery_start, d->recovery_start);
+
+	return recovery_start;
+}
+
 char *devnum2devname(int num)
 {
 	char name[100];
-	if (num > 0)
+	if (num >= 0)
 		sprintf(name, "md%d", num);
 	else
 		sprintf(name, "md_d%d", -1-num);
@@ -1202,42 +1524,32 @@ int fd2devnum(int fd)
 	return NoMdDev;
 }
 
-int mdmon_running(int devnum)
+char *pid_dir = VAR_RUN;
+
+int mdmon_pid(int devnum)
 {
 	char path[100];
 	char pid[10];
 	int fd;
 	int n;
-	sprintf(path, "/var/run/mdadm/%s.pid", devnum2devname(devnum));
-	fd = open(path, O_RDONLY, 0);
+	sprintf(path, "%s/%s.pid", pid_dir, devnum2devname(devnum));
+	fd = open(path, O_RDONLY | O_NOATIME, 0);
 
 	if (fd < 0)
-		return 0;
+		return -1;
 	n = read(fd, pid, 9);
 	close(fd);
 	if (n <= 0)
-		return 0;
-	if (kill(atoi(pid), 0) == 0)
-		return 1;
-	return 0;
+		return -1;
+	return atoi(pid);
 }
 
-int signal_mdmon(int devnum)
+int mdmon_running(int devnum)
 {
-	char path[100];
-	char pid[10];
-	int fd;
-	int n;
-	sprintf(path, "/var/run/mdadm/%s.pid", devnum2devname(devnum));
-	fd = open(path, O_RDONLY, 0);
-
-	if (fd < 0)
+	int pid = mdmon_pid(devnum);
+	if (pid <= 0)
 		return 0;
-	n = read(fd, pid, 9);
-	close(fd);
-	if (n <= 0)
-		return 0;
-	if (kill(atoi(pid), SIGUSR1) == 0)
+	if (kill(pid, 0) == 0)
 		return 1;
 	return 0;
 }

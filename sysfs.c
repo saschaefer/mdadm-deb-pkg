@@ -100,13 +100,8 @@ void sysfs_init(struct mdinfo *mdi, int fd, int devnum)
 
 struct mdinfo *sysfs_read(int fd, int devnum, unsigned long options)
 {
-	/* Longest possible name in sysfs, mounted at /sys, is
-	 *  /sys/block/md_dXXX/md/dev-XXXXX/block/dev
-	 *  /sys/block/md_dXXX/md/metadata_version
-	 * which is about 41 characters.  50 should do for now
-	 */
-	char fname[50];
-	char buf[1024];
+	char fname[PATH_MAX];
+	char buf[PATH_MAX];
 	char *base;
 	char *dbase;
 	struct mdinfo *sra;
@@ -442,21 +437,28 @@ int sysfs_uevent(struct mdinfo *sra, char *event)
 	return 0;
 }	
 
-int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
-		       char *name, unsigned long long *val)
+int sysfs_get_fd(struct mdinfo *sra, struct mdinfo *dev,
+		       char *name)
 {
 	char fname[50];
-	char buf[50];
-	int n;
 	int fd;
-	char *ep;
+
 	sprintf(fname, "/sys/block/%s/md/%s/%s",
 		sra->sys_name, dev?dev->sys_name:"", name);
-	fd = open(fname, O_RDONLY);
+	fd = open(fname, O_RDWR);
 	if (fd < 0)
-		return -1;
+		fd = open(fname, O_RDONLY);
+	return fd;
+}
+
+int sysfs_fd_get_ll(int fd, unsigned long long *val)
+{
+	char buf[50];
+	int n;
+	char *ep;
+
+	lseek(fd, 0, 0);
 	n = read(fd, buf, sizeof(buf));
-	close(fd);
 	if (n <= 0)
 		return -1;
 	buf[n] = 0;
@@ -466,22 +468,43 @@ int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
 	return 0;
 }
 
-int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
-		       char *name, char *val, int size)
+int sysfs_get_ll(struct mdinfo *sra, struct mdinfo *dev,
+		       char *name, unsigned long long *val)
 {
-	char fname[50];
 	int n;
 	int fd;
-	sprintf(fname, "/sys/block/%s/md/%s/%s",
-		sra->sys_name, dev?dev->sys_name:"", name);
-	fd = open(fname, O_RDONLY);
+
+	fd = sysfs_get_fd(sra, dev, name);
 	if (fd < 0)
 		return -1;
-	n = read(fd, val, size);
+	n = sysfs_fd_get_ll(fd, val);
 	close(fd);
+	return n;
+}
+
+int sysfs_fd_get_str(int fd, char *val, int size)
+{
+	int n;
+
+	lseek(fd, 0, 0);
+	n = read(fd, val, size);
 	if (n <= 0)
 		return -1;
 	val[n] = 0;
+	return n;
+}
+
+int sysfs_get_str(struct mdinfo *sra, struct mdinfo *dev,
+		       char *name, char *val, int size)
+{
+	int n;
+	int fd;
+
+	fd = sysfs_get_fd(sra, dev, name);
+	if (fd < 0)
+		return -1;
+	n = sysfs_fd_get_str(fd, val, size);
+	close(fd);
 	return n;
 }
 
@@ -544,10 +567,10 @@ int sysfs_set_array(struct mdinfo *info, int vers)
 	return rv;
 }
 
-int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int in_sync)
+int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int resume)
 {
-	char dv[100];
-	char nm[100];
+	char dv[PATH_MAX];
+	char nm[PATH_MAX];
 	char *dname;
 	int rv;
 
@@ -567,15 +590,24 @@ int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int in_sync)
 	strcpy(sd->sys_name, "dev-");
 	strcpy(sd->sys_name+4, dname);
 
+	/* test write to see if 'recovery_start' is available */
+	if (resume && sd->recovery_start < MaxSector &&
+	    sysfs_set_num(sra, sd, "recovery_start", 0)) {
+		sysfs_set_str(sra, sd, "state", "remove");
+		return -1;
+	}
+
 	rv = sysfs_set_num(sra, sd, "offset", sd->data_offset);
 	rv |= sysfs_set_num(sra, sd, "size", (sd->component_size+1) / 2);
 	if (sra->array.level != LEVEL_CONTAINER) {
-		if (in_sync)
+		if (sd->recovery_start == MaxSector)
 			/* This can correctly fail if array isn't started,
 			 * yet, so just ignore status for now.
 			 */
-			sysfs_set_str(sra, sd, "state", "in_sync");
+			sysfs_set_str(sra, sd, "state", "insync");
 		rv |= sysfs_set_num(sra, sd, "slot", sd->disk.raid_disk);
+		if (resume)
+			sysfs_set_num(sra, sd, "recovery_start", sd->recovery_start);
 	}
 	return rv;
 }

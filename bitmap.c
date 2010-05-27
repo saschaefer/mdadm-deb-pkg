@@ -20,8 +20,6 @@
 
 #include "mdadm.h"
 
-#define min(a,b) (((a) < (b)) ? (a) : (b))
-
 inline void sb_le_to_cpu(bitmap_super_t *sb)
 {
 	sb->magic = __le32_to_cpu(sb->magic);
@@ -229,9 +227,13 @@ bitmap_info_t *bitmap_file_read(char *filename, int brief, struct supertype **st
 		if (!st) {
 			/* just look at device... */
 			lseek(fd, 0, 0);
-		} else {
+		} else if (!st->ss->locate_bitmap) {
+			fprintf(stderr, Name ": No bitmap possible with %s metadata\n",
+				st->ss->name);
+			return NULL;
+		} else
 			st->ss->locate_bitmap(st, fd);
-		}
+
 		ioctl(fd, BLKFLSBUF, 0); /* make sure we read current data */
 		*stp = st;
 	} else {

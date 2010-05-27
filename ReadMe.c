@@ -1,7 +1,7 @@
 /*
  * mdadm - manage Linux "md" devices aka RAID arrays.
  *
- * Copyright (C) 2001-2009 Neil Brown <neilb@suse.de>
+ * Copyright (C) 2001-2010 Neil Brown <neilb@suse.de>
  *
  *
  *    This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 
 #include "mdadm.h"
 
-char Version[] = Name " - v3.0.3 - 22nd October 2009\n";
+char Version[] = Name " - v3.1.2 - 10th March 2010\n";
 
 /*
  * File: ReadMe.c
@@ -86,11 +86,11 @@ char Version[] = Name " - v3.0.3 - 22nd October 2009\n";
  *     At the time if writing, there is only minimal support.
  */
 
-char short_options[]="-ABCDEFGIQhVXWvqbc:i:l:p:m:n:x:u:c:d:z:U:sarfRSow1tye:";
+char short_options[]="-ABCDEFGIQhVXWZ:vqbc:i:l:p:m:n:x:u:c:d:z:U:N:sarfRSow1tye:";
 char short_bitmap_options[]=
-                   "-ABCDEFGIQhVXWvqb:c:i:l:p:m:n:x:u:c:d:z:U:sarfRSow1tye:";
+                   "-ABCDEFGIQhVXWZ:vqb:c:i:l:p:m:n:x:u:c:d:z:U:N:sarfRSow1tye:";
 char short_bitmap_auto_options[]=
-                   "-ABCDEFGIQhVXWvqb:c:i:l:p:m:n:x:u:c:d:z:U:sa:rfRSow1tye:";
+                   "-ABCDEFGIQhVXWZ:vqb:c:i:l:p:m:n:x:u:c:d:z:U:N:sa:rfRSow1tye:";
 
 struct option long_options[] = {
     {"manage",    0, 0, '@'},
@@ -185,6 +185,7 @@ struct option long_options[] = {
     {"syslog",    0, 0, 'y'},
     /* For Grow */
     {"backup-file", 1,0, BackupFile},
+    {"array-size", 1, 0, 'Z'},
 
     /* For Incremental */
     {"rebuild-map", 0, 0, 'r'},
@@ -529,6 +530,8 @@ char Help_grow[] =
 "  --backup-file= file : A file on a differt device to store data for a\n"
 "                      : short time while increasing raid-devices on a\n"
 "                      : RAID4/5/6 array. Not needed when a spare is present.\n"
+"  --array-size=  -Z   : Change visible size of array.  This does not change\n"
+"                      : any data on the device, and is not stable across restarts.\n"
 ;
 
 char Help_incr[] =
