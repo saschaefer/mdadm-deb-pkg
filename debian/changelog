@@ -1,4 +1,4 @@
-mdadm (3.1.2-1) UNRELEASED; urgency=low
+mdadm (3.1.2-1) unstable; urgency=low
 
   * New upstream release (closes: #567167).
   * Ignore lintian error about not stopping in runlevel 1.
@@ -19,7 +19,7 @@ mdadm (3.1.2-1) UNRELEASED; urgency=low
   * Call MAKEDEV to create device nodes only if MAKEDEV is installed
     (closes: #569360).
 
- -- martin f. krafft <madduck@debian.org>  Wed, 27 Jan 2010 14:42:16 +1300
+ -- martin f. krafft <madduck@debian.org>  Thu, 27 May 2010 09:34:24 +0200
 
 mdadm (3.1.1-1) unstable; urgency=low
 
