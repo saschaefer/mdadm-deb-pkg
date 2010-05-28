@@ -244,7 +244,7 @@ if [ "$INITRDSTART" != none ] && [ -n "$devpairs" ]; then
   # make sure the configuration file knows about all running devices
   $MDADM --detail --scan | while read array device params; do
     uuid=${params#*UUID=}; uuid=${uuid%% *}
-    if ! grep -q "UUID=$uuid" $DESTMDADMCONF; then
+    if ! grep -qi "uuid=$uuid" $DESTMDADMCONF; then
       warn "the array $device with UUID $uuid"
       warn "is currently active, but it is not listed in mdadm.conf. if"
       warn "it is needed for boot, then YOUR SYSTEM IS NOW UNBOOTABLE!"

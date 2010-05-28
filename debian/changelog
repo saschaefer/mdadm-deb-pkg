@@ -1,3 +1,11 @@
+mdadm (3.1.2-3) unstable; urgency=low
+
+  * initramfs/hook: Match UUID case-insensitive while checking for running
+    arrays not listed in mdadm.conf; thanks to Mario 'BitKoenig' Holbe for the
+    patch (closes: #583545).
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 28 May 2010 13:17:27 +0200
+
 mdadm (3.1.2-2) unstable; urgency=low
 
   * Fix logcheck regexp to cure "egrep: Unmatched [ or [^" message
