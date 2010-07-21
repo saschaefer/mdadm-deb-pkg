@@ -3,6 +3,7 @@ mdadm (3.1.2-3) unstable; urgency=low
   * initramfs/hook: Match UUID case-insensitive while checking for running
     arrays not listed in mdadm.conf; thanks to Mario 'BitKoenig' Holbe for the
     patch (closes: #583545).
+  * Fix URL in the bug reporting preamble (presubj) (closes: #589833).
 
  -- martin f. krafft <madduck@debian.org>  Fri, 28 May 2010 13:17:27 +0200
 
