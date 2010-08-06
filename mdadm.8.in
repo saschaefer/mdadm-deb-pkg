@@ -5,7 +5,7 @@
 .\"   the Free Software Foundation; either version 2 of the License, or
 .\"   (at your option) any later version.
 .\" See file COPYING in distribution for details.
-.TH MDADM 8 "" v3.1.2
+.TH MDADM 8 "" v3.1.3
 .SH NAME
 mdadm \- manage MD devices
 .I aka
@@ -136,6 +136,10 @@ This provides a convenient interface to a
 system.  As each device is detected,
 .I mdadm
 has a chance to include it in some array as appropriate.
+Optionally, when the
+.I \-\-fail
+flag is passed in we will remove the device from any active array
+instead of adding it.
 
 If a
 .B CONTAINER
@@ -189,7 +193,7 @@ Change the size or shape of an active array.
 
 .TP
 .BR \-I ", " \-\-incremental
-Add a single device into an appropriate array, and possibly start the array.
+Add/remove a single device to/from an appropriate array, and possibly start the array.
 
 .TP
 .B \-\-auto-detect
@@ -299,7 +303,7 @@ says to get a list of array devices from
 .TP
 .BR \-e ", " \-\-metadata=
 Declare the style of RAID metadata (superblock) to be used.  The
-default is 1.2 for
+default is {DEFAULT_METADATA} for
 .BR \-\-create ,
 and to guess for other operations.
 The default can be overridden by setting the
@@ -311,16 +315,24 @@ keyword in
 
 Options are:
 .RS
+.ie '{DEFAULT_METADATA}'0.90'
+.IP "0, 0.90, default"
+.el
 .IP "0, 0.90"
+..
 Use the original 0.90 format superblock.  This format limits arrays to
 28 component devices and limits component devices of levels 1 and
 greater to 2 terabytes.
+.ie '{DEFAULT_METADATA}'0.90'
+.IP "1, 1.0, 1.1, 1.2"
+.el
 .IP "1, 1.0, 1.1, 1.2 default"
+..
 Use the new version-1 format superblock.  This has few restrictions.
 The different sub-versions store the superblock at different locations
 on the device, either at the end (for 1.0), at the start (for 1.1) or
-4K from the start (for 1.2).  '1' is equivalent to '1.0', 'default' is
-equivalent to '1.2'.
+4K from the start (for 1.2).  "1" is equivalent to "1.0".
+'if '{DEFAULT_METADATA}'1.2'  "default" is equivalent to "1.2".
 .IP ddf
 Use the "Industry Standard" DDF (Disk Data Format) format defined by
 SNIA.
@@ -462,8 +474,9 @@ When used with
 .BR \-\-build ,
 only linear, stripe, raid0, 0, raid1, multipath, mp, and faulty are valid.
 
-Not yet supported with
-.BR \-\-grow .
+Can be used with
+.B \-\-grow
+to change the RAID level in some cases.  See LEVEL CHANGES below.
 
 .TP
 .BR \-p ", " \-\-layout=
@@ -998,22 +1011,54 @@ homehost to match the current host.
 .SH For Manage mode:
 
 .TP
+.BR \-t ", " \-\-test
+Unless a more serious error occurred,
+.I mdadm
+will exit with a status of 2 if no changes were made to the array and
+0 if at least one change was made.
+This can be useful when an indirect specifier such as
+.BR missing ,
+.B detached
+or
+.B faulty
+is used in requesting an operation on the array.
+.B \-\-test
+will report failure if these specifiers didn't find any match.
+
+.TP
 .BR \-a ", " \-\-add
-hot-add listed devices.  For arrays with redundancy, the listed
-devices become available as spares.  If the array is degraded, it will
-immediately start recovering data on to one of these spares.
+hot-add listed devices.
+If a device appears to have recently been part of the array
+(possibly it failed or was removed) the device is re-added as describe
+in the next point.
+If that fails or the device was never part of the array, the device is
+added as a hot-spare.
+If the array is degraded, it will immediately start to rebuild data
+onto that spare.
+
+Note that this and the following options are only meaningful on array
+with redundancy.  They don't apply to RAID0 or Linear.
 
 .TP
 .BR \-\-re\-add
-re-add a device that was recently removed from an array.  This is only
-needed for arrays that have be built (i.e. with
-.BR --build ).
-For created arrays, devices are always re-added if that is possible.
-When re-adding a device, if nothing has changed on the array since the
-device was removed, no recovery is performed.  Also, if the array has
-a write-intent bitmap, then the recovery performed after a re-add will
-be limited to those blocks which, according to the bitmap, might have
-changed since the device was removed.
+re\-add a device that was previous removed from an array.
+If the metadata on the device reports that it is a member of the
+array, and the slot that it used is still vacant, then the device will
+be added back to the array in the same position.  This will normally
+cause the data for that device to be recovered.  However based on the
+event count on the device, the recovery may only require sections that
+are flagged a write-intent bitmap to be recovered or may not require
+any recovery at all.
+
+When used on an array that has no metadata (i.e. it was built with
+.BR \-\-build)
+it will be assumed that bitmap-based recovery is enough to make the
+device fully consistent with the array.
+
+If the device name given is
+.B missing
+then mdadm will try to find any device that looks like it should be
+part of the array but isn't and will try to re\-add all such devices.
 
 .TP
 .BR \-r ", " \-\-remove
@@ -1049,12 +1094,12 @@ same as
 
 .TP
 .BR \-\-write\-mostly
-Subsequent devices that are added or re-added will have the 'write-mostly'
+Subsequent devices that are added or re\-added will have the 'write-mostly'
 flag set.  This is only valid for RAID1 and means that the 'md' driver
 will avoid reading from these devices if possible.
 .TP
 .BR \-\-readwrite
-Subsequent devices that are added or re-added will have the 'write-mostly'
+Subsequent devices that are added or re\-added will have the 'write-mostly'
 flag cleared.
 
 .P
@@ -1069,7 +1114,7 @@ Each operation applies to all devices listed until the next
 operation.
 
 If an array is using a write-intent bitmap, then devices which have
-been removed can be re-added in a way that avoids a full
+been removed can be re\-added in a way that avoids a full
 reconstruction but instead just updates the blocks that have changed
 since the device was removed.  For arrays with persistent metadata
 (superblocks) this is done automatically.  For arrays created with
@@ -1173,6 +1218,24 @@ the block where the superblock would be is overwritten even if it
 doesn't appear to be valid.
 
 .TP
+.B \-\-kill\-subarray=
+If the device is a container and the argument to \-\-kill\-subarray
+specifies an inactive subarray in the container, then the subarray is
+deleted.  Deleting all subarrays will leave an 'empty-container' or
+spare superblock on the drives.  See \-\-zero\-superblock for completely
+removing a superblock.  Note that some formats depend on the subarray
+index for generating a UUID, this command will fail if it would change
+the UUID of an active subarray.
+
+.TP
+.B \-\-update\-subarray=
+If the device is a container and the argument to \-\-update\-subarray
+specifies a subarray in the container, then attempt to update the given
+superblock field in the subarray. See below in
+.B MISC MODE
+for details.
+
+.TP
 .BR \-t ", " \-\-test
 When used with
 .BR \-\-detail ,
@@ -1195,14 +1258,11 @@ listed, otherwise it will return failure.
 For each md device given, or each device in /proc/mdstat if
 .B \-\-scan
 is given, arrange for the array to be marked clean as soon as possible.
-Also, quiesce resync so that the monitor for external metadata arrays
-(mdmon) has an opportunity to checkpoint the resync position.
 .I mdadm
 will return with success if the array uses external metadata and we
 successfully waited.  For native arrays this returns immediately as the
-kernel handles both dirty-clean transitions and resync checkpointing in
-the kernel at shutdown.  No action is taken if safe-mode handling is
-disabled.
+kernel handles dirty-clean transitions at shutdown.  No action is taken
+if safe-mode handling is disabled.
 
 .SH For Incremental Assembly mode:
 .TP
@@ -1219,11 +1279,6 @@ Run any array assembled as soon as a minimal number of devices are
 available, rather than waiting until all expected devices are present.
 
 .TP
-.B \-\-no\-degraded
-This allows the hot-plug system to prevent arrays from running when it knows
-that more disks may arrive later in the discovery process.
-
-.TP
 .BR \-\-scan ", " \-s
 Only meaningful with
 .B \-R
@@ -1234,6 +1289,15 @@ start any that are not already started.  If any such array is listed
 in
 .B mdadm.conf
 as requiring an external bitmap, that bitmap will be attached first.
+
+.TP
+.BR \-\-fail ", " \-f
+This allows the hot-plug system to remove devices that have fully disappeared
+from the kernel.  It will first fail and then remove the device from any
+array it belongs to.
+The device name given should be a kernel device name such as "sda",
+not a name in
+.IR /dev .
 
 .SH For Monitor mode:
 .TP
@@ -1674,7 +1738,7 @@ command.
 
 When a device is added to an active array, mdadm checks to see if it
 has metadata on it which suggests that it was recently a member of the
-array.  If it does, it tried to "re-add" the device.  If there have
+array.  If it does, it tries to "re\-add" the device.  If there have
 been no changes since the device was removed, or if the array has a
 write-intent bitmap which has recorded whatever changes there were,
 then the device will immediately become a full member of the array and
@@ -1749,6 +1813,28 @@ metadata is platform independent
 2
 metadata failed to find its platform components on this system
 .RE
+
+.TP
+.B \-\-update\-subarray=
+If the device is a container and the argument to \-\-update\-subarray
+specifies a subarray in the container, then attempt to update the given
+superblock field in the subarray.  Similar to updating an array in
+"assemble" mode, the field to update is selected by
+.B \-U
+or
+.B \-\-update=
+option.  Currently only
+.B name
+is supported.
+
+The 
+.B name
+option updates the subarray name in the metadata, it may not affect the
+device node name or the device node symlink until the subarray is
+re\-assembled.  If updating 
+.B name
+would change the UUID of an active subarray this operation is blocked,
+and the command will end in an error.
 
 .TP
 .B \-\-examine
@@ -2141,7 +2227,11 @@ Usage:
 .I component-device
 .HP 12
 Usage:
-.B mdadm \-\-incremental \-\-rebuild
+.B mdadm \-\-incremental \-\-fail
+.I component-device
+.HP 12
+Usage:
+.B mdadm \-\-incremental \-\-rebuild\-map
 .HP 12
 Usage:
 .B mdadm \-\-incremental \-\-run \-\-scan
@@ -2152,6 +2242,11 @@ discovery system.  As devices are found in a system, they can be
 passed to
 .B "mdadm \-\-incremental"
 to be conditionally added to an appropriate array.
+
+Conversely, it can also be used with the
+.B \-\-fail
+flag to do just the opposite and find whatever array a particular device
+is part of and remove the device from that array.
 
 If the device passed is a
 .B CONTAINER
@@ -2387,7 +2482,7 @@ pid of mdadm daemon to
 Try to incorporate newly discovered device into some array as
 appropriate.
 
-.B "  mdadm \-\-incremental \-\-rebuild \-\-run \-\-scan"
+.B "  mdadm \-\-incremental \-\-rebuild\-map \-\-run \-\-scan"
 .br
 Rebuild the array map from any current arrays, and then start any that
 can be started.

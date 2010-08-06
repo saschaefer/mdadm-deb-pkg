@@ -195,7 +195,7 @@ struct mdinfo *sysfs_read(int fd, int devnum, unsigned long options)
 	if (options & GET_SAFEMODE) {
 		int scale = 1;
 		int dot = 0;
-		int i;
+		unsigned i;
 		unsigned long msec;
 		size_t len;
 
@@ -273,22 +273,20 @@ struct mdinfo *sysfs_read(int fd, int devnum, unsigned long options)
 
 		strcpy(dbase, "block/dev");
 		if (load_sys(fname, buf)) {
+			/* assume this is a stale reference to a hot
+			 * removed device
+			 */
 			free(dev);
-			if (options & SKIP_GONE_DEVS)
-				continue;
-			else
-				goto abort;
+			continue;
 		}
 		sscanf(buf, "%d:%d", &dev->disk.major, &dev->disk.minor);
 
 		/* special case check for block devices that can go 'offline' */
-		if (options & SKIP_GONE_DEVS) {
-			strcpy(dbase, "block/device/state");
-			if (load_sys(fname, buf) == 0 &&
-			    strncmp(buf, "offline", 7) == 0) {
-				free(dev);
-				continue;
-			}
+		strcpy(dbase, "block/device/state");
+		if (load_sys(fname, buf) == 0 &&
+		    strncmp(buf, "offline", 7) == 0) {
+			free(dev);
+			continue;
 		}
 
 		/* finally add this disk to the array */
@@ -374,7 +372,7 @@ unsigned long long get_component_size(int fd)
 	char fname[50];
 	int n;
 	if (fstat(fd, &stb)) return 0;
-	if (major(stb.st_rdev) != get_mdp_major())
+	if (major(stb.st_rdev) != (unsigned)get_mdp_major())
 		sprintf(fname, "/sys/block/md%d/md/component_size",
 			(int)minor(stb.st_rdev));
 	else
@@ -395,7 +393,7 @@ int sysfs_set_str(struct mdinfo *sra, struct mdinfo *dev,
 		  char *name, char *val)
 {
 	char fname[50];
-	int n;
+	unsigned int n;
 	int fd;
 
 	sprintf(fname, "/sys/block/%s/md/%s/%s",
@@ -851,9 +849,6 @@ int WaitClean(char *dev, int sock, int verbose)
 		sysfs_set_safemode(mdi, 1);
 		tm.tv_sec = 5;
 		tm.tv_usec = 0;
-
-		/* give mdmon a chance to checkpoint resync */
-		sysfs_set_str(mdi, NULL, "sync_action", "idle");
 
 		FD_ZERO(&fds);
 

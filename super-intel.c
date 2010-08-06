@@ -230,7 +230,7 @@ static unsigned int mpb_sectors(struct imsm_super *mpb)
 struct intel_dev {
 	struct imsm_dev *dev;
 	struct intel_dev *next;
-	int index;
+	unsigned index;
 };
 
 /* internal representation of IMSM metadata */
@@ -282,6 +282,8 @@ struct extent {
 enum imsm_update_type {
 	update_activate_spare,
 	update_create_array,
+	update_kill_array,
+	update_rename_array,
 	update_add_disk,
 };
 
@@ -301,6 +303,17 @@ struct imsm_update_create_array {
 	enum imsm_update_type type;
 	int dev_idx;
 	struct imsm_dev dev;
+};
+
+struct imsm_update_kill_array {
+	enum imsm_update_type type;
+	int dev_idx;
+};
+
+struct imsm_update_rename_array {
+	enum imsm_update_type type;
+	__u8 name[MAX_RAID_SERIAL_LEN];
+	int dev_idx;
 };
 
 struct imsm_update_add_disk {
@@ -344,7 +357,6 @@ static struct imsm_disk *__get_imsm_disk(struct imsm_super *mpb, __u8 index)
 	return &mpb->disk[index];
 }
 
-#ifndef MDASSEMBLE
 /* retrieve a disk from the parsed metadata */
 static struct imsm_disk *get_imsm_disk(struct intel_super *super, __u8 index)
 {
@@ -356,7 +368,6 @@ static struct imsm_disk *get_imsm_disk(struct intel_super *super, __u8 index)
 	
 	return NULL;
 }
-#endif
 
 /* generate a checksum directly from the anchor when the anchor is known to be
  * up-to-date, currently only at load or write_super after coalescing
@@ -485,7 +496,7 @@ static void set_imsm_ord_tbl_ent(struct imsm_map *map, int slot, __u32 ord)
 	map->disk_ord_tbl[slot] = __cpu_to_le32(ord);
 }
 
-static int get_imsm_disk_slot(struct imsm_map *map, int idx)
+static int get_imsm_disk_slot(struct imsm_map *map, unsigned idx)
 {
 	int slot;
 	__u32 ord;
@@ -579,7 +590,7 @@ static struct extent *get_extents(struct intel_super *super, struct dl *dl)
 		 */
 		remainder &= ~1UL;
 		/* make sure remainder is still sane */
-		if (remainder < ROUND_UP(super->len, 512) >> 9)
+		if (remainder < (unsigned)ROUND_UP(super->len, 512) >> 9)
 			remainder = ROUND_UP(super->len, 512) >> 9;
 		if (reservation > remainder)
 			reservation = remainder;
@@ -641,7 +652,7 @@ static __u64 blocks_per_migr_unit(struct imsm_dev *dev);
 static void print_imsm_dev(struct imsm_dev *dev, char *uuid, int disk_idx)
 {
 	__u64 sz;
-	int slot;
+	int slot, i;
 	struct imsm_map *map = get_imsm_map(dev, 0);
 	__u32 ord;
 
@@ -650,6 +661,12 @@ static void print_imsm_dev(struct imsm_dev *dev, char *uuid, int disk_idx)
 	printf("           UUID : %s\n", uuid);
 	printf("     RAID Level : %d\n", get_imsm_raid_level(map));
 	printf("        Members : %d\n", map->num_members);
+	printf("          Slots : [");
+	for (i = 0; i < map->num_members; i++) {
+		ord = get_imsm_ord_tbl_ent(dev, i);
+		printf("%s", ord & IMSM_ORD_REBUILD ? "_" : "U");
+	}
+	printf("]\n");
 	slot = get_imsm_disk_slot(map, disk_idx);
 	if (slot >= 0) {
 		ord = get_imsm_ord_tbl_ent(dev, slot);
@@ -874,7 +891,7 @@ static int imsm_enumerate_ports(const char *hba_path, int port_count, int host_b
 	int err = 0;
 	unsigned long port_mask = (1 << port_count) - 1;
 
-	if (port_count > sizeof(port_mask) * 8) {
+	if (port_count > (int)sizeof(port_mask) * 8) {
 		if (verbose)
 			fprintf(stderr, Name ": port_count %d out of range\n", port_count);
 		return 2;
@@ -1528,6 +1545,20 @@ static void fixup_container_spare_uuid(struct mdinfo *inf)
 	}
 }
 
+
+static __u8 imsm_check_degraded(struct intel_super *super, struct imsm_dev *dev, int failed);
+static int imsm_count_failed(struct intel_super *super, struct imsm_dev *dev);
+
+static struct imsm_disk *get_imsm_missing(struct intel_super *super, __u8 index)
+{
+	struct dl *d;
+
+	for (d = super->missing; d; d = d->next)
+		if (d->index == index)
+			return &d->disk;
+	return NULL;
+}
+
 static void getinfo_super_imsm(struct supertype *st, struct mdinfo *info)
 {
 	struct intel_super *super = st->sb;
@@ -1561,6 +1592,53 @@ static void getinfo_super_imsm(struct supertype *st, struct mdinfo *info)
 	info->disk.state = 0;
 	info->name[0] = 0;
 	info->recovery_start = MaxSector;
+
+	/* do we have the all the insync disks that we expect? */
+	if (st->loaded_container) {
+		struct imsm_super *mpb = super->anchor;
+		int max_enough = -1, i;
+
+		for (i = 0; i < mpb->num_raid_devs; i++) {
+			struct imsm_dev *dev = get_imsm_dev(super, i);
+			int failed, enough, j, missing = 0;
+			struct imsm_map *map;
+			__u8 state;
+
+			failed = imsm_count_failed(super, dev);
+			state = imsm_check_degraded(super, dev, failed);
+			map = get_imsm_map(dev, dev->vol.migr_state);
+
+			/* any newly missing disks?
+			 * (catches single-degraded vs double-degraded)
+			 */
+			for (j = 0; j < map->num_members; j++) {
+				__u32 ord = get_imsm_ord_tbl_ent(dev, i);
+				__u32 idx = ord_to_idx(ord);
+
+				if (!(ord & IMSM_ORD_REBUILD) &&
+				    get_imsm_missing(super, idx)) {
+					missing = 1;
+					break;
+				}
+			}
+
+			if (state == IMSM_T_STATE_FAILED)
+				enough = -1;
+			else if (state == IMSM_T_STATE_DEGRADED &&
+				 (state != map->map_state || missing))
+				enough = 0;
+			else /* we're normal, or already degraded */
+				enough = 1;
+
+			/* in the missing/failed disk case check to see
+			 * if at least one array is runnable
+			 */
+			max_enough = max(max_enough, enough);
+		}
+		dprintf("%s: enough: %d\n", __func__, max_enough);
+		info->container_enough = max_enough;
+	} else
+		info->container_enough = -1;
 
 	if (super->disks) {
 		__u32 reserved = imsm_reserved_sectors(super, super->disks);
@@ -2192,7 +2270,7 @@ static int load_imsm_mpb(int fd, struct intel_super *super, char *devname)
 		return 1;
 	}
 
-	if (read(fd, super->buf + 512, super->len - 512) != super->len - 512) {
+	if ((unsigned)read(fd, super->buf + 512, super->len - 512) != super->len - 512) {
 		if (devname)
 			fprintf(stderr,
 				Name ": Cannot read extended mpb on %s: %s\n",
@@ -2688,14 +2766,9 @@ static int load_super_imsm_all(struct supertype *st, int fd, void **sbp,
 	int retry;
 	int err = 0;
 	int i;
-	enum sysfs_read_flags flags;
-
-	flags = GET_LEVEL|GET_VERSION|GET_DEVS|GET_STATE;
-	if (mdmon_running(devnum))
-		flags |= SKIP_GONE_DEVS;
 
 	/* check if 'fd' an opened container */
-	sra = sysfs_read(fd, 0, flags);
+	sra = sysfs_read(fd, 0, GET_LEVEL|GET_VERSION|GET_DEVS|GET_STATE);
 	if (!sra)
 		return 1;
 
@@ -2753,11 +2826,20 @@ static int load_super_imsm_all(struct supertype *st, int fd, void **sbp,
 	}
 
 	if (st->subarray[0]) {
-		if (atoi(st->subarray) <= super->anchor->num_raid_devs)
-			super->current_vol = atoi(st->subarray);
+		unsigned long val;
+		char *ep;
+
+		err = 1;
+		val = strtoul(st->subarray, &ep, 10);
+		if (*ep != '\0') {
+			free_imsm(super);
+			goto error;
+		}
+
+		if (val < super->anchor->num_raid_devs)
+			super->current_vol = val;
 		else {
 			free_imsm(super);
-			err = 1;
 			goto error;
 		}
 	}
@@ -2824,8 +2906,17 @@ static int load_super_imsm(struct supertype *st, int fd, char *devname)
 	}
 
 	if (st->subarray[0]) {
-		if (atoi(st->subarray) <= super->anchor->num_raid_devs)
-			super->current_vol = atoi(st->subarray);
+		unsigned long val;
+		char *ep;
+
+		val = strtoul(st->subarray, &ep, 10);
+		if (*ep != '\0') {
+			free_imsm(super);
+			return 1;
+		}
+
+		if (val < super->anchor->num_raid_devs)
+			super->current_vol = val;
 		else {
 			free_imsm(super);
 			return 1;
@@ -2915,6 +3006,30 @@ static void imsm_update_version_info(struct intel_super *super)
 	}
 }
 
+static int check_name(struct intel_super *super, char *name, int quiet)
+{
+	struct imsm_super *mpb = super->anchor;
+	char *reason = NULL;
+	int i;
+
+	if (strlen(name) > MAX_RAID_SERIAL_LEN)
+		reason = "must be 16 characters or less";
+
+	for (i = 0; i < mpb->num_raid_devs; i++) {
+		struct imsm_dev *dev = get_imsm_dev(super, i);
+
+		if (strncmp((char *) dev->volume, name, MAX_RAID_SERIAL_LEN) == 0) {
+			reason = "already exists";
+			break;
+		}
+	}
+
+	if (reason && !quiet)
+		fprintf(stderr, Name ": imsm volume name %s\n", reason);
+
+	return !reason;
+}
+
 static int init_super_imsm_volume(struct supertype *st, mdu_array_info_t *info,
 				  unsigned long long size, char *name,
 				  char *homehost, int *uuid)
@@ -2966,16 +3081,8 @@ static int init_super_imsm_volume(struct supertype *st, mdu_array_info_t *info,
 	if (super->current_vol == 0)
 		mpb->num_disks = 0;
 
-	for (i = 0; i < super->current_vol; i++) {
-		dev = get_imsm_dev(super, i);
-		if (strncmp((char *) dev->volume, name,
-			     MAX_RAID_SERIAL_LEN) == 0) {
-			fprintf(stderr, Name": '%s' is already defined for this container\n",
-				name);
-			return 0;
-		}
-	}
-
+	if (!check_name(super, name, 0))
+		return 0;
 	sprintf(st->subarray, "%d", idx);
 	dv = malloc(sizeof(*dv));
 	if (!dv) {
@@ -3766,8 +3873,8 @@ static int validate_geometry_imsm_volume(struct supertype *st, int level,
 	if ((S_IFMT & stb.st_mode) != S_IFBLK)
 		return 0;
 	for (dl = super->disks ; dl ; dl = dl->next) {
-		if (dl->major == major(stb.st_rdev) &&
-		    dl->minor == minor(stb.st_rdev))
+		if (dl->major == (int)major(stb.st_rdev) &&
+		    dl->minor == (int)minor(stb.st_rdev))
 			break;
 	}
 	if (!dl) {
@@ -4007,6 +4114,140 @@ static int validate_geometry_imsm(struct supertype *st, int level, int layout,
 	close(cfd);
 	return 0;
 }
+
+static int default_chunk_imsm(struct supertype *st)
+{
+	struct intel_super *super = st->sb;
+
+	if (!super->orom)
+		return 0;
+
+	return imsm_orom_default_chunk(super->orom);
+}
+
+static void handle_missing(struct intel_super *super, struct imsm_dev *dev);
+
+static int kill_subarray_imsm(struct supertype *st)
+{
+	/* remove the subarray currently referenced by ->current_vol */
+	__u8 i;
+	struct intel_dev **dp;
+	struct intel_super *super = st->sb;
+	__u8 current_vol = super->current_vol;
+	struct imsm_super *mpb = super->anchor;
+
+	if (super->current_vol < 0)
+		return 2;
+	super->current_vol = -1; /* invalidate subarray cursor */
+
+	/* block deletions that would change the uuid of active subarrays
+	 *
+	 * FIXME when immutable ids are available, but note that we'll
+	 * also need to fixup the invalidated/active subarray indexes in
+	 * mdstat
+	 */
+	for (i = 0; i < mpb->num_raid_devs; i++) {
+		char subarray[4];
+
+		if (i < current_vol)
+			continue;
+		sprintf(subarray, "%u", i);
+		if (is_subarray_active(subarray, st->devname)) {
+			fprintf(stderr,
+				Name ": deleting subarray-%d would change the UUID of active subarray-%d, aborting\n",
+				current_vol, i);
+
+			return 2;
+		}
+	}
+
+	if (st->update_tail) {
+		struct imsm_update_kill_array *u = malloc(sizeof(*u));
+
+		if (!u)
+			return 2;
+		u->type = update_kill_array;
+		u->dev_idx = current_vol;
+		append_metadata_update(st, u, sizeof(*u));
+
+		return 0;
+	}
+
+	for (dp = &super->devlist; *dp;)
+		if ((*dp)->index == current_vol) {
+			*dp = (*dp)->next;
+		} else {
+			handle_missing(super, (*dp)->dev);
+			if ((*dp)->index > current_vol)
+				(*dp)->index--;
+			dp = &(*dp)->next;
+		}
+
+	/* no more raid devices, all active components are now spares,
+	 * but of course failed are still failed
+	 */
+	if (--mpb->num_raid_devs == 0) {
+		struct dl *d;
+
+		for (d = super->disks; d; d = d->next)
+			if (d->index > -2) {
+				d->index = -1;
+				d->disk.status = SPARE_DISK;
+			}
+	}
+
+	super->updates_pending++;
+
+	return 0;
+}
+
+static int update_subarray_imsm(struct supertype *st, char *update, mddev_ident_t ident)
+{
+	/* update the subarray currently referenced by ->current_vol */
+	struct intel_super *super = st->sb;
+	struct imsm_super *mpb = super->anchor;
+
+	if (super->current_vol < 0)
+		return 2;
+
+	if (strcmp(update, "name") == 0) {
+		char *name = ident->name;
+
+		if (is_subarray_active(st->subarray, st->devname)) {
+			fprintf(stderr,
+				Name ": Unable to update name of active subarray\n");
+			return 2;
+		}
+
+		if (!check_name(super, name, 0))
+			return 2;
+
+		if (st->update_tail) {
+			struct imsm_update_rename_array *u = malloc(sizeof(*u));
+
+			if (!u)
+				return 2;
+			u->type = update_rename_array;
+			u->dev_idx = super->current_vol;
+			snprintf((char *) u->name, MAX_RAID_SERIAL_LEN, "%s", name);
+			append_metadata_update(st, u, sizeof(*u));
+		} else {
+			struct imsm_dev *dev;
+			int i;
+
+			dev = get_imsm_dev(super, super->current_vol);
+			snprintf((char *) dev->volume, MAX_RAID_SERIAL_LEN, "%s", name);
+			for (i = 0; i < mpb->num_raid_devs; i++) {
+				dev = get_imsm_dev(super, i);
+				handle_missing(super, dev);
+			}
+			super->updates_pending++;
+		}
+	} else
+		return 2;
+
+	return 0;
+}
 #endif /* MDASSEMBLE */
 
 static int is_rebuilding(struct imsm_dev *dev)
@@ -4043,6 +4284,15 @@ static void update_recovery_start(struct imsm_dev *dev, struct mdinfo *array)
 				return;
 			rebuild = d;
 		}
+
+	if (!rebuild) {
+		/* (?) none of the disks are marked with
+		 * IMSM_ORD_REBUILD, so assume they are missing and the
+		 * disk_ord_tbl was not correctly updated
+		 */
+		dprintf("%s: failed to locate out-of-sync disk\n", __func__);
+		return;
+	}
 
 	units = __le32_to_cpu(dev->vol.curr_migr_unit);
 	rebuild->recovery_start = units * blocks_per_migr_unit(dev);
@@ -4175,24 +4425,6 @@ static struct mdinfo *container_content_imsm(struct supertype *st)
 }
 
 
-#ifndef MDASSEMBLE
-static int imsm_open_new(struct supertype *c, struct active_array *a,
-			 char *inst)
-{
-	struct intel_super *super = c->sb;
-	struct imsm_super *mpb = super->anchor;
-	
-	if (atoi(inst) >= mpb->num_raid_devs) {
-		fprintf(stderr, "%s: subarry index %d, out of range\n",
-			__func__, atoi(inst));
-		return -ENODEV;
-	}
-
-	dprintf("imsm: open_new %s\n", inst);
-	a->info.container_member = atoi(inst);
-	return 0;
-}
-
 static __u8 imsm_check_degraded(struct intel_super *super, struct imsm_dev *dev, int failed)
 {
 	struct imsm_map *map = get_imsm_map(dev, 0);
@@ -4291,6 +4523,24 @@ static int imsm_count_failed(struct intel_super *super, struct imsm_dev *dev)
 	return failed;
 }
 
+#ifndef MDASSEMBLE
+static int imsm_open_new(struct supertype *c, struct active_array *a,
+			 char *inst)
+{
+	struct intel_super *super = c->sb;
+	struct imsm_super *mpb = super->anchor;
+	
+	if (atoi(inst) >= mpb->num_raid_devs) {
+		fprintf(stderr, "%s: subarry index %d, out of range\n",
+			__func__, atoi(inst));
+		return -ENODEV;
+	}
+
+	dprintf("imsm: open_new %s\n", inst);
+	a->info.container_member = atoi(inst);
+	return 0;
+}
+
 static int is_resyncing(struct imsm_dev *dev)
 {
 	struct imsm_map *migr_map;
@@ -4331,7 +4581,7 @@ static int mark_failure(struct imsm_dev *dev, struct imsm_disk *disk, int idx)
 	disk->status |= FAILED_DISK;
 	disk->status &= ~CONFIGURED_DISK;
 	set_imsm_ord_tbl_ent(map, slot, idx | IMSM_ORD_REBUILD);
-	if (~map->failed_disk_num == 0)
+	if (map->failed_disk_num == 0xff)
 		map->failed_disk_num = slot;
 	return 1;
 }
@@ -4345,6 +4595,24 @@ static void mark_missing(struct imsm_dev *dev, struct imsm_disk *disk, int idx)
 
 	disk->scsi_id = __cpu_to_le32(~(__u32)0);
 	memmove(&disk->serial[0], &disk->serial[1], MAX_RAID_SERIAL_LEN - 1);
+}
+
+static void handle_missing(struct intel_super *super, struct imsm_dev *dev)
+{
+	__u8 map_state;
+	struct dl *dl;
+	int failed;
+
+	if (!super->missing)
+		return;
+	failed = imsm_count_failed(super, dev);
+	map_state = imsm_check_degraded(super, dev, failed);
+
+	dprintf("imsm: mark missing\n");
+	end_migration(dev, map_state);
+	for (dl = super->missing; dl; dl = dl->next)
+		mark_missing(dev, &dl->disk, dl->index);
+	super->updates_pending++;
 }
 
 /* Handle dirty -> clean transititions and resync.  Degraded and rebuild
@@ -4363,15 +4631,8 @@ static int imsm_set_array_state(struct active_array *a, int consistent)
 	__u32 blocks_per_unit;
 
 	/* before we activate this array handle any missing disks */
-	if (consistent == 2 && super->missing) {
-		struct dl *dl;
-
-		dprintf("imsm: mark missing\n");
-		end_migration(dev, map_state);
-		for (dl = super->missing; dl; dl = dl->next)
-			mark_missing(dev, &dl->disk, dl->index);
-		super->updates_pending++;
-	}
+	if (consistent == 2)
+		handle_missing(super, dev);
 
 	if (consistent == 2 &&
 	    (!is_resync_complete(&a->info) ||
@@ -4388,6 +4649,7 @@ static int imsm_set_array_state(struct active_array *a, int consistent)
 			dprintf("imsm: mark resync done\n");
 			end_migration(dev, map_state);
 			super->updates_pending++;
+			a->last_checkpoint = 0;
 		}
 	} else if (!is_resyncing(dev) && !failed) {
 		/* mark the start of the init process if nothing is failed */
@@ -4401,14 +4663,11 @@ static int imsm_set_array_state(struct active_array *a, int consistent)
 
 	/* check if we can update curr_migr_unit from resync_start, recovery_start */
 	blocks_per_unit = blocks_per_migr_unit(dev);
-	if (blocks_per_unit && failed <= 1) {
+	if (blocks_per_unit) {
 		__u32 units32;
 		__u64 units;
 
-		if (migr_type(dev) == MIGR_REBUILD)
-			units = min_recovery_start(&a->info) / blocks_per_unit;
-		else
-			units = a->info.resync_start / blocks_per_unit;
+		units = a->last_checkpoint / blocks_per_unit;
 		units32 = units;
 
 		/* check that we did not overflow 32-bits, and that
@@ -4480,17 +4739,20 @@ static void imsm_set_disk(struct active_array *a, int n, int state)
 		map = get_imsm_map(dev, 0);
 		map->failed_disk_num = ~0;
 		super->updates_pending++;
+		a->last_checkpoint = 0;
 	} else if (map_state == IMSM_T_STATE_DEGRADED &&
 		   map->map_state != map_state &&
 		   !dev->vol.migr_state) {
 		dprintf("imsm: mark degraded\n");
 		map->map_state = map_state;
 		super->updates_pending++;
+		a->last_checkpoint = 0;
 	} else if (map_state == IMSM_T_STATE_FAILED &&
 		   map->map_state != map_state) {
 		dprintf("imsm: mark failed\n");
 		end_migration(dev, map_state);
 		super->updates_pending++;
+		a->last_checkpoint = 0;
 	}
 }
 
@@ -4511,7 +4773,8 @@ static int store_imsm_mpb(int fd, struct imsm_super *mpb)
 		if (lseek64(fd, dsize - (512 * (2 + sectors)), SEEK_SET) < 0)
 			return 1;
 
-		if (write(fd, buf + 512, 512 * sectors) != 512 * sectors)
+		if ((unsigned long long)write(fd, buf + 512, 512 * sectors)
+		    != 512 * sectors)
 			return 1;
 	}
 
@@ -4568,8 +4831,8 @@ static struct dl *imsm_add_spare(struct intel_super *super, int slot,
 	struct extent *ex;
 	int i, j;
 	int found;
-	__u32 array_start;
-	__u32 array_end;
+	__u32 array_start = 0;
+	__u32 array_end = 0;
 	struct dl *dl;
 
 	for (dl = super->disks; dl; dl = dl->next) {
@@ -4820,7 +5083,7 @@ static int disks_overlap(struct intel_super *super, int idx, struct imsm_update_
 	return 0;
 }
 
-static void imsm_delete(struct intel_super *super, struct dl **dlp, int index);
+static void imsm_delete(struct intel_super *super, struct dl **dlp, unsigned index);
 
 static void imsm_process_update(struct supertype *st,
 			        struct metadata_update *update)
@@ -5067,6 +5330,70 @@ static void imsm_process_update(struct supertype *st,
 		}
 		break;
 	}
+	case update_kill_array: {
+		struct imsm_update_kill_array *u = (void *) update->buf;
+		int victim = u->dev_idx;
+		struct active_array *a;
+		struct intel_dev **dp;
+		struct imsm_dev *dev;
+
+		/* sanity check that we are not affecting the uuid of
+		 * active arrays, or deleting an active array
+		 *
+		 * FIXME when immutable ids are available, but note that
+		 * we'll also need to fixup the invalidated/active
+		 * subarray indexes in mdstat
+		 */
+		for (a = st->arrays; a; a = a->next)
+			if (a->info.container_member >= victim)
+				break;
+		/* by definition if mdmon is running at least one array
+		 * is active in the container, so checking
+		 * mpb->num_raid_devs is just extra paranoia
+		 */
+		dev = get_imsm_dev(super, victim);
+		if (a || !dev || mpb->num_raid_devs == 1) {
+			dprintf("failed to delete subarray-%d\n", victim);
+			break;
+		}
+
+		for (dp = &super->devlist; *dp;)
+			if ((*dp)->index == (unsigned)super->current_vol) {
+				*dp = (*dp)->next;
+			} else {
+				if ((*dp)->index > (unsigned)victim)
+					(*dp)->index--;
+				dp = &(*dp)->next;
+			}
+		mpb->num_raid_devs--;
+		super->updates_pending++;
+		break;
+	}
+	case update_rename_array: {
+		struct imsm_update_rename_array *u = (void *) update->buf;
+		char name[MAX_RAID_SERIAL_LEN+1];
+		int target = u->dev_idx;
+		struct active_array *a;
+		struct imsm_dev *dev;
+
+		/* sanity check that we are not affecting the uuid of
+		 * an active array
+		 */
+		snprintf(name, MAX_RAID_SERIAL_LEN, "%s", (char *) u->name);
+		name[MAX_RAID_SERIAL_LEN] = '\0';
+		for (a = st->arrays; a; a = a->next)
+			if (a->info.container_member == target)
+				break;
+		dev = get_imsm_dev(super, u->dev_idx);
+		if (a || !dev || !check_name(super, name, 1)) {
+			dprintf("failed to rename subarray-%d\n", target);
+			break;
+		}
+
+		snprintf((char *) dev->volume, MAX_RAID_SERIAL_LEN, name);
+		super->updates_pending++;
+		break;
+	}
 	case update_add_disk:
 
 		/* we may be able to repair some arrays if disks are
@@ -5178,7 +5505,7 @@ static void imsm_prepare_update(struct supertype *st,
 }
 
 /* must be called while manager is quiesced */
-static void imsm_delete(struct intel_super *super, struct dl **dlp, int index)
+static void imsm_delete(struct intel_super *super, struct dl **dlp, unsigned index)
 {
 	struct imsm_super *mpb = super->anchor;
 	struct dl *iter;
@@ -5192,10 +5519,10 @@ static void imsm_delete(struct intel_super *super, struct dl **dlp, int index)
 
 	/* shift all indexes down one */
 	for (iter = super->disks; iter; iter = iter->next)
-		if (iter->index > index)
+		if (iter->index > (int)index)
 			iter->index--;
 	for (iter = super->missing; iter; iter = iter->next)
-		if (iter->index > index)
+		if (iter->index > (int)index)
 			iter->index--;
 
 	for (i = 0; i < mpb->num_raid_devs; i++) {
@@ -5240,8 +5567,11 @@ struct superswitch super_imsm = {
 	.brief_detail_super = brief_detail_super_imsm,
 	.write_init_super = write_init_super_imsm,
 	.validate_geometry = validate_geometry_imsm,
+	.default_chunk	= default_chunk_imsm,
 	.add_to_super	= add_to_super_imsm,
 	.detail_platform = detail_platform_imsm,
+	.kill_subarray = kill_subarray_imsm,
+	.update_subarray = update_subarray_imsm,
 #endif
 	.match_home	= match_home_imsm,
 	.uuid_from_super= uuid_from_super_imsm,
@@ -5266,7 +5596,6 @@ struct superswitch super_imsm = {
 #ifndef MDASSEMBLE
 /* for mdmon */
 	.open_new	= imsm_open_new,
-	.load_super	= load_super_imsm,
 	.set_array_state= imsm_set_array_state,
 	.set_disk	= imsm_set_disk,
 	.sync_metadata	= imsm_sync_metadata,
