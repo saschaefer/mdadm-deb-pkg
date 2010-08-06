@@ -42,15 +42,21 @@ KLIBC_GCC = gcc -nostdinc -iwithprefix include -I$(KLIBC)/klibc/include -I$(KLIB
 
 CC = $(CROSS_COMPILE)gcc
 CXFLAGS = -ggdb
-CWFLAGS = -Wall -Werror -Wstrict-prototypes
+CWFLAGS = -Wall -Werror -Wstrict-prototypes -Wextra -Wno-unused-parameter
 ifdef WARN_UNUSED
 CWFLAGS += -Wp,-D_FORTIFY_SOURCE=2 -O
 endif
 
 ifdef DEBIAN
-CPPFLAGS= -DDEBIAN
+CPPFLAGS := -DDEBIAN
 else
-CPPFLAGS=
+CPPFLAGS :=
+endif
+ifdef DEFAULT_OLD_METADATA
+ CPPFLAG += -DDEFAULT_OLD_METADATA
+ DEFAULT_METADATA=0.90
+else
+ DEFAULT_METADATA=1.2
 endif
 
 SYSCONFDIR = /etc
@@ -58,16 +64,24 @@ CONFFILE = $(SYSCONFDIR)/mdadm/mdadm.conf
 CONFFILE2 = $(SYSCONFDIR)/mdadm.conf
 MAILCMD =/usr/sbin/sendmail -t
 CONFFILEFLAGS = -DCONFFILE=\"$(CONFFILE)\" -DCONFFILE2=\"$(CONFFILE2)\"
-# ALT_RUN should be somewhere that persists across the pivotroot
-# from early boot to late boot.
-# If you don't have /lib/init/rw you might want to use /dev/.something
-#  e.g. make ALT_RUN=/dev/.mdadm
-ALT_RUN = /lib/init/rw/mdadm
-ALT_MAPFILE = map
-VAR_RUN = /var/run/mdadm
-ALTFLAGS = -DALT_RUN=\"$(ALT_RUN)\" -DALT_MAPFILE=\"$(ALT_MAPFILE)\"
-VARFLAGS = -DVAR_RUN=\"$(VAR_RUN)\"
-CFLAGS = $(CWFLAGS) $(CXFLAGS) -DSendmail=\""$(MAILCMD)"\" $(CONFFILEFLAGS) $(ALTFLAGS) $(VARFLAGS)
+# Both MAP_DIR and MDMON_DIR should be somewhere that persists across the
+# pivotroot from early boot to late boot.
+# /dev is an odd place to put this, but it is the only directory that
+# meets the requirements.
+MAP_DIR=/dev/.mdadm
+MAP_FILE = map
+MDMON_DIR = /dev/.mdadm
+DIRFLAGS = -DMAP_DIR=\"$(MAP_DIR)\" -DMAP_FILE=\"$(MAP_FILE)\"
+DIRFLAGS += -DMDMON_DIR=\"$(MDMON_DIR)\"
+CFLAGS = $(CWFLAGS) $(CXFLAGS) -DSendmail=\""$(MAILCMD)"\" $(CONFFILEFLAGS) $(DIRFLAGS)
+
+# The glibc TLS ABI requires applications that call clone(2) to set up
+# TLS data structures, use pthreads until mdmon implements this support
+USE_PTHREADS = 1
+ifdef USE_PTHREADS
+CFLAGS += -DUSE_PTHREADS
+LDFLAGS += -pthread
+endif
 
 # If you want a static binary, you might uncomment these
 # LDFLAGS = -static
@@ -143,16 +157,17 @@ mdadm.klibc : $(SRCS) mdadm.h
 	$(CC) -nostdinc -iwithprefix include -I$(KLIBC)/klibc/include -I$(KLIBC)/linux/include -I$(KLIBC)/klibc/arch/i386/include -I$(KLIBC)/klibc/include/bits32 $(CFLAGS) $(SRCS)
 
 mdadm.Os : $(SRCS) mdadm.h
-	$(CC) -o mdadm.Os $(CFLAGS)  -DHAVE_STDINT_H -Os $(SRCS)
+	$(CC) -o mdadm.Os $(CFLAGS) $(LDFLAGS) -DHAVE_STDINT_H -Os $(SRCS)
 
 mdadm.O2 : $(SRCS) mdadm.h mdmon.O2
-	$(CC) -o mdadm.O2 $(CFLAGS)  -DHAVE_STDINT_H -O2 -D_FORTIFY_SOURCE=2 $(SRCS)
+	$(CC) -o mdadm.O2 $(CFLAGS) $(LDFLAGS) -DHAVE_STDINT_H -O2 -D_FORTIFY_SOURCE=2 $(SRCS)
 
 mdmon.O2 : $(MON_SRCS) mdadm.h mdmon.h
-	$(CC) -o mdmon.O2 $(CFLAGS)  -DHAVE_STDINT_H -O2 -D_FORTIFY_SOURCE=2 $(MON_SRCS)
+	$(CC) -o mdmon.O2 $(CFLAGS) $(LDFLAGS) -DHAVE_STDINT_H -O2 -D_FORTIFY_SOURCE=2 $(MON_SRCS)
 
+# use '-z now' to guarantee no dynamic linker interactions with the monitor thread
 mdmon : $(MON_OBJS)
-	$(CC) $(LDFLAGS) -o mdmon $(MON_OBJS) $(LDLIBS)
+	$(CC) $(LDFLAGS) -z now -o mdmon $(MON_OBJS) $(LDLIBS)
 msg.o: msg.c msg.h
 
 test_stripe : restripe.c mdadm.h
@@ -179,6 +194,9 @@ mdassemble.uclibc : $(ASSEMBLE_SRCS) mdadm.h
 mdassemble.klibc : $(ASSEMBLE_SRCS) mdadm.h
 	rm -f $(OBJS)
 	$(KLIBC_GCC) $(ASSEMBLE_FLAGS) -o mdassemble $(ASSEMBLE_SRCS)
+
+mdadm.8 : mdadm.8.in
+	sed -e 's/{DEFAULT_METADATA}/$(DEFAULT_METADATA)/g' mdadm.8.in > mdadm.8
 
 mdadm.man : mdadm.8
 	nroff -man mdadm.8 > mdadm.man
@@ -238,7 +256,8 @@ clean :
 	mdadm.Os mdadm.O2 mdmon.O2 \
 	mdassemble mdassemble.static mdassemble.auto mdassemble.uclibc \
 	mdassemble.klibc swap_super \
-	init.cpio.gz mdadm.uclibc.static test_stripe mdmon
+	init.cpio.gz mdadm.uclibc.static test_stripe mdmon \
+	mdadm.8
 
 dist : clean
 	./makedist

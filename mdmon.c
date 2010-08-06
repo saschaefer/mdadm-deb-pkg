@@ -58,8 +58,11 @@
 #include	<fcntl.h>
 #include	<signal.h>
 #include	<dirent.h>
-
+#ifdef USE_PTHREADS
+#include	<pthread.h>
+#else
 #include	<sched.h>
+#endif
 
 #include	"mdadm.h"
 #include	"mdmon.h"
@@ -71,7 +74,39 @@ int mon_tid, mgr_tid;
 
 int sigterm;
 
-int run_child(void *v)
+#ifdef USE_PTHREADS
+static void *run_child(void *v)
+{
+	struct supertype *c = v;
+
+	mon_tid = syscall(SYS_gettid);
+	do_monitor(c);
+	return 0;
+}
+
+static int clone_monitor(struct supertype *container)
+{
+	pthread_attr_t attr;
+	pthread_t thread;
+	int rc;
+
+	mon_tid = -1;
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, 4096);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	rc = pthread_create(&thread, &attr, run_child, container);
+	if (rc)
+		return rc;
+	while (mon_tid == -1)
+		usleep(10);
+	pthread_attr_destroy(&attr);
+
+	mgr_tid = syscall(SYS_gettid);
+
+	return mon_tid;
+}
+#else /* USE_PTHREADS */
+static int run_child(void *v)
 {
 	struct supertype *c = v;
 
@@ -85,7 +120,7 @@ int __clone2(int (*fn)(void *),
 	    int flags, void *arg, ...
 	 /* pid_t *pid, struct user_desc *tls, pid_t *ctid */ );
 #endif
- int clone_monitor(struct supertype *container)
+static int clone_monitor(struct supertype *container)
 {
 	static char stack[4096];
 
@@ -103,15 +138,7 @@ int __clone2(int (*fn)(void *),
 
 	return mon_tid;
 }
-
-static struct superswitch *find_metadata_methods(char *vers)
-{
-	if (strcmp(vers, "ddf") == 0)
-		return &super_ddf;
-	if (strcmp(vers, "imsm") == 0)
-		return &super_imsm;
-	return NULL;
-}
+#endif /* USE_PTHREADS */
 
 static int make_pidfile(char *devname)
 {
@@ -120,10 +147,10 @@ static int make_pidfile(char *devname)
 	int fd;
 	int n;
 
-	if (mkdir(pid_dir, 0700) < 0 &&
+	if (mkdir(MDMON_DIR, 0755) < 0 &&
 	    errno != EEXIST)
 		return -errno;
-	sprintf(path, "%s/%s.pid", pid_dir, devname);
+	sprintf(path, "%s/%s.pid", MDMON_DIR, devname);
 
 	fd = open(path, O_RDWR|O_CREAT|O_EXCL, 0600);
 	if (fd < 0)
@@ -134,18 +161,6 @@ static int make_pidfile(char *devname)
 	if (n < 0)
 		return -errno;
 	return 0;
-}
-
-int is_container_member(struct mdstat_ent *mdstat, char *container)
-{
-	if (mdstat->metadata_version == NULL ||
-	    strncmp(mdstat->metadata_version, "external:", 9) != 0 ||
-	    !is_subarray(mdstat->metadata_version+9) ||
-	    strncmp(mdstat->metadata_version+10, container, strlen(container)) != 0 ||
-	    mdstat->metadata_version[10+strlen(container)] != '/')
-		return 0;
-
-	return 1;
 }
 
 static void try_kill_monitor(pid_t pid, char *devname, int sock)
@@ -189,13 +204,10 @@ void remove_pidfile(char *devname)
 {
 	char buf[100];
 
-	sprintf(buf, "%s/%s.pid", pid_dir, devname);
+	sprintf(buf, "%s/%s.pid", MDMON_DIR, devname);
 	unlink(buf);
-	sprintf(buf, "%s/%s.sock", pid_dir, devname);
+	sprintf(buf, "%s/%s.sock", MDMON_DIR, devname);
 	unlink(buf);
-	if (strcmp(pid_dir, ALT_RUN) == 0)
-		/* try to clean up when we are finished with this dir */
-		rmdir(pid_dir);
 }
 
 static int make_control_sock(char *devname)
@@ -208,7 +220,7 @@ static int make_control_sock(char *devname)
 	if (sigterm)
 		return -1;
 
-	sprintf(path, "%s/%s.sock", pid_dir, devname);
+	sprintf(path, "%s/%s.sock", MDMON_DIR, devname);
 	unlink(path);
 	sfd = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if (sfd < 0)
@@ -294,7 +306,7 @@ int main(int argc, char *argv[])
 				/* update cmdline so this mdmon instance can be
 				 * distinguished from others in a call to ps(1)
 				 */
-				if (strlen(devname) <= container_len) {
+				if (strlen(devname) <= (unsigned)container_len) {
 					memset(container_name, 0, container_len);
 					sprintf(container_name, "%s", devname);
 				}
@@ -394,8 +406,7 @@ static int mdmon(char *devname, int devnum, int must_fork, int takeover)
 		exit(3);
 	}
 
-	mdi = sysfs_read(mdfd, container->devnum,
-			 GET_VERSION|GET_LEVEL|GET_DEVS|SKIP_GONE_DEVS);
+	mdi = sysfs_read(mdfd, container->devnum, GET_VERSION|GET_LEVEL|GET_DEVS);
 
 	if (!mdi) {
 		fprintf(stderr, "mdmon: failed to load sysfs info for %s\n",
@@ -414,9 +425,9 @@ static int mdmon(char *devname, int devnum, int must_fork, int takeover)
 		exit(3);
 	}
 
-	container->ss = find_metadata_methods(mdi->text_version);
+	container->ss = version_to_superswitch(mdi->text_version);
 	if (container->ss == NULL) {
-		fprintf(stderr, "mdmon: %s uses unknown metadata: %s\n",
+		fprintf(stderr, "mdmon: %s uses unsupported metadata: %s\n",
 			devname, mdi->text_version);
 		exit(3);
 	}
@@ -445,12 +456,7 @@ static int mdmon(char *devname, int devnum, int must_fork, int takeover)
 	act.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &act, NULL);
 
-	pid_dir = VAR_RUN;
 	victim = mdmon_pid(container->devnum);
-	if (victim < 0) {
-		pid_dir = ALT_RUN;
-		victim = mdmon_pid(container->devnum);
-	}
 	if (victim >= 0)
 		victim_sock = connect_monitor(container->devname);
 
@@ -474,16 +480,8 @@ static int mdmon(char *devname, int devnum, int must_fork, int takeover)
 	 */
 	if (victim > 0)
 		remove_pidfile(devname);
-	pid_dir = VAR_RUN;
 	if (make_pidfile(devname) < 0) {
-		/* Try the alternate */
-		pid_dir = ALT_RUN;
-		if (make_pidfile(devname) < 0) {
-			fprintf(stderr, "mdmon: Neither %s nor %s are writable\n"
-				"       cannot create .pid or .sock files.  Aborting\n",
-				VAR_RUN, ALT_RUN);
-			exit(3);
-		}
+		exit(3);
 	}
 	container->sock = make_control_sock(devname);
 

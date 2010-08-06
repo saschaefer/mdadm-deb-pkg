@@ -43,7 +43,7 @@ static int default_layout(struct supertype *st, int level, int verbose)
 			layout = 0x102; /* near=2, far=1 */
 			if (verbose > 0)
 				fprintf(stderr,
-					Name ": layout defaults to n1\n");
+					Name ": layout defaults to n2\n");
 			break;
 		case 5:
 		case 6:
@@ -235,9 +235,13 @@ int Create(struct supertype *st, char *mddev,
 	case 6:
 	case 0:
 		if (chunk == 0) {
-			chunk = 512;
+			if (st && st->ss->default_chunk)
+				chunk = st->ss->default_chunk(st);
+
+			chunk = chunk ? : 512;
+
 			if (verbose > 0)
-				fprintf(stderr, Name ": chunk size defaults to 512K\n");
+				fprintf(stderr, Name ": chunk size defaults to %dK\n", chunk);
 		}
 		break;
 	case LEVEL_LINEAR:
