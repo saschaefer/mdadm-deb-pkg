@@ -1,5 +1,7 @@
-mdadm (3.1.2-3) unstable; urgency=low
+mdadm (3.1.3-1) unstable; urgency=low
 
+  * New upstream release:
+    - reverts move of incremental map (closes: #585015).
   * initramfs/hook: Match UUID case-insensitive while checking for running
     arrays not listed in mdadm.conf; thanks to Mario 'BitKoenig' Holbe for the
     patch (closes: #583545).
