@@ -288,6 +288,11 @@ int Grow_addbitmap(char *devname, int fd, char *file, int chunk, int delay, int 
 		return 1;
 	} else if (strcmp(file, "internal") == 0) {
 		int d;
+		if (st->ss->add_internal_bitmap == NULL) {
+			fprintf(stderr, Name ": Internal bitmaps not supported "
+				"with %s metadata\n", st->ss->name);
+			return 1;
+		}
 		for (d=0; d< st->max_devs; d++) {
 			mdu_disk_info_t disk;
 			char *dv;
@@ -404,7 +409,7 @@ static struct mdp_backup_super {
 	__u8 pad[512-68-32];
 } __attribute__((aligned(512))) bsb, bsb2;
 
-int bsb_csum(char *buf, int len)
+__u32 bsb_csum(char *buf, int len)
 {
 	int i;
 	int csum = 0;
@@ -500,7 +505,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 	int nchunk, ochunk;
 	int nlayout, olayout;
 	int ndisks, odisks;
-	int ndata, odata;
+	unsigned int ndata, odata;
 	int orig_level = UnSet;
 	char alt_layout[40];
 	int *fdlist;
@@ -510,7 +515,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 	int err;
 	int frozen;
 	unsigned long a,b, blocks, stripes;
-	int cache;
+	unsigned long cache;
 	unsigned long long array_size;
 	int changed = 0;
 	int done;
@@ -541,7 +546,13 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 		return 1;
 	}
 	sra = sysfs_read(fd, 0, GET_LEVEL);
-	frozen = freeze_array(sra);
+	if (sra)
+		frozen = freeze_array(sra);
+	else {
+		fprintf(stderr, Name ": failed to read sysfs parameters for %s\n",
+			devname);
+		return 1;
+	}
 	if (frozen < 0) {
 		fprintf(stderr, Name ": %s is performing resync/recovery and cannot"
 			" be reshaped\n", devname);
@@ -748,6 +759,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 					if (err == EBUSY && 
 					    (array.state & (1<<MD_SB_BITMAP_PRESENT)))
 						fprintf(stderr, "       Bitmap must be removed before level can be changed\n");
+					rv = 1;
 				}
 			}
 		} else if (!changed && !quiet)
@@ -778,7 +790,6 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 
 		array.layout = parse_layout_faulty(layout_str);
 		if (array.layout < 0) {
-			int rv;
 			fprintf(stderr, Name ": %s: layout %s not understood for 'faulty' array\n",
 				devname, layout_str);
 			rv = 1;
@@ -912,7 +923,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 
 		/* Check that we can hold all the data */
 		get_dev_size(fd, NULL, &array_size);
-		if (ndata * size < (array_size/1024)) {
+		if (ndata * (unsigned long long)size < (array_size/1024)) {
 			fprintf(stderr, Name ": this change will reduce the size of the array.\n"
 				"       use --grow --array-size first to truncate array.\n"
 				"       e.g. mdadm --grow %s --array-size %llu\n",
@@ -926,8 +937,8 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 		 * old stripes and a whole number of new stripes.
 		 * So LCM for (chunksize*datadisks).
 		 */
-		a = ochunk/512 * odata;
-		b = nchunk/512 * ndata;
+		a = (ochunk/512) * odata;
+		b = (nchunk/512) * ndata;
 		/* Find GCD */
 		while (a != b) {
 			if (a < b)
@@ -936,12 +947,19 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 				a -= b;
 		}
 		/* LCM == product / GCD */
-		blocks = ochunk/512 * nchunk/512 * odata * ndata / a;
+		blocks = (ochunk/512) * (nchunk/512) * odata * ndata / a;
 
 		sysfs_free(sra);
 		sra = sysfs_read(fd, 0,
 				 GET_COMPONENT|GET_DEVS|GET_OFFSET|GET_STATE|
 				 GET_CACHE);
+
+		if (!sra) {
+			fprintf(stderr, Name ": %s: Cannot get array details from sysfs\n",
+				devname);
+			rv = 1;
+			break;
+		}
 
 		if (ndata == odata) {
 			/* Make 'blocks' bigger for better throughput, but
@@ -955,20 +973,13 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 			fprintf(stderr, Name ": Need to backup %luK of critical "
 				"section..\n", blocks/2);
 
-		if (!sra) {
-			fprintf(stderr, Name ": %s: Cannot get array details from sysfs\n",
-				devname);
-			rv = 1;
-			break;
-		}
-
 		if (blocks >= sra->component_size/2) {
 			fprintf(stderr, Name ": %s: Something wrong - reshape aborted\n",
 				devname);
 			rv = 1;
 			break;
 		}
-		nrdisks = array.nr_disks + sra->array.spare_disks;
+		nrdisks = array.raid_disks + sra->array.spare_disks;
 		/* Now we need to open all these devices so we can read/write.
 		 */
 		fdlist = malloc((1+nrdisks) * sizeof(int));
@@ -1043,7 +1054,7 @@ int Grow_reshape(char *devname, int fd, int quiet, char *backup_file,
 				break;
 			}
 			memset(buf, 0, 512);
-			for (i=0; i < blocks + 1 ; i++) {
+			for (i=0; i < (signed)blocks + 1 ; i++) {
 				if (write(fdlist[d], buf, 512) != 512) {
 					fprintf(stderr, Name ": %s: cannot create backup file %s: %s\n",
 						devname, backup_file, strerror(errno));
@@ -1273,15 +1284,17 @@ int grow_backup(struct mdinfo *sra,
 	int odata = disks;
 	int rv = 0;
 	int i;
-	unsigned long long new_degraded;
+	unsigned long long ll;
+	int new_degraded;
 	//printf("offset %llu\n", offset);
 	if (level >= 4)
 		odata--;
 	if (level == 6)
 		odata--;
-	sysfs_set_num(sra, NULL, "suspend_hi", (offset + stripes * chunk/512) * odata);
+	sysfs_set_num(sra, NULL, "suspend_hi", (offset + stripes * (chunk/512)) * odata);
 	/* Check that array hasn't become degraded, else we might backup the wrong data */
-	sysfs_get_ll(sra, NULL, "degraded", &new_degraded);
+	sysfs_get_ll(sra, NULL, "degraded", &ll);
+	new_degraded = (int)ll;
 	if (new_degraded != *degraded) {
 		/* check each device to ensure it is still working */
 		struct mdinfo *sd;
@@ -1307,10 +1320,10 @@ int grow_backup(struct mdinfo *sra,
 	}
 	if (part) {
 		bsb.arraystart2 = __cpu_to_le64(offset * odata);
-		bsb.length2 = __cpu_to_le64(stripes * chunk/512 * odata);
+		bsb.length2 = __cpu_to_le64(stripes * (chunk/512) * odata);
 	} else {
 		bsb.arraystart = __cpu_to_le64(offset * odata);
-		bsb.length = __cpu_to_le64(stripes * chunk/512 * odata);
+		bsb.length = __cpu_to_le64(stripes * (chunk/512) * odata);
 	}
 	if (part)
 		bsb.magic[15] = '2';
@@ -1337,16 +1350,21 @@ int grow_backup(struct mdinfo *sra,
 			bsb.sb_csum2 = bsb_csum((char*)&bsb,
 						((char*)&bsb.sb_csum2)-((char*)&bsb));
 
-		if (lseek64(destfd[i], destoffsets[i] - 4096, 0) != destoffsets[i] - 4096)
-			rv = 1;
-		rv = rv ?: write(destfd[i], &bsb, 512);
+		rv = -1;
+		if ((unsigned long long)lseek64(destfd[i], destoffsets[i] - 4096, 0)
+		    != destoffsets[i] - 4096)
+			break;
+		if (write(destfd[i], &bsb, 512) != 512)
+			break;
 		if (destoffsets[i] > 4096) {
-			if (lseek64(destfd[i], destoffsets[i]+stripes*chunk*odata, 0) !=
+			if ((unsigned long long)lseek64(destfd[i], destoffsets[i]+stripes*chunk*odata, 0) !=
 			    destoffsets[i]+stripes*chunk*odata)
-				rv = 1;
-			rv = rv ?: write(destfd[i], &bsb, 512);
+				break;
+			if (write(destfd[i], &bsb, 512) != 512)
+				break;
 		}
 		fsync(destfd[i]);
+		rv = 0;
 	}
 
 	return rv;
@@ -1415,10 +1433,12 @@ int wait_backup(struct mdinfo *sra,
 		if (memcmp(bsb.magic, "md_backup_data-2", 16) == 0)
 			bsb.sb_csum2 = bsb_csum((char*)&bsb,
 						((char*)&bsb.sb_csum2)-((char*)&bsb));
-		if (lseek64(destfd[i], destoffsets[i]-4096, 0) !=
+		if ((unsigned long long)lseek64(destfd[i], destoffsets[i]-4096, 0) !=
 		    destoffsets[i]-4096)
-			rv = 1;
-		rv = rv ?: write(destfd[i], &bsb, 512);
+			rv = -1;
+		if (rv == 0 && 
+		    write(destfd[i], &bsb, 512) != 512)
+			rv = -1;
 		fsync(destfd[i]);
 	}
 	return rv;
@@ -1427,13 +1447,13 @@ int wait_backup(struct mdinfo *sra,
 static void fail(char *msg)
 {
 	int rv;
-	rv = write(2, msg, strlen(msg));
-	rv |= write(2, "\n", 1);
+	rv = (write(2, msg, strlen(msg)) != (int)strlen(msg));
+	rv |= (write(2, "\n", 1) != 1);
 	exit(rv ? 1 : 2);
 }
 
 static char *abuf, *bbuf;
-static int abuflen;
+static unsigned long long abuflen;
 static void validate(int afd, int bfd, unsigned long long offset)
 {
 	/* check that the data in the backup against the array.
@@ -1474,12 +1494,12 @@ static void validate(int afd, int bfd, unsigned long long offset)
 		}
 
 		lseek64(bfd, offset, 0);
-		if (read(bfd, bbuf, len) != len) {
+		if ((unsigned long long)read(bfd, bbuf, len) != len) {
 			//printf("len %llu\n", len);
 			fail("read first backup failed");
 		}
 		lseek64(afd, __le64_to_cpu(bsb2.arraystart)*512, 0);
-		if (read(afd, abuf, len) != len)
+		if ((unsigned long long)read(afd, abuf, len) != len)
 			fail("read first from array failed");
 		if (memcmp(bbuf, abuf, len) != 0) {
 			#if 0
@@ -1507,10 +1527,10 @@ static void validate(int afd, int bfd, unsigned long long offset)
 		}
 
 		lseek64(bfd, offset+__le64_to_cpu(bsb2.devstart2)*512, 0);
-		if (read(bfd, bbuf, len) != len)
+		if ((unsigned long long)read(bfd, bbuf, len) != len)
 			fail("read second backup failed");
 		lseek64(afd, __le64_to_cpu(bsb2.arraystart2)*512, 0);
-		if (read(afd, abuf, len) != len)
+		if ((unsigned long long)read(afd, abuf, len) != len)
 			fail("read second from array failed");
 		if (memcmp(bbuf, abuf, len) != 0)
 			fail("data2 compare failed");
@@ -1535,10 +1555,10 @@ static int child_grow(int afd, struct mdinfo *sra, unsigned long stripes,
 		    dests, destfd, destoffsets,
 		    0, &degraded, buf);
 	validate(afd, destfd[0], destoffsets[0]);
-	wait_backup(sra, 0, stripes * chunk / 512, stripes * chunk / 512,
+	wait_backup(sra, 0, stripes * (chunk / 512), stripes * (chunk / 512),
 		    dests, destfd, destoffsets,
 		    0);
-	sysfs_set_num(sra, NULL, "suspend_lo", (stripes * chunk/512) * data);
+	sysfs_set_num(sra, NULL, "suspend_lo", (stripes * (chunk/512)) * data);
 	free(buf);
 	/* FIXME this should probably be numeric */
 	sysfs_set_str(sra, NULL, "sync_max", "max");
@@ -1557,12 +1577,12 @@ static int child_shrink(int afd, struct mdinfo *sra, unsigned long stripes,
 
 	if (posix_memalign((void**)&buf, 4096, disks * chunk))
 		return 0;
-	start = sra->component_size - stripes * chunk/512;
+	start = sra->component_size - stripes * (chunk/512);
 	sysfs_set_num(sra, NULL, "sync_max", start);
 	sysfs_set_str(sra, NULL, "sync_action", "reshape");
 	sysfs_set_num(sra, NULL, "suspend_lo", 0);
 	sysfs_set_num(sra, NULL, "suspend_hi", 0);
-	rv = wait_backup(sra, 0, start - stripes * chunk/512, stripes * chunk/512,
+	rv = wait_backup(sra, 0, start - stripes * (chunk/512), stripes * (chunk/512),
 			 dests, destfd, destoffsets, 0);
 	if (rv < 0)
 		return 0;
@@ -1572,9 +1592,9 @@ static int child_shrink(int afd, struct mdinfo *sra, unsigned long stripes,
 		    dests, destfd, destoffsets,
 		    0, &degraded, buf);
 	validate(afd, destfd[0], destoffsets[0]);
-	wait_backup(sra, start, stripes*chunk/512, 0,
+	wait_backup(sra, start, stripes*(chunk/512), 0,
 		    dests, destfd, destoffsets, 0);
-	sysfs_set_num(sra, NULL, "suspend_lo", (stripes * chunk/512) * data);
+	sysfs_set_num(sra, NULL, "suspend_lo", (stripes * (chunk/512)) * data);
 	free(buf);
 	/* FIXME this should probably be numeric */
 	sysfs_set_str(sra, NULL, "sync_max", "max");
@@ -1609,7 +1629,7 @@ static int child_same_size(int afd, struct mdinfo *sra, unsigned long stripes,
 		    disks, chunk, level, layout,
 		    dests, destfd, destoffsets,
 		    0, &degraded, buf);
-	grow_backup(sra, (start + stripes) * chunk/512, stripes,
+	grow_backup(sra, (start + stripes) * (chunk/512), stripes,
 		    fds, offsets,
 		    disks, chunk, level, layout,
 		    dests, destfd, destoffsets,
@@ -1619,16 +1639,16 @@ static int child_same_size(int afd, struct mdinfo *sra, unsigned long stripes,
 	start += stripes * 2; /* where to read next */
 	size = sra->component_size / (chunk/512);
 	while (start < size) {
-		if (wait_backup(sra, (start-stripes*2)*chunk/512,
-				stripes*chunk/512, 0,
+		if (wait_backup(sra, (start-stripes*2)*(chunk/512),
+				stripes*(chunk/512), 0,
 				dests, destfd, destoffsets,
 				part) < 0)
 			return 0;
-		sysfs_set_num(sra, NULL, "suspend_lo", start*chunk/512 * data);
+		sysfs_set_num(sra, NULL, "suspend_lo", start*(chunk/512) * data);
 		if (start + stripes > size)
 			tailstripes = (size - start);
 
-		grow_backup(sra, start*chunk/512, tailstripes,
+		grow_backup(sra, start*(chunk/512), tailstripes,
 			    fds, offsets,
 			    disks, chunk, level, layout,
 			    dests, destfd, destoffsets,
@@ -1637,15 +1657,15 @@ static int child_same_size(int afd, struct mdinfo *sra, unsigned long stripes,
 		part = 1 - part;
 		validate(afd, destfd[0], destoffsets[0]);
 	}
-	if (wait_backup(sra, (start-stripes*2) * chunk/512, stripes * chunk/512, 0,
+	if (wait_backup(sra, (start-stripes*2) * (chunk/512), stripes * (chunk/512), 0,
 			dests, destfd, destoffsets,
 			part) < 0)
 		return 0;
-	sysfs_set_num(sra, NULL, "suspend_lo", ((start-stripes)*chunk/512) * data);
-	wait_backup(sra, (start-stripes) * chunk/512, tailstripes * chunk/512, 0,
+	sysfs_set_num(sra, NULL, "suspend_lo", ((start-stripes)*(chunk/512)) * data);
+	wait_backup(sra, (start-stripes) * (chunk/512), tailstripes * (chunk/512), 0,
 		    dests, destfd, destoffsets,
 		    1-part);
-	sysfs_set_num(sra, NULL, "suspend_lo", (size*chunk/512) * data);
+	sysfs_set_num(sra, NULL, "suspend_lo", (size*(chunk/512)) * data);
 	sysfs_set_num(sra, NULL, "sync_speed_min", speed);
 	free(buf);
 	return 1;
@@ -1752,8 +1772,8 @@ int Grow_restart(struct supertype *st, struct mdinfo *info, int *fdlist, int cnt
 		 * sometimes they aren't... So allow considerable flexability in matching, and allow
 		 * this test to be overridden by an environment variable.
 		 */
-		if (info->array.utime > __le64_to_cpu(bsb.mtime) + 2*60*60 ||
-		    info->array.utime < __le64_to_cpu(bsb.mtime) - 10*60) {
+		if (info->array.utime > (int)__le64_to_cpu(bsb.mtime) + 2*60*60 ||
+		    info->array.utime < (int)__le64_to_cpu(bsb.mtime) - 10*60) {
 			if (check_env("MDADM_GROW_ALLOW_OLD")) {
 				fprintf(stderr, Name ": accepting backup with timestamp %lu "
 					"for array with timestamp %lu\n",
@@ -1809,7 +1829,7 @@ int Grow_restart(struct supertype *st, struct mdinfo *info, int *fdlist, int cnt
 		}
 		/* There should be a duplicate backup superblock 4k before here */
 		if (lseek64(fd, -4096, 1) < 0 ||
-		    read(fd, &bsb2, 4096) != 4096)
+		    read(fd, &bsb2, sizeof(bsb2)) != sizeof(bsb2))
 			goto second_fail; /* Cannot find leading superblock */
 		if (bsb.magic[15] == '1')
 			bsbsize = offsetof(struct mdp_backup_super, pad1);
@@ -1962,7 +1982,7 @@ int Grow_continue(int mdfd, struct supertype *st, struct mdinfo *info,
 	int d;
 	struct mdinfo *sra, *sd;
 	int rv;
-	int cache;
+	unsigned long cache;
 	int done = 0;
 
 	err = sysfs_set_str(info, NULL, "array_state", "readonly");
@@ -1972,7 +1992,13 @@ int Grow_continue(int mdfd, struct supertype *st, struct mdinfo *info,
 	/* make sure reshape doesn't progress until we are ready */
 	sysfs_set_str(info, NULL, "sync_max", "0");
 	sysfs_set_str(info, NULL, "array_state", "active"); /* FIXME or clean */
-	
+
+	sra = sysfs_read(-1, devname2devnum(info->sys_name),
+			 GET_COMPONENT|GET_DEVS|GET_OFFSET|GET_STATE|
+			 GET_CACHE);
+	if (!sra)
+		return 1;
+
 	/* ndisks is not growing, so raid_disks is old and +delta is new */
 	odisks = info->array.raid_disks;
 	ndisks = odisks + info->delta_disks;
@@ -1985,9 +2011,8 @@ int Grow_continue(int mdfd, struct supertype *st, struct mdinfo *info,
 	ochunk = info->array.chunk_size;
 	nchunk = info->new_chunk;
 
-
-	a = ochunk/512 * odata;
-	b = nchunk/512 * ndata;
+	a = (ochunk/512) * odata;
+	b = (nchunk/512) * ndata;
 	/* Find GCD */
 	while (a != b) {
 		if (a < b)
@@ -1996,12 +2021,7 @@ int Grow_continue(int mdfd, struct supertype *st, struct mdinfo *info,
 			a -= b;
 	}
 	/* LCM == product / GCD */
-	blocks = ochunk/512 * nchunk/512 * odata * ndata / a;
-
-	sra = sysfs_read(-1, devname2devnum(info->sys_name),
-			 GET_COMPONENT|GET_DEVS|GET_OFFSET|GET_STATE|
-			 GET_CACHE);
-
+	blocks = (ochunk/512) * (nchunk/512) * odata * ndata / a;
 
 	if (ndata == odata)
 		while (blocks * 32 < sra->component_size &&

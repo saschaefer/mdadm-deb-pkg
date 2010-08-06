@@ -258,6 +258,15 @@ int Incremental(char *devname, int verbose, int runstop,
 		autof = ci->autof;
 
 	if (st->ss->container_content && st->loaded_container) {
+		if ((runstop > 0 && info.container_enough >= 0) ||
+		    info.container_enough > 0)
+			/* pass */;
+		else {
+			if (verbose)
+				fprintf(stderr, Name ": not enough devices to start the container\n");
+			return 1;
+		}
+
 		/* This is a pre-built container array, so we do something
 		 * rather different.
 		 */
@@ -285,7 +294,9 @@ int Incremental(char *devname, int verbose, int runstop,
 
 	/* 4/ Check if array exists.
 	 */
-	map_lock(&map);
+	if (map_lock(&map))
+		fprintf(stderr, Name ": failed to get exclusive lock on "
+			"mapfile\n");
 	mp = map_by_uuid(&map, info.uuid);
 	if (mp)
 		mdfd = open_dev(mp->devnum);
@@ -359,7 +370,34 @@ int Incremental(char *devname, int verbose, int runstop,
 		else
 			strcpy(chosen_name, devnum2devname(mp->devnum));
 
+		/* It is generally not OK to add drives to a running array
+		 * as they are probably missing because they failed.
+		 * However if runstop is 1, then the array was possibly
+		 * started early and our best be is to add this anyway.
+		 * It would probably be good to allow explicit policy
+		 * statement about this.
+		 */
+		if (runstop < 1) {
+			int active = 0;
+			
+			if (st->ss->external) {
+				char *devname = devnum2devname(fd2devnum(mdfd));
+
+				active = devname && is_container_active(devname);
+				free(devname);
+			} else if (ioctl(mdfd, GET_ARRAY_INFO, &ainf) == 0)
+				active = 1;
+			if (active) {
+				fprintf(stderr, Name
+					": not adding %s to active array (without --run) %s\n",
+					devname, chosen_name);
+				close(mdfd);
+				return 2;
+			}
+		}
 		sra = sysfs_read(mdfd, fd2devnum(mdfd), (GET_DEVS | GET_STATE));
+		if (!sra)
+			return 2;
 
 		if (sra->devs) {
 			sprintf(dn, "%d:%d", sra->devs->disk.major,
@@ -428,8 +466,6 @@ int Incremental(char *devname, int verbose, int runstop,
 				chosen_name, info.array.working_disks);
 		wait_for(chosen_name, mdfd);
 		close(mdfd);
-		if (runstop < 0)
-			return 0; /* don't try to assemble */
 		rv = Incremental(chosen_name, verbose, runstop,
 				 NULL, homehost, require_homehost, autof);
 		if (rv == 1)
@@ -443,8 +479,7 @@ int Incremental(char *devname, int verbose, int runstop,
 	active_disks = count_active(st, mdfd, &avail, &info);
 	if (enough(info.array.level, info.array.raid_disks,
 		   info.array.layout, info.array.state & 1,
-		   avail, active_disks) == 0 ||
-	    (runstop < 0 && active_disks < info.array.raid_disks)) {
+		   avail, active_disks) == 0) {
 		free(avail);
 		if (verbose >= 0)
 			fprintf(stderr, Name
@@ -579,6 +614,9 @@ static int count_active(struct supertype *st, int mdfd, char **availp,
 	__u64 max_events = 0;
 	struct mdinfo *sra = sysfs_read(mdfd, -1, GET_DEVS | GET_STATE);
 	char *avail = NULL;
+
+	if (!sra)
+		return 0;
 
 	for (d = sra->devs ; d ; d = d->next) {
 		char dn[30];
@@ -757,7 +795,9 @@ int Incremental_container(struct supertype *st, char *devname, int verbose,
 	struct mdinfo *ra;
 	struct map_ent *map = NULL;
 
-	map_lock(&map);
+	if (map_lock(&map))
+		fprintf(stderr, Name ": failed to get exclusive lock on "
+			"mapfile\n");
 
 	for (ra = list ; ra ; ra = ra->next) {
 		int mdfd;
@@ -842,4 +882,46 @@ int Incremental_container(struct supertype *st, char *devname, int verbose,
 	}
 	map_unlock(&map);
 	return 0;
+}
+
+/*
+ * IncrementalRemove - Attempt to see if the passed in device belongs to any
+ * raid arrays, and if so first fail (if needed) and then remove the device.
+ *
+ * @devname - The device we want to remove
+ *
+ * Note: the device name must be a kernel name like "sda", so
+ * that we can find it in /proc/mdstat
+ */
+int IncrementalRemove(char *devname, int verbose)
+{
+	int mdfd;
+	int rv;
+	struct mdstat_ent *ent;
+	struct mddev_dev_s devlist;
+
+	if (strchr(devname, '/')) {
+		fprintf(stderr, Name ": incremental removal requires a "
+			"kernel device name, not a file: %s\n", devname);
+		return 1;
+	}
+	ent = mdstat_by_component(devname);
+	if (!ent) {
+		fprintf(stderr, Name ": %s does not appear to be a component "
+			"of any array\n", devname);
+		return 1;
+	}
+	mdfd = open_dev(ent->devnum);
+	if (mdfd < 0) {
+		fprintf(stderr, Name ": Cannot open array %s!!\n", ent->dev);
+		return 1;
+	}
+	memset(&devlist, 0, sizeof(devlist));
+	devlist.devname = devname;
+	devlist.disposition = 'f';
+	Manage_subdevs(ent->dev, mdfd, &devlist, verbose, 0);
+	devlist.disposition = 'r';
+	rv = Manage_subdevs(ent->dev, mdfd, &devlist, verbose, 0);
+	close(mdfd);
+	return rv;
 }
