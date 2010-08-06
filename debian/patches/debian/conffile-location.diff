@@ -12,16 +12,16 @@ Reviewed-by: martin f. krafft <madduck@debian.org>
 ---
  Makefile     |    4 ++--
  ReadMe.c     |    2 +-
- mdadm.8      |   14 ++++++--------
+ mdadm.8.in   |   14 ++++++--------
  mdadm.conf.5 |    2 +-
  mdassemble.8 |    2 +-
  5 files changed, 11 insertions(+), 13 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index 2517f75..06883bb 100644
+index fd274f1..44ee800 100644
 --- a/Makefile
 +++ b/Makefile
-@@ -54,8 +54,8 @@ CPPFLAGS=
+@@ -60,8 +60,8 @@ else
  endif
  
  SYSCONFDIR = /etc
@@ -31,12 +31,12 @@ index 2517f75..06883bb 100644
 +CONFFILE2 = $(SYSCONFDIR)/mdadm.conf
  MAILCMD =/usr/sbin/sendmail -t
  CONFFILEFLAGS = -DCONFFILE=\"$(CONFFILE)\" -DCONFFILE2=\"$(CONFFILE2)\"
- # ALT_RUN should be somewhere that persists across the pivotroot
+ # Both MAP_DIR and MDMON_DIR should be somewhere that persists across the
 diff --git a/ReadMe.c b/ReadMe.c
-index 9d5a211..1adbdfd 100644
+index 7379568..8bde113 100644
 --- a/ReadMe.c
 +++ b/ReadMe.c
-@@ -552,7 +552,7 @@ char Help_incr[] =
+@@ -560,7 +560,7 @@ char Help_incr[] =
  ;
  
  char Help_config[] =
@@ -45,11 +45,11 @@ index 9d5a211..1adbdfd 100644
  " The config file contains, apart from blank lines and comment lines that\n"
  " start with a hash(#), four sorts of configuration lines: array lines, \n"
  " device lines, mailaddr lines and program lines.\n"
-diff --git a/mdadm.8 b/mdadm.8
-index 4edfc41..a06c605 100644
---- a/mdadm.8
-+++ b/mdadm.8
-@@ -257,9 +257,9 @@ the exact meaning of this option in different contexts.
+diff --git a/mdadm.8.in b/mdadm.8.in
+index 9e352da..ee7169d 100644
+--- a/mdadm.8.in
++++ b/mdadm.8.in
+@@ -261,9 +261,9 @@ the exact meaning of this option in different contexts.
  .TP
  .BR \-c ", " \-\-config=
  Specify the config file.  Default is to use
@@ -62,7 +62,7 @@ index 4edfc41..a06c605 100644
  If the config file given is
  .B "partitions"
  then nothing will be read, but
-@@ -1365,8 +1365,6 @@ The config file is only used if explicitly named with
+@@ -1429,8 +1429,6 @@ The config file is only used if explicitly named with
  or requested with (a possibly implicit)
  .BR \-\-scan .
  In the later case,
@@ -71,7 +71,7 @@ index 4edfc41..a06c605 100644
  .B /etc/mdadm/mdadm.conf
  is used.
  
-@@ -1707,7 +1705,7 @@ or
+@@ -1771,7 +1769,7 @@ or
  .B \-\-scan
  will cause the output to be less detailed and the format to be
  suitable for inclusion in
@@ -80,7 +80,7 @@ index 4edfc41..a06c605 100644
  The exit status of
  .I mdadm
  will normally be 0 unless
-@@ -1762,7 +1760,7 @@ or
+@@ -1848,7 +1846,7 @@ or
  is given, then multiple devices that are components of the one array
  are grouped together and reported in a single entry suitable
  for inclusion in
@@ -89,7 +89,7 @@ index 4edfc41..a06c605 100644
  
  Having
  .B \-\-scan
-@@ -2450,7 +2448,7 @@ uses this to find arrays when
+@@ -2545,7 +2543,7 @@ uses this to find arrays when
  is given in Misc mode, and to monitor array reconstruction
  on Monitor mode.
  
@@ -112,7 +112,7 @@ index e677ba9..648d26a 100644
  .PP
  .I mdadm
 diff --git a/mdassemble.8 b/mdassemble.8
-index b414bda..9a1d2f3 100644
+index 1904e66..dffadba 100644
 --- a/mdassemble.8
 +++ b/mdassemble.8
 @@ -40,7 +40,7 @@ There are no options to
@@ -125,4 +125,4 @@ index b414bda..9a1d2f3 100644
  The config file lists which devices may be scanned to see if
  they contain MD super block, and gives identifying information
 -- 
-tg: (4460f8f..) debian/conffile-location (depends on: upstream)
+tg: (850a317..) debian/conffile-location (depends on: upstream)
