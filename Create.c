@@ -43,7 +43,7 @@ static int default_layout(struct supertype *st, int level, int verbose)
 			layout = 0x102; /* near=2, far=1 */
 			if (verbose > 0)
 				fprintf(stderr,
-					Name ": layout defaults to n1\n");
+					Name ": layout defaults to n2\n");
 			break;
 		case 5:
 		case 6:
@@ -235,9 +235,13 @@ int Create(struct supertype *st, char *mddev,
 	case 6:
 	case 0:
 		if (chunk == 0) {
-			chunk = 512;
+			if (st && st->ss->default_chunk)
+				chunk = st->ss->default_chunk(st);
+
+			chunk = chunk ? : 512;
+
 			if (verbose > 0)
-				fprintf(stderr, Name ": chunk size defaults to 512K\n");
+				fprintf(stderr, Name ": chunk size defaults to %dK\n", chunk);
 		}
 		break;
 	case LEVEL_LINEAR:
@@ -651,6 +655,11 @@ int Create(struct supertype *st, char *mddev,
 			fprintf(stderr, Name ": internal bitmaps not supported by this kernel.\n");
 			goto abort;
 		}
+		if (!st->ss->add_internal_bitmap) {
+			fprintf(stderr, Name ": internal bitmaps not supported with %s metadata\n",
+				st->ss->name);
+			goto abort;
+		}
 		if (!st->ss->add_internal_bitmap(st, &bitmap_chunk,
 						 delay, write_behind,
 						 bitmapsize, 1, major_num)) {
@@ -784,8 +793,10 @@ int Create(struct supertype *st, char *mddev,
 				if (fd >= 0)
 					remove_partitions(fd);
 				if (st->ss->add_to_super(st, &inf->disk,
-							 fd, dv->devname))
+							 fd, dv->devname)) {
+					ioctl(mdfd, STOP_ARRAY, NULL);
 					goto abort;
+				}
 				st->ss->getinfo_super(st, inf);
 				safe_mode_delay = inf->safe_mode_delay;
 
@@ -889,7 +900,7 @@ int Create(struct supertype *st, char *mddev,
 			if (ioctl(mdfd, RUN_ARRAY, &param)) {
 				fprintf(stderr, Name ": RUN_ARRAY failed: %s\n",
 					strerror(errno));
-				Manage_runstop(mddev, mdfd, -1, 0);
+				ioctl(mdfd, STOP_ARRAY, NULL);
 				goto abort;
 			}
 		}
@@ -910,6 +921,10 @@ int Create(struct supertype *st, char *mddev,
 	return 0;
 
  abort:
+	map_lock(&map);
+	map_remove(&map, fd2devnum(mdfd));
+	map_unlock(&map);
+
 	if (mdfd >= 0)
 		close(mdfd);
 	return 1;

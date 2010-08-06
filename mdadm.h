@@ -68,25 +68,30 @@ extern __off64_t lseek64 __P ((int __fd, __off64_t __offset, int __whence));
 #define DEFAULT_BITMAP_DELAY 5
 #define DEFAULT_MAX_WRITE_BEHIND 256
 
-/* VAR_RUN is where pid and socket files used for communicating
- * with mdmon normally live.  It should be /var/run, but if
- * it is too hard to remount /var/run as read-only rather than
- * unmounting it at shutdown time, then it should be
- * redefined to some place that comfortably persists until
- * final shutdown, possibly in /dev if that is a tmpfs.
- * Note: VAR_RUN does not need to be writable at shutdown,
- * only during boot when "mdmon --takeover" is run.
- */
-#ifndef VAR_RUN
-#define VAR_RUN "/var/run/mdadm"
-#endif /* VAR_RUN */
-/* ALT_RUN should be somewhere that persists across the pivotroot
+/* MAP_DIR should be somewhere that persists across the pivotroot
  * from early boot to late boot.
- * If you don't have /lib/init/rw you might want to use /dev/.something
+ * Currently /dev seems to be the only option on most distros.
  */
-#ifndef ALT_RUN
-#define ALT_RUN "/lib/init/rw/mdadm"
-#endif /* ALT_RUN */
+#ifndef MAP_DIR
+#define MAP_DIR "/dev/.mdadm"
+#endif /* MAP_DIR */
+/* MAP_FILE is what we name the map file we put in MAP_DIR, in case you
+ * want something other than the default of "map"
+ */
+#ifndef MAP_FILE
+#define MAP_FILE "map"
+#endif /* MAP_FILE */
+/* MDMON_DIR is where pid and socket files used for communicating
+ * with mdmon normally live.  It *should* be /var/run, but when
+ * mdmon is needed at early boot then it needs to write there prior
+ * to /var/run being mounted read/write, and it also then needs to
+ * persist beyond when /var/run is mounter read-only.  So, to be
+ * safe, the default is somewhere that is read/write early in the
+ * boot process and stays up as long as possible during shutdown.
+ */
+#ifndef MDMON_DIR
+#define MDMON_DIR "/dev/.mdadm/"
+#endif /* MDMON_DIR */
 
 #include	"md_u.h"
 #include	"md_p.h"
@@ -190,7 +195,7 @@ struct mdinfo {
 	unsigned long		safe_mode_delay; /* ms delay to mark clean */
 	int			new_level, delta_disks, new_layout, new_chunk;
 	int			errors;
-	int			cache_size; /* size of raid456 stripe cache*/
+	unsigned long		cache_size; /* size of raid456 stripe cache*/
 	int			mismatch_cnt;
 	char			text_version[50];
 	void 			*update_private; /* for passing metadata-format
@@ -202,7 +207,9 @@ struct mdinfo {
 	int container_member; /* for assembling external-metatdata arrays
 			       * This is to be used internally by metadata
 			       * handler only */
-
+	int container_enough; /* flag external handlers can set to
+			       * indicate that subarrays have not enough (-1),
+			       * enough to start (0), or all expected disks (1) */
 	char 		sys_name[20];
 	struct mdinfo *devs;
 	struct mdinfo *next;
@@ -255,6 +262,7 @@ extern char Version[], Usage[], Help[], OptionHelp[],
 
 /* for option that don't have short equivilents, we assign arbitrary
  * small numbers.  '1' means an undecorated option, so we start at '2'.
+ * (note we must stop before we get to 65 i.e. 'A')
  */
 enum special_options {
 	AssumeClean = 2,
@@ -263,13 +271,15 @@ enum special_options {
 	ReAdd,
 	NoDegraded,
 	Sparc22,
-	BackupFile,
+	BackupFile, /* 8 */
 	HomeHost,
 	AutoHomeHost,
 	Symlinks,
 	AutoDetect,
 	Waitclean,
 	DetailPlatform,
+	KillSubarray,
+	UpdateSubarray, /* 16 */
 };
 
 /* structures read from config file */
@@ -290,14 +300,14 @@ typedef struct mddev_ident_s {
 	int	uuid[4];
 	char	name[33];
 
-	unsigned int super_minor;
+	int super_minor;
 
 	char	*devices;	/* comma separated list of device
 				 * names with wild cards
 				 */
 	int	level;
-	unsigned int raid_disks;
-	unsigned int spare_disks;
+	int raid_disks;
+	int spare_disks;
 	struct supertype *st;
 	int	autof;		/* 1 for normal, 2 for partitioned */
 	char	*spare_group;
@@ -350,6 +360,10 @@ struct mdstat_ent {
 	int		raid_disks;
 	int		chunk_size;
 	char *		metadata_version;
+	struct dev_member {
+		char			*name;
+		struct dev_member	*next;
+	} 		*members;
 	struct mdstat_ent *next;
 };
 
@@ -358,6 +372,7 @@ extern void free_mdstat(struct mdstat_ent *ms);
 extern void mdstat_wait(int seconds);
 extern void mdstat_wait_fd(int fd, const sigset_t *sigmask);
 extern int mddev_busy(int devnum);
+extern struct mdstat_ent *mdstat_by_component(char *name);
 
 struct map_ent {
 	struct map_ent *next;
@@ -369,6 +384,7 @@ struct map_ent {
 };
 extern int map_update(struct map_ent **mpp, int devnum, char *metadata,
 		      int uuid[4], char *path);
+extern void map_remove(struct map_ent **map, int devnum);
 extern struct map_ent *map_by_uuid(struct map_ent **map, int uuid[4]);
 extern struct map_ent *map_by_devnum(struct map_ent **map, int devnum);
 extern struct map_ent *map_by_name(struct map_ent **map, char *name);
@@ -398,7 +414,6 @@ enum sysfs_read_flags {
 	GET_SIZE	= (1 << 12),
 	GET_STATE	= (1 << 13),
 	GET_ERROR	= (1 << 14),
-	SKIP_GONE_DEVS	= (1 << 15),
 };
 
 /* If fd >= 0, get the array it is open on,
@@ -605,6 +620,12 @@ extern struct superswitch {
 	struct mdinfo *(*container_content)(struct supertype *st);
 	/* Allow a metadata handler to override mdadm's default layouts */
 	int (*default_layout)(int level); /* optional */
+	/* query the supertype for default chunk size */
+	int (*default_chunk)(struct supertype *st); /* optional */
+	/* Permit subarray's to be deleted from inactive containers */
+	int (*kill_subarray)(struct supertype *st); /* optional */
+	/* Permit subarray's to be modified */
+	int (*update_subarray)(struct supertype *st, char *update, mddev_ident_t ident); /* optional */
 
 /* for mdmon */
 	int (*open_new)(struct supertype *c, struct active_array *a,
@@ -758,7 +779,7 @@ extern int Manage_ro(char *devname, int fd, int readonly);
 extern int Manage_runstop(char *devname, int fd, int runstop, int quiet);
 extern int Manage_resize(char *devname, int fd, long long size, int raid_disks);
 extern int Manage_subdevs(char *devname, int fd,
-			  mddev_dev_t devlist, int verbose);
+			  mddev_dev_t devlist, int verbose, int test);
 extern int autodetect(void);
 extern int Grow_Add_device(char *devname, int fd, char *newdev);
 extern int Grow_addbitmap(char *devname, int fd, char *file, int chunk, int delay, int write_behind, int force);
@@ -801,6 +822,8 @@ extern int Monitor(mddev_dev_t devlist,
 		   int dosyslog, int test, char *pidfile, int increments);
 
 extern int Kill(char *dev, struct supertype *st, int force, int quiet, int noexcl);
+extern int Kill_subarray(char *dev, char *subarray, int quiet);
+extern int Update_subarray(char *dev, char *subarray, char *update, mddev_ident_t ident, int quiet);
 extern int Wait(char *dev);
 extern int WaitClean(char *dev, int sock, int verbose);
 
@@ -812,7 +835,7 @@ extern int Incremental_container(struct supertype *st, char *devname,
 				 int trustworthy);
 extern void RebuildMap(void);
 extern int IncrementalScan(int verbose);
-
+extern int IncrementalRemove(char *devname, int verbose);
 extern int CreateBitmap(char *filename, int force, char uuid[16],
 			unsigned long chunksize, unsigned long daemon_sleep,
 			unsigned long write_behind,
@@ -872,6 +895,7 @@ extern int enough(int level, int raid_disks, int layout, int clean,
 extern int ask(char *mesg);
 extern unsigned long long get_component_size(int fd);
 extern void remove_partitions(int fd);
+extern int test_partition(int fd);
 extern unsigned long long calc_array_size(int level, int raid_disks, int layout,
 				   int chunksize, unsigned long long devsize);
 extern int flush_metadata_updates(struct supertype *st);
@@ -906,8 +930,12 @@ extern int create_mddev(char *dev, char *name, int autof, int trustworthy,
 #define	METADATA 3
 extern int open_mddev(char *dev, int report_errors);
 extern int open_container(int fd);
+extern int is_container_member(struct mdstat_ent *ent, char *devname);
+extern int is_subarray_active(char *subarray, char *devname);
+int is_container_active(char *devname);
+extern int open_subarray(char *dev, struct supertype *st, int quiet);
+extern struct superswitch *version_to_superswitch(char *vers);
 
-extern char *pid_dir;
 extern int mdmon_running(int devnum);
 extern int mdmon_pid(int devnum);
 extern int check_env(char *name);

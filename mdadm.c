@@ -103,6 +103,7 @@ int main(int argc, char *argv[])
 	int dosyslog = 0;
 	int rebuild_map = 0;
 	int auto_update_home = 0;
+	char *subarray = NULL;
 
 	int print_help = 0;
 	FILE *outf;
@@ -216,6 +217,15 @@ int main(int argc, char *argv[])
 		case 'W':
 		case Waitclean:
 		case DetailPlatform:
+		case KillSubarray:
+		case UpdateSubarray:
+			if (opt == KillSubarray || opt == UpdateSubarray) {
+				if (subarray) {
+					fprintf(stderr, Name ": subarray can only be specified once\n");
+					exit(2);
+				}
+				subarray = optarg;
+			}
 		case 'K': if (!mode) newmode = MISC; break;
 		}
 		if (mode && newmode == mode) {
@@ -589,9 +599,14 @@ int main(int argc, char *argv[])
 
 		case O(CREATE,'N'):
 		case O(ASSEMBLE,'N'):
+		case O(MISC,'N'):
 			if (ident.name[0]) {
 				fprintf(stderr, Name ": name cannot be set twice.   "
 					"Second value %s.\n", optarg);
+				exit(2);
+			}
+			if (mode == MISC && !subarray) {
+				fprintf(stderr, Name ": -N/--name only valid with --update-subarray in misc mode\n");
 				exit(2);
 			}
 			if (strlen(optarg) > 32) {
@@ -620,9 +635,14 @@ int main(int argc, char *argv[])
 			continue;
 
 		case O(ASSEMBLE,'U'): /* update the superblock */
+		case O(MISC,'U'):
 			if (update) {
 				fprintf(stderr, Name ": Can only update one aspect of superblock, both %s and %s given.\n",
 					update, optarg);
+				exit(2);
+			}
+			if (mode == MISC && !subarray) {
+				fprintf(stderr, Name ": Only subarrays can be updated in misc mode\n");
 				exit(2);
 			}
 			update = optarg;
@@ -671,7 +691,6 @@ int main(int argc, char *argv[])
 		"     'summaries', 'homehost', 'byteorder', 'devicesize'.\n");
 			exit(outf == stdout ? 0 : 2);
 
-		case O(INCREMENTAL,NoDegraded):
 		case O(ASSEMBLE,NoDegraded): /* --no-degraded */
 			runstop = -1; /* --stop isn't allowed for --assemble,
 				       * so we overload slightly */
@@ -774,6 +793,9 @@ int main(int argc, char *argv[])
 			devmode = 'r';
 			continue;
 		case O(MANAGE,'f'): /* set faulty */
+		case O(INCREMENTAL,'f'): /* r for incremental is taken, use f
+					  * even though we will both fail and
+					  * remove the device */
 			devmode = 'f';
 			continue;
 		case O(INCREMENTAL,'R'):
@@ -794,6 +816,9 @@ int main(int argc, char *argv[])
 			}
 			runstop = -1;
 			continue;
+		case O(MANAGE,'t'):
+			test = 1;
+			continue;
 
 		case O(MISC,'Q'):
 		case O(MISC,'D'):
@@ -807,10 +832,21 @@ int main(int argc, char *argv[])
 		case O(MISC,'W'):
 		case O(MISC, Waitclean):
 		case O(MISC, DetailPlatform):
+		case O(MISC, KillSubarray):
+		case O(MISC, UpdateSubarray):
 			if (devmode && devmode != opt &&
 			    (devmode == 'E' || (opt == 'E' && devmode != 'Q'))) {
-				fprintf(stderr, Name ": --examine/-E cannot be given with -%c\n",
-					devmode =='E'?opt:devmode);
+				fprintf(stderr, Name ": --examine/-E cannot be given with ");
+				if (devmode == 'E') {
+					if (option_index >= 0)
+						fprintf(stderr, "--%s\n",
+							long_options[option_index].name);
+					else
+						fprintf(stderr, "-%c\n", opt);
+				} else if (isalpha(devmode))
+					fprintf(stderr, "-%c\n", devmode);
+				else
+					fprintf(stderr, "previous option\n");
 				exit(2);
 			}
 			devmode = opt;
@@ -1062,7 +1098,7 @@ int main(int argc, char *argv[])
 			rv = Manage_ro(devlist->devname, mdfd, readonly);
 		if (!rv && devs_found>1)
 			rv = Manage_subdevs(devlist->devname, mdfd,
-					    devlist->next, verbose-quiet);
+					    devlist->next, verbose-quiet, test);
 		if (!rv && readonly < 0)
 			rv = Manage_ro(devlist->devname, mdfd, readonly);
 		if (!rv && runstop)
@@ -1403,6 +1439,18 @@ int main(int argc, char *argv[])
 					rv |= Wait(dv->devname); continue;
 				case Waitclean:
 					rv |= WaitClean(dv->devname, -1, verbose-quiet); continue;
+				case KillSubarray:
+					rv |= Kill_subarray(dv->devname, subarray, quiet);
+					continue;
+				case UpdateSubarray:
+					if (update == NULL) {
+						fprintf(stderr,
+							Name ": -U/--update must be specified with --update-subarray\n");
+						rv |= 1;
+						continue;
+					}
+					rv |= Update_subarray(dv->devname, subarray, update, &ident, quiet);
+					continue;
 				}
 				mdfd = open_mddev(dv->devname, 1);
 				if (mdfd>=0) {
@@ -1517,6 +1565,11 @@ int main(int argc, char *argv[])
 			 ": --incremental --scan meaningless without --run.\n");
 				break;
 			}
+			if (devmode == 'f') {
+				fprintf(stderr, Name
+			 ": --incremental --scan --fail not supported.\n");
+				break;
+			}
 			rv = IncrementalScan(verbose);
 		}
 		if (!devlist) {
@@ -1531,6 +1584,10 @@ int main(int argc, char *argv[])
 			fprintf(stderr, Name
 			       ": --incremental can only handle one device.\n");
 			rv = 1;
+			break;
+		}
+		if (devmode == 'f') {
+			rv = IncrementalRemove(devlist->devname, verbose-quiet);
 			break;
 		}
 		rv = Incremental(devlist->devname, verbose-quiet, runstop,

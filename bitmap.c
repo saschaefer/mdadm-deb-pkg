@@ -130,7 +130,7 @@ bitmap_info_t *bitmap_fd_read(int fd, int brief)
 	unsigned long long total_bits = 0, read_bits = 0, dirty_bits = 0;
 	bitmap_info_t *info;
 	void *buf;
-	int n, skip;
+	unsigned int n, skip;
 
 	if (posix_memalign(&buf, 512, 8192) != 0) {
 		fprintf(stderr, Name ": failed to allocate 8192 bytes\n");
@@ -227,9 +227,13 @@ bitmap_info_t *bitmap_file_read(char *filename, int brief, struct supertype **st
 		if (!st) {
 			/* just look at device... */
 			lseek(fd, 0, 0);
-		} else {
+		} else if (!st->ss->locate_bitmap) {
+			fprintf(stderr, Name ": No bitmap possible with %s metadata\n",
+				st->ss->name);
+			return NULL;
+		} else
 			st->ss->locate_bitmap(st, fd);
-		}
+
 		ioctl(fd, BLKFLSBUF, 0); /* make sure we read current data */
 		*stp = st;
 	} else {
@@ -369,7 +373,7 @@ int CreateBitmap(char *filename, int force, char uuid[16],
 		 */
 		chunksize = DEFAULT_BITMAP_CHUNK;
 		/* <<20 for 2^20 chunks, >>9 to convert bytes to sectors */
-		while (array_size > (chunksize << (20-9)))
+		while (array_size > ((unsigned long long)chunksize << (20-9)))
 			chunksize <<= 1;
 	}
 

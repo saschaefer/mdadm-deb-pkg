@@ -8,7 +8,7 @@ In particular, please do not file bugs about mdadm assembling arrays too
 early, e.g. when the driver is not yet ready and device nodes do not exist.
 Check FAQ item 27 about use of the rootdelay parameter instead.
 
-Also, please check out http://bugs.debian.org/mdadm/ and make sure that the
+Also, please check out http://bugs.debian.org/mdadm and make sure that the
 issue you are facing has not already been reported.
 
 If you are not sure that the answer you are seeking is in those files, or you
