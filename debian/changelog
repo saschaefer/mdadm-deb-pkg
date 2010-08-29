@@ -6,8 +6,11 @@ mdadm (3.1.3-1) unstable; urgency=low
     arrays not listed in mdadm.conf; thanks to Mario 'BitKoenig' Holbe for the
     patch (closes: #583545).
   * Fix URL in the bug reporting preamble (presubj) (closes: #589833).
+  * Add I/O rescheduling functionality to the checkarray script and make the
+    cronjob use the idle priority; this should now minimise the impact of the
+    monthly re-check on the running system (closes: #592149, #508123).
 
- -- martin f. krafft <madduck@debian.org>  Fri, 28 May 2010 13:17:27 +0200
+ -- martin f. krafft <madduck@debian.org>  Sun, 29 Aug 2010 13:44:59 +0200
 
 mdadm (3.1.2-2) unstable; urgency=low
 
