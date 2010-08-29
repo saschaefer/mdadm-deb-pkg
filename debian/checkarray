@@ -53,8 +53,8 @@ usage()
   echo "You can also control the status of a check with /proc/mdstat ."
 }
 
-SHORTOPTS=achVqQsxif
-LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel,idle,fast,realtime
+SHORTOPTS=achVqQsxilf
+LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel,idle,slow,fast,realtime
 
 eval set -- $(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@")
 
