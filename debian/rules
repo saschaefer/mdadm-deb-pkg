@@ -6,7 +6,7 @@
 
 #export DH_VERBOSE=1
 
-TG_BRANCHES="contrib/scripts/mdadd contrib/docs/raid5-vs-raid10 contrib/docs/superblock_formats contrib/docs/md.txt contrib/docs/jd-rebuilding-raid debian/conffile-location"
+TG_BRANCHES="contrib/scripts/mdadd contrib/docs/raid5-vs-raid10 contrib/docs/superblock_formats contrib/docs/md.txt contrib/docs/jd-rebuilding-raid debian/conffile-location debian/disable-incremental"
 -include /usr/share/topgit/tg2quilt.mk
 
 CXFLAGS = -ggdb

@@ -25,9 +25,13 @@ usage()
   echo "Valid options are:"
   cat <<-_eof | column -s\& -t
 	-a|--all & check all assembled arrays (check /proc/mdstat).
-	-c|--cron & honour AUTOCHECK setting in /etc/default/mdadm.
 	-s|--status & print redundancy check status of devices.
 	-x|--cancel & queue a request to cancel a running redundancy check.
+	-i|--idle & perform check in a lowest I/O scheduling class (idle).
+	-l|--slow & perform check in a lower-than-standard I/O scheduling class.
+	-f|--fast & perform check in higher-than-standard I/O scheduling class.
+	--realtime & perform check in real-time I/O scheduling class (DANGEROUS!).
+	-c|--cron & honour AUTOCHECK setting in /etc/default/mdadm.
 	-q|--quiet & suppress informational messages.
 	-Q|--real-quiet & suppress all output messages, including warnings and errors.
 	-h|--help & show this output.
@@ -35,7 +39,7 @@ usage()
 	_eof
   echo
   echo "Examples:"
-  echo "  $PROGNAME --all"
+  echo "  $PROGNAME --all --idle"
   echo "  $PROGNAME --quiet /dev/md[123]"
   echo "  $PROGNAME -sa"
   echo "  $PROGNAME -x --all"
@@ -49,8 +53,8 @@ usage()
   echo "You can also control the status of a check with /proc/mdstat ."
 }
 
-SHORTOPTS=achVqQsx
-LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel
+SHORTOPTS=achVqQsxilf
+LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel,idle,slow,fast,realtime
 
 eval set -- $(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@")
 
@@ -60,16 +64,21 @@ all=0
 quiet=0
 status=0
 action=check
+ionice=
 
 for opt in $@; do
   case "$opt" in
     -a|--all) all=1;;
-    -c|--cron) cron=1;;
     -s|--status) action=status;;
     -x|--cancel) action=idle;;
-    -h|--help) usage; exit 0;;
+    -i|--idle) ionice=idle;;
+    -l|--slow) ionice=low;;
+    -f|--fast) ionice=high;;
+    --realtime) ionice=realtime;;
+    -c|--cron) cron=1;;
     -q|--quiet) quiet=1;;
     -Q|--real-quiet) quiet=2;;
+    -h|--help) usage; exit 0;;
     -V|--version) about; exit 0;;
     /dev/md/*|md/*) arrays="${arrays:+$arrays }md${opt#*md/}";;
     /dev/md*|md*) arrays="${arrays:+$arrays }${opt#/dev/}";;
@@ -170,6 +179,26 @@ for array in $arrays; do
       # are properly queued so as to not kill one of the array.
       echo $action > $SYNC_ACTION_CTL
       [ $quiet -lt 1 ] && echo "$PROGNAME: I: check queued for array $array." >&2
+
+      case "$ionice" in
+        idle) arg='-c3';;
+        low) arg='-c2 -n7';;
+        high) arg='-c2 -n0';;
+        realtime) arg='-c1 -n4';;
+        *) break;;
+      esac
+
+      resync_pid= wait=5
+      while [ $wait -gt 0 ]; do
+        wait=$((wait - 1))
+        resync_pid=$(ps -ef | awk -v dev=$array 'BEGIN { pattern = "^\\[" dev "_resync]$" } $8 ~ pattern { print $2 }')
+        if [ -n "$resync_pid" ]; then
+          echo "$PROGNAME: I: selecting $ionice I/O scheduling class for resync of $array." >&2
+          ionice -p "$resync_pid" $arg
+          break
+        fi
+        sleep 1
+      done
       ;;
   esac
 
