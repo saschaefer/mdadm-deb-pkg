@@ -15,7 +15,8 @@ mdadm (3.1.4-1) unstable; urgency=low
   * Fix URL in the bug reporting preamble (presubj) (closes: #589833).
   * Add I/O rescheduling functionality to the checkarray script and make the
     cronjob use the idle priority; this should now minimise the impact of the
-    monthly re-check on the running system (closes: #592149, #508123).
+    monthly re-check on the running system; Florian Heigl had the idea
+    (closes: #592149, #508123).
 
  -- martin f. krafft <madduck@debian.org>  Sun, 29 Aug 2010 13:44:59 +0200
 
