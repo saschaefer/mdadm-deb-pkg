@@ -18,7 +18,7 @@ Reviewed-by: martin f. krafft <madduck@debian.org>
  5 files changed, 11 insertions(+), 13 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index fd274f1..44ee800 100644
+index e2c65a5..0e85ccb 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -60,8 +60,8 @@ else
@@ -33,7 +33,7 @@ index fd274f1..44ee800 100644
  CONFFILEFLAGS = -DCONFFILE=\"$(CONFFILE)\" -DCONFFILE2=\"$(CONFFILE2)\"
  # Both MAP_DIR and MDMON_DIR should be somewhere that persists across the
 diff --git a/ReadMe.c b/ReadMe.c
-index 7379568..8bde113 100644
+index b97c55e..aa26032 100644
 --- a/ReadMe.c
 +++ b/ReadMe.c
 @@ -560,7 +560,7 @@ char Help_incr[] =
@@ -46,7 +46,7 @@ index 7379568..8bde113 100644
  " start with a hash(#), four sorts of configuration lines: array lines, \n"
  " device lines, mailaddr lines and program lines.\n"
 diff --git a/mdadm.8.in b/mdadm.8.in
-index 9e352da..ee7169d 100644
+index d911cb3..d267b8c 100644
 --- a/mdadm.8.in
 +++ b/mdadm.8.in
 @@ -261,9 +261,9 @@ the exact meaning of this option in different contexts.
@@ -112,7 +112,7 @@ index e677ba9..648d26a 100644
  .PP
  .I mdadm
 diff --git a/mdassemble.8 b/mdassemble.8
-index 1904e66..dffadba 100644
+index 986432c..d06c201 100644
 --- a/mdassemble.8
 +++ b/mdassemble.8
 @@ -40,7 +40,7 @@ There are no options to
@@ -125,4 +125,4 @@ index 1904e66..dffadba 100644
  The config file lists which devices may be scanned to see if
  they contain MD super block, and gives identifying information
 -- 
-tg: (850a317..) debian/conffile-location (depends on: upstream)
+tg: (972ee72..) debian/conffile-location (depends on: upstream)
