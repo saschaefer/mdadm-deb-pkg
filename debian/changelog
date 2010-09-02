@@ -7,6 +7,7 @@ mdadm (3.1.4-1) unstable; urgency=low
       or linear array (closes: #539154).
     - prevent --remove faulty from skipping renumbered devices
       (closes: #587550).
+    - fixed overflow when growing a RAID6 (closes: #589493).
   * initramfs/hook: make sure configuration file exists before accessing it;
     thanks to Michael Prokop for the fix and NMU (closes: #589836).
   * initramfs/hook: Match UUID case-insensitive while checking for running
