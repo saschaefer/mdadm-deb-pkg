@@ -5,6 +5,8 @@ mdadm (3.1.4-1) unstable; urgency=low
     - reverts move of incremental map (closes: #585015).
     - fixes mdadm monitor in the case of an inactive (or start-failed) raid0
       or linear array (closes: #539154).
+    - prevent --remove faulty from skipping renumbered devices
+      (closes: #587550).
   * initramfs/hook: Match UUID case-insensitive while checking for running
     arrays not listed in mdadm.conf; thanks to Mario 'BitKoenig' Holbe for the
     patch (closes: #583545).
