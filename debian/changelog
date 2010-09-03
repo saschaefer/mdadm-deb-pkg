@@ -1,3 +1,10 @@
+mdadm (3.1.4-1+8efb9d1) unstable; urgency=low
+
+  * Added patch with Makefile fix from upstream (commit 8efb9d1) to fix
+    compiler/linker problem on non-x86 architectures (closes: #595290).
+
+ -- martin f. krafft <madduck@debian.org>  Fri, 03 Sep 2010 10:45:01 +0200
+
 mdadm (3.1.4-1) unstable; urgency=low
 
   * New upstream release, which closes:#595039 and addresses the following
