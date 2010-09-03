@@ -60,8 +60,8 @@ else
 endif
 
 SYSCONFDIR = /etc
-CONFFILE = $(SYSCONFDIR)/mdadm.conf
-CONFFILE2 = $(SYSCONFDIR)/mdadm/mdadm.conf
+CONFFILE = $(SYSCONFDIR)/mdadm/mdadm.conf
+CONFFILE2 = $(SYSCONFDIR)/mdadm.conf
 MAILCMD =/usr/sbin/sendmail -t
 CONFFILEFLAGS = -DCONFFILE=\"$(CONFFILE)\" -DCONFFILE2=\"$(CONFFILE2)\"
 # Both MAP_DIR and MDMON_DIR should be somewhere that persists across the
@@ -167,7 +167,7 @@ mdmon.O2 : $(MON_SRCS) mdadm.h mdmon.h
 
 # use '-z now' to guarantee no dynamic linker interactions with the monitor thread
 mdmon : $(MON_OBJS)
-	$(CC) $(LDFLAGS) $(MON_LDFLAGS) -z now -o mdmon $(MON_OBJS) $(LDLIBS)
+	$(CC) $(LDFLAGS) $(MON_LDFLAGS) -Wl,-z,now -o mdmon $(MON_OBJS) $(LDLIBS)
 msg.o: msg.c msg.h
 
 test_stripe : restripe.c mdadm.h
