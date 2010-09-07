@@ -5,9 +5,21 @@
 # Copyright © martin f. krafft <madduck@debian.org>
 # distributed under the terms of the Artistic Licence 2.0
 #
+
+#NOTE 1
+# The check is needed for a simple reason: this script does 2 check in a row (so very quickly)
+# on the same array, the first one to get the array size [TODO we really need another way to get it]
+# and the second one is the real check. The kernel might be too slow to "reset" the situation after
+# the first check and when the script echo check the second time it fails with return code 1
+# (what does 1 mean btw??). Now why readin sync_action prevent this? couse the kernel does an
+# atomic write on it, so the file is locked even for reading, and the script will be able to read it
+# only when the kernel "reset" after the first check is finished.
+# Of couse *this is just my hypothesis* but that's the only explanation i've found
+
 set -eu
 
 PROGNAME=${0##*/}
+CANCEL_FILE=/var/lib/mdadm/cancelled
 
 about()
 {
@@ -31,7 +43,8 @@ usage()
 	-l|--slow & perform check in a lower-than-standard I/O scheduling class.
 	-f|--fast & perform check in higher-than-standard I/O scheduling class.
 	--realtime & perform check in real-time I/O scheduling class (DANGEROUS!).
-	-c|--cron & honour AUTOCHECK setting in /etc/default/mdadm.
+	-c|--cron & honour AUTOCHECK and CHECK_SPLIT setting in /etc/default/mdadm.
+	-S|--split <int arg> & -1 to avoid split [default], 0 to read the default split config otherwise check arg/28 of the array starting from the last checked sector
 	-q|--quiet & suppress informational messages.
 	-Q|--real-quiet & suppress all output messages, including warnings and errors.
 	-h|--help & show this output.
@@ -53,10 +66,94 @@ usage()
   echo "You can also control the status of a check with /proc/mdstat ."
 }
 
-SHORTOPTS=achVqQsxilf
-LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel,idle,slow,fast,realtime
+# write info to stderr, $1 is the info type (I for info, W for warnings, E for errors and so on),
+# all following argument will be printed to stderr
+wlog() {
+  local ltype=$1
+  local logstring="$PROGNAME: $ltype:"
+  shift
+  logstring="$logstring $@"
+  [ $quiet -lt 1 -o $ltype = W -o $ltype = E ] && echo $logstring >&2
+  # TODO add a call to logger?
+  return 0
+}
 
-eval set -- $(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@")
+# $1 is the action to do, $2 what we should echo to sync_action, $3 sync_min $4 sync_max $5 $array
+# $1 can be "b" and sync_action will be set before min and max or "a" and action will be set after
+# if you don't want to set the action just use "n" as the first argument
+setup_array() {
+  if [ "$1" = b ] ; then 
+    echo $2 > /sys/block/$5/md/sync_action || return 7
+  fi
+  # WARNING don't remove this check, see NOTE 1 at the beginning of the file
+  [ $(cat /sys/block/$5/md/sync_action) != idle ] && return 6
+  echo $3 > /sys/block/$5/md/sync_min || return 3
+  echo $4 > /sys/block/$5/md/sync_max || return 4
+  if [ "$1" = a ] ; then
+    echo $2 > /sys/block/$5/md/sync_action || return 5 #it fails here without the upper cat
+  fi
+  # we might add a sleep or inotifywait here instead of using that cat???
+  return 0
+}
+
+# set the array as idle and restore sync_{min,max} to default value. $1 is $array
+alias cleanup_array='setup_array b idle 0 max'
+
+# start an array check, $1 is sync_min, $2 sync_max, $3 $array
+alias start_check='setup_array a check'
+
+# this must be called if check is splitted because when syc_max is not equal to 'max' the check will just
+# pause, waiting for sync_max to be rised and sync_action is not restored to idle
+# $1 must be $array, $2 $next_last_sector, $3 $save_file 
+wait_completed() {
+  sleep 3
+  # the first one checks if sync_completed is 'none', in case $last_sector is equal to $asize
+  # because sync_action is set to 'idle' automatically in this situation
+  # the second condition checks if the last sector checked is equal to $last_sector
+  while [ "$(cat /sys/block/$1/md/sync_completed)" != "none" ] ; do
+    # save this if the check has been cancelled
+    last_checked=$(cut -d ' ' -f1 /sys/block/$1/md/sync_completed)
+    # this must be done after the previous check otherwise -ne might complain that the first argument is not a number
+    if [ "$last_checked" -ne "$2" ] ; then
+      sleep 3
+      # inotifywait might be used here instead of sleep with something like
+      # inotifywait -q -e modify /sys/block/$1/md/sync_completed | :
+      # the | : is necessary couse (according to man inotifywait) it returns 1 when success... not tested myself
+    else
+      break
+    fi
+  done
+  # if the check has been cancelled echo last_checked sector otherwise next_last_sector
+  if [ -e $CANCEL_FILE.$1 ] ; then
+    echo $last_checked > $3
+    rm -rf $CANCEL_FILE.$1
+  else
+    echo $2 > $3
+  fi
+  cleanup_array $1 || wlog E "cleanup of array $1 FAILED"
+  wlog I " check for array $array terminated"
+  return 0
+}
+
+# start a fake check and reads sync_completed to get the array size 
+# (not equal to arraysize reported in mdstats and in mdadm -D
+# $1 is $array, $2 $chunk_size
+# TODO pls find or implement in md-mod a better way to get this
+get_size() {
+  start_check 0 $2 $1 || return 1
+  local a_size=$(cut -d ' ' -f3 /sys/block/$1/md/sync_completed) || return 2
+  cleanup_array $1 || return 1
+  echo $a_size
+  return 0
+}
+
+SHORTOPTS=achVqQsxilfS:
+LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel,idle,slow,fast,realtime,split:
+
+EXIT=0
+GETOPTTMP=$(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@") || EXIT=1
+[ $EXIT = 1 ] && usage >&2 && exit 1
+eval set -- "$GETOPTTMP" 
 
 arrays=''
 cron=0
@@ -65,26 +162,34 @@ quiet=0
 status=0
 action=check
 ionice=
+split=-1
 
-for opt in $@; do
-  case "$opt" in
-    -a|--all) all=1;;
-    -s|--status) action=status;;
-    -x|--cancel) action=idle;;
-    -i|--idle) ionice=idle;;
-    -l|--slow) ionice=low;;
-    -f|--fast) ionice=high;;
-    --realtime) ionice=realtime;;
-    -c|--cron) cron=1;;
-    -q|--quiet) quiet=1;;
-    -Q|--real-quiet) quiet=2;;
+while true ; do
+  case "$1" in
+    -a|--all) all=1 ; shift;;
+    -s|--status) action=status ; shift;;
+    -x|--cancel) action=idle ; shift;;
+    -i|--idle) ionice=idle ; shift;;
+    -l|--slow) ionice=low ; shift;;
+    -f|--fast) ionice=high ; shift;;
+    --realtime) ionice=realtime ; shift;;
+    -c|--cron) cron=1 ; split=0 ; shift;;
+    -S|--split) split=$2 ; shift 2;;
+    -q|--quiet) quiet=1 ; shift;;
+    -Q|--real-quiet) quiet=2 ; shift;;
     -h|--help) usage; exit 0;;
     -V|--version) about; exit 0;;
+    --) shift ; break;;
+    *) wlog E "invalid option: $1" >&2; usage >&2; exit 1;;
+  esac
+done
+
+for opt in $@ ; do
+  case "$opt" in
     /dev/md/*|md/*) arrays="${arrays:+$arrays }md${opt#*md/}";;
     /dev/md*|md*) arrays="${arrays:+$arrays }${opt#/dev/}";;
     /sys/block/md*) arrays="${arrays:+$arrays }${opt#/sys/block/}";;
-    --) :;;
-    *) echo "$PROGNAME: E: invalid option: $opt" >&2; usage >&2; exit 0;;
+    *) wlog E "invalid option: $opt" >&2; usage >&2; exit 1;;
   esac
 done
 
@@ -97,6 +202,7 @@ is_true()
 }
 
 DEBIANCONFIG=/etc/default/mdadm
+CHECK_SPLIT=28 #TODO remove from this file and put it in /etc/default/mdadm, it must be between 1 and 28, modify cron too
 [ -r $DEBIANCONFIG ] && . $DEBIANCONFIG
 if [ $cron = 1 ] && ! is_true ${AUTOCHECK:-false}; then
   [ $quiet -lt 1 ] && echo "$PROGNAME: I: disabled in $DEBIANCONFIG ." >&2
@@ -165,7 +271,9 @@ for array in $arrays; do
 
   case "$action" in
     idle)
-      echo $action > $SYNC_ACTION_CTL
+      cleanup_array $array
+      # we must remeber the check was cancelled for wait_completed
+      touch $CANCEL_FILE.$array || :  # TODO how to handle this error ?
       [ $quiet -lt 1 ] && echo "$PROGNAME: I: cancel request queued for array $array." >&2
       ;;
 
@@ -174,11 +282,73 @@ for array in $arrays; do
         [ $quiet -lt 2 ] && echo "$PROGNAME: W: array $array not idle, skipping..." >&2
         continue
       fi
+      # we don't need this anymore
+      [ -e $CANCEL_FILE.$array ] && rm -rf $CANCEL_FILE.$array
+      # this is the file where we save/read the last checked sector from the last run
+      save_file=/var/lib/mdadm/last_sector.$array
+
+      chunk_size=$(cat /sys/block/$array/md/chunk_size)
+      # not all raid level has chunk_size (for example raid 1), if so set it to 1
+      [ $chunk_size -lt 1 ] && chunk_size=1
+      # get the array size
+      #asize=$(mdadm -D /dev/$array | awk '/Array Size : / { print $4 }')
+      asize=$(get_size $array $chunk_size || exit 127)
+      if [ $? -ne 0 ] ; then
+        wlog E "error getting array size for array $array"
+        continue
+      fi
+      # if split is:
+      # -1 no split at all
+      # 0 the default setting in $DEBIANCONFIG will be used
+      # [0-9]* will be used
+      case "$split" in
+        -1) CHECK_SPLIT=-1
+            last_sector=0 
+            next_last_sector=$asize ;; 
+        0) if [ -z $CHECK_SPLIT ] ; then
+             wlog E "no default option for split in $DEBIANCONFIG"
+             exit 1
+           fi ;;
+        [0-9]*) CHECK_SPLIT=$split ;;
+        *) wlog E "wrong argument for split option: $split"
+           exit 1 ;;
+      esac
+
+      if [ $CHECK_SPLIT -gt -1 ] ; then
+        # let's split the check
+        [ $CHECK_SPLIT -lt 1 ] && CHECK_SPLIT=1
+        [ $CHECK_SPLIT -gt 28 ] && CHECK_SPLIT=28
+        # now calculate how much sectors should be checked (asize / CHECK_SPLIT)
+        check_size=$(($asize/$CHECK_SPLIT))
+        # $save_file must have +rw perms
+        if [ -r $save_file -a -w $save_file ] ; then
+          last_sector=$(cat $save_file)
+        elif echo 0 > "$save_file" ; then
+          #this is likely the first run, so we begin from zero
+          last_sector=0
+        else
+          wlog E "$save_file has wrong perms or it cannot be created"
+          continue
+        fi
+        [ $last_sector -lt 0 -o $last_sector -ge $asize -o -z "$last_sector" ] && last_sector=0
+        # be pedantic, check that last_sector is a chunk_size multiple
+        last_sector=$(($last_sector-$last_sector%$chunk_size))
+        next_last_sector=$(($last_sector+$check_size))
+        # we must round it to a multiple of the chunk_size
+        next_last_sector=$(($next_last_sector+$chunk_size-$next_last_sector%$chunk_size))
+        [ $next_last_sector -gt $asize ] && next_last_sector=$asize
+      fi
+
+      wlog I "check queued for array $array, from sector $last_sector to $next_last_sector"
 
       # queue request for the array. The kernel will make sure that these requests
       # are properly queued so as to not kill one of the array.
-      echo $action > $SYNC_ACTION_CTL
-      [ $quiet -lt 1 ] && echo "$PROGNAME: I: check queued for array $array." >&2
+      if ! start_check $last_sector $next_last_sector $array ; then
+        wlog E "an error has occurred while trying to set up check"
+        cleanup_array $array || exit 12
+        exit 13 # shame on md-mod ;)
+      fi
+      
 
       case "$ionice" in
         idle) arg='-c3';;
@@ -193,14 +363,13 @@ for array in $arrays; do
         wait=$((wait - 1))
         resync_pid=$(ps -ef | awk -v dev=$array 'BEGIN { pattern = "^\\[" dev "_resync]$" } $8 ~ pattern { print $2 }')
         if [ -n "$resync_pid" ]; then
-          if [ $cron != 1 ]; then
-            echo "$PROGNAME: I: selecting $ionice I/O scheduling class for resync of $array." >&2
-          fi
+          echo "$PROGNAME: I: selecting $ionice I/O schedulung class for resync of $array." >&2
           ionice -p "$resync_pid" $arg
           break
         fi
         sleep 1
       done
+      wait_completed $array $next_last_sector $save_file &
       ;;
   esac
 
