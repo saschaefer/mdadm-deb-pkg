@@ -113,8 +113,7 @@ wait_completed() {
   while [ "$(cat /sys/block/$1/md/sync_completed)" != "none" ] ; do
     # save this if the check has been cancelled
     last_checked=$(cut -d ' ' -f1 /sys/block/$1/md/sync_completed)
-    # this must be done after the previous check otherwise -ne might complain that the first argument is not a number
-    if [ "$last_checked" -ne "$2" ] ; then
+    if [ "$last_checked" != "$2" ] ; then
       sleep 3
       # inotifywait might be used here instead of sleep with something like
       # inotifywait -q -e modify /sys/block/$1/md/sync_completed | :
@@ -202,7 +201,6 @@ is_true()
 }
 
 DEBIANCONFIG=/etc/default/mdadm
-CHECK_SPLIT=28 #TODO remove from this file and put it in /etc/default/mdadm, it must be between 1 and 28, modify cron too
 [ -r $DEBIANCONFIG ] && . $DEBIANCONFIG
 if [ $cron = 1 ] && ! is_true ${AUTOCHECK:-false}; then
   [ $quiet -lt 1 ] && echo "$PROGNAME: I: disabled in $DEBIANCONFIG ." >&2
@@ -363,7 +361,9 @@ for array in $arrays; do
         wait=$((wait - 1))
         resync_pid=$(ps -ef | awk -v dev=$array 'BEGIN { pattern = "^\\[" dev "_resync]$" } $8 ~ pattern { print $2 }')
         if [ -n "$resync_pid" ]; then
-          echo "$PROGNAME: I: selecting $ionice I/O schedulung class for resync of $array." >&2
+          if [ $cron != 1 ]; then
+            echo "$PROGNAME: I: selecting $ionice I/O scheduling class for resync of $array." >&2
+          fi
           ionice -p "$resync_pid" $arg
           break
         fi

@@ -129,6 +129,15 @@ VERBOSE=${VERBOSE:-false}
 # MAIL_TO:
 #   this variable is now managed in /etc/mdadm/mdadm.conf (MAILADDR).
 #   Please see mdadm.conf(5).
+#it must be between 1 and 28, modify cron too
+
+# CHECK_SPLIT
+#  control if the monthly check should be splitted in more small checks
+#  it must be between 1 and 28, with 1 you get no split, so the
+#  monthy check will be monolithic, with 28 1/28 of the array will
+#  be checked every day
+CHECK_SPLIT=${CHECK_SPLIT-28}
+
 _eof
 
     db_stop
