@@ -160,7 +160,7 @@ all=0
 quiet=0
 status=0
 action=check
-ionice=
+ionice=idle
 split=-1
 
 while true ; do
