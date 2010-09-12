@@ -11,9 +11,9 @@
 # on the same array, the first one to get the array size [TODO we really need another way to get it]
 # and the second one is the real check. The kernel might be too slow to "reset" the situation after
 # the first check and when the script echo check the second time it fails with return code 1
-# (what does 1 mean btw??). Now why readin sync_action prevent this? couse the kernel does an
+# (resource busy in this case). Now why reading sync_action prevent this? couse the kernel does an
 # atomic write on it, so the file is locked even for reading, and the script will be able to read it
-# only when the kernel "reset" after the first check is finished.
+# only when the kernel "reset" after the array is cleared and ready for another check.
 # Of couse *this is just my hypothesis* but that's the only explanation i've found
 
 set -eu
@@ -74,10 +74,11 @@ wlog() {
   shift
   logstring="$logstring $@"
   [ $quiet -lt 1 -o $ltype = W -o $ltype = E ] && echo $logstring >&2
-  # TODO add a call to logger?
+  # TODO add a call to logger if --cron is used?
   return 0
 }
 
+# a general function to set sync_{action,min,max}
 # $1 is the action to do, $2 what we should echo to sync_action, $3 sync_min $4 sync_max $5 $array
 # $1 can be "b" and sync_action will be set before min and max or "a" and action will be set after
 # if you don't want to set the action just use "n" as the first argument
@@ -90,7 +91,7 @@ setup_array() {
   echo $3 > /sys/block/$5/md/sync_min || return 3
   echo $4 > /sys/block/$5/md/sync_max || return 4
   if [ "$1" = a ] ; then
-    echo $2 > /sys/block/$5/md/sync_action || return 5 #it fails here without the upper cat
+    echo $2 > /sys/block/$5/md/sync_action || return 5 #it fails here without the previous cat
   fi
   # we might add a sleep or inotifywait here instead of using that cat???
   return 0
@@ -104,32 +105,37 @@ alias start_check='setup_array a check'
 
 # this must be called if check is splitted because when syc_max is not equal to 'max' the check will just
 # pause, waiting for sync_max to be rised and sync_action is not restored to idle
+# it also stores the last checked sector for the next split
 # $1 must be $array, $2 $next_last_sector, $3 $save_file 
 wait_completed() {
+  # this must be zero by default since even if sync_min is > 0 if the check is queued
+  # but still not started zero will be set in sync_completed
+  local prev_last_checked=0
   sleep 3
+  local last_checked=$(cut -d ' ' -f1 /sys/block/$1/md/sync_completed)
   # the first one checks if sync_completed is 'none', in case $last_sector is equal to $asize
   # because sync_action is set to 'idle' automatically in this situation
   # the second condition checks if the last sector checked is equal to $last_sector
-  while [ "$(cat /sys/block/$1/md/sync_completed)" != "none" ] ; do
-    # save this if the check has been cancelled
-    last_checked=$(cut -d ' ' -f1 /sys/block/$1/md/sync_completed)
-    if [ "$last_checked" != "$2" ] ; then
+  while [ "$last_checked" != "none" -a "$last_checked" != "$2" ] ; do
       sleep 3
       # inotifywait might be used here instead of sleep with something like
       # inotifywait -q -e modify /sys/block/$1/md/sync_completed | :
       # the | : is necessary couse (according to man inotifywait) it returns 1 when success... not tested myself
-    else
-      break
-    fi
+
+      # save this if the check has been cancelled
+      prev_last_checked=$last_checked
+      last_checked=$(cut -d ' ' -f1 /sys/block/$1/md/sync_completed)
   done
+  [ "$last_checked" = "none" ] && last_checked=$prev_last_checked
   # if the check has been cancelled echo last_checked sector otherwise next_last_sector
   if [ -e $CANCEL_FILE.$1 ] ; then
-    echo $last_checked > $3
+    # echo this only if we have actually checked something
+    [ "$prev_last_checked" != "0" ] && echo $last_checked > $3
     rm -rf $CANCEL_FILE.$1
   else
     echo $2 > $3
   fi
-  cleanup_array $1 || wlog E "cleanup of array $1 FAILED"
+  cleanup_array $1 || wlog E "cleanup of array $1 FAILED. Error code: $?"
   wlog I " check for array $array terminated"
   return 0
 }
@@ -139,9 +145,9 @@ wait_completed() {
 # $1 is $array, $2 $chunk_size
 # TODO pls find or implement in md-mod a better way to get this
 get_size() {
-  start_check 0 $2 $1 || return 1
-  local a_size=$(cut -d ' ' -f3 /sys/block/$1/md/sync_completed) || return 2
-  cleanup_array $1 || return 1
+  start_check 0 $2 $1 || return $?
+  local a_size=$(cut -d ' ' -f3 /sys/block/$1/md/sync_completed) || return 10
+  cleanup_array $1 || return $?
   echo $a_size
   return 0
 }
@@ -269,9 +275,13 @@ for array in $arrays; do
 
   case "$action" in
     idle)
-      cleanup_array $array
       # we must remeber the check was cancelled for wait_completed
+      # WARNING there is a race condition here if wait_completed is still active
+      # but doesn't harm so much since in the worst case some sector will be checked twice
+      # in a row, TODO some fix? Using inotifywait in wait_completed doesn't solve
+      # the race condition, but it will happen rarely
       touch $CANCEL_FILE.$array || :  # TODO how to handle this error ?
+      cleanup_array $array
       [ $quiet -lt 1 ] && echo "$PROGNAME: I: cancel request queued for array $array." >&2
       ;;
 
@@ -286,13 +296,17 @@ for array in $arrays; do
       save_file=/var/lib/mdadm/last_sector.$array
 
       chunk_size=$(cat /sys/block/$array/md/chunk_size)
+      # chunk_size is given in byte, not in sectors, convert it
+      # a sector is 512 byte normally
+      chunk_size=$(($chunk_size/512))
       # not all raid level has chunk_size (for example raid 1), if so set it to 1
       [ $chunk_size -lt 1 ] && chunk_size=1
       # get the array size
-      #asize=$(mdadm -D /dev/$array | awk '/Array Size : / { print $4 }')
-      asize=$(get_size $array $chunk_size || exit 127)
-      if [ $? -ne 0 ] ; then
-        wlog E "error getting array size for array $array"
+      #asize=$(mdadm -D /dev/$array | awk '/Array Size : / { print $4 }') # this is not the size we want
+      EXIT=0
+      asize=$(get_size $array $chunk_size) || EXIT=$?
+      if [ $EXIT -ne 0 ] ; then
+        wlog E "error getting array size for array $array. Error code: $EXIT"
         continue
       fi
       # if split is:
@@ -312,9 +326,8 @@ for array in $arrays; do
            exit 1 ;;
       esac
 
-      if [ $CHECK_SPLIT -gt -1 ] ; then
+      if [ $CHECK_SPLIT -ge 1 ] ; then
         # let's split the check
-        [ $CHECK_SPLIT -lt 1 ] && CHECK_SPLIT=1
         [ $CHECK_SPLIT -gt 28 ] && CHECK_SPLIT=28
         # now calculate how much sectors should be checked (asize / CHECK_SPLIT)
         check_size=$(($asize/$CHECK_SPLIT))
@@ -332,21 +345,20 @@ for array in $arrays; do
         # be pedantic, check that last_sector is a chunk_size multiple
         last_sector=$(($last_sector-$last_sector%$chunk_size))
         next_last_sector=$(($last_sector+$check_size))
-        # we must round it to a multiple of the chunk_size
+        # we must round next_last_sector to a multiple of the chunk_size
         next_last_sector=$(($next_last_sector+$chunk_size-$next_last_sector%$chunk_size))
         [ $next_last_sector -gt $asize ] && next_last_sector=$asize
       fi
 
-      wlog I "check queued for array $array, from sector $last_sector to $next_last_sector"
-
       # queue request for the array. The kernel will make sure that these requests
       # are properly queued so as to not kill one of the array.
+      wlog I "check queued for array $array, from sector $last_sector to $next_last_sector"
+
       if ! start_check $last_sector $next_last_sector $array ; then
-        wlog E "an error has occurred while trying to set up check"
-        cleanup_array $array || exit 12
+        wlog E "an error has occurred while trying to set up check for array $array. Error code: $?"
+        cleanup_array $array || exit $?
         exit 13 # shame on md-mod ;)
       fi
-      
 
       case "$ionice" in
         idle) arg='-c3';;
@@ -376,3 +388,4 @@ for array in $arrays; do
 done
 
 exit 0
+
