@@ -13,6 +13,9 @@ MDADM=/sbin/mdadm
 DEBIANCONFIG=/etc/default/mdadm
 CONFIG=/etc/mdadm/mdadm.conf
 
+# initialise config variables in case the environment leaks
+MAILADDR= DEVICE= CREATE= HOMEHOST= PROGRAM=
+
 test -r $DEBIANCONFIG && . $DEBIANCONFIG
 
 if [ -n "${MDADM_MAILADDR__:-}" ]; then
