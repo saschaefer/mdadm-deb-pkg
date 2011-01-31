@@ -57,9 +57,10 @@ cat <<_eof
 # Please refer to mdadm.conf(5) for information about this file.
 #
 
-# by default, scan all partitions (/proc/partitions) for MD superblocks.
-# alternatively, specify devices to scan, using wildcards if desired.
-DEVICE ${DEVICE:-partitions}
+# by default (built-in), scan all partitions (/proc/partitions) and all
+# containers for MD superblocks. alternatively, specify devices to scan, using
+# wildcards if desired.
+#DEVICE ${DEVICE:-partitions containers}
 
 # auto-create devices with Debian standard permissions
 CREATE ${CREATE:-owner=root group=disk mode=0660 auto=yes}
