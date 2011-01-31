@@ -193,9 +193,7 @@ for array in $arrays; do
         wait=$((wait - 1))
         resync_pid=$(ps -ef | awk -v dev=$array 'BEGIN { pattern = "^\\[" dev "_resync]$" } $8 ~ pattern { print $2 }')
         if [ -n "$resync_pid" ]; then
-          if [ $cron != 1 ]; then
-            echo "$PROGNAME: I: selecting $ionice I/O scheduling class for resync of $array." >&2
-          fi
+          [ $quiet -lt 1 ] && echo "$PROGNAME: I: selecting $ionice I/O scheduling class for resync of $array." >&2
           ionice -p "$resync_pid" $arg || :
           break
         fi
