@@ -8,8 +8,10 @@ mdadm (3.1.5-1~unreleased.0) UNRELEASED; urgency=low
     'BitKoenig' Holbe (closes: #611627).
   * Do not include DEVICE line in generated configs but use the built-in value
     by default (closes: #604702).
+  * Make mdadm-raid init script depend on hostname; thanks to Mario
+   'BitKoenig' Holbe (closes: #610421).
 
- -- martin f. krafft <madduck@debian.org>  Mon, 31 Jan 2011 14:58:22 +0100
+ -- martin f. krafft <madduck@debian.org>  Mon, 31 Jan 2011 15:00:01 +0100
 
 mdadm (3.1.4-1+8efb9d1) unstable; urgency=low
 

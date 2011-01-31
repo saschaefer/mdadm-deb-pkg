@@ -8,7 +8,7 @@
 #
 ### BEGIN INIT INFO
 # Provides:          mdadm-raid
-# Required-Start:    mountkernfs
+# Required-Start:    mountkernfs hostname
 # Should-Start:      udev devfsd
 # Required-Stop:     mountkernfs
 # Should-Stop:       udev devfsd
