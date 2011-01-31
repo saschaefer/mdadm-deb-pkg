@@ -2,8 +2,11 @@ mdadm (3.1.5-1~unreleased.0) UNRELEASED; urgency=low
 
   * Bump Standards-Version to 3.9.1; no changes required.
   * Do not print io rescheduling info message when run by cron.
+  * Fix checkarray script so that it does not die after scheduling the first
+    device when there is no scheduling class specified; thanks to Mario
+    'BitKoenig' Holbe (closes: #611627).
 
- -- martin f. krafft <madduck@debian.org>  Fri, 03 Sep 2010 11:53:37 +0200
+ -- martin f. krafft <madduck@debian.org>  Mon, 31 Jan 2011 14:48:56 +0100
 
 mdadm (3.1.4-1+8efb9d1) unstable; urgency=low
 

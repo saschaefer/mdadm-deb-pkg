@@ -185,7 +185,7 @@ for array in $arrays; do
         low) arg='-c2 -n7';;
         high) arg='-c2 -n0';;
         realtime) arg='-c1 -n4';;
-        *) break;;
+        *) continue;;
       esac
 
       resync_pid= wait=5
@@ -196,7 +196,7 @@ for array in $arrays; do
           if [ $cron != 1 ]; then
             echo "$PROGNAME: I: selecting $ionice I/O scheduling class for resync of $array." >&2
           fi
-          ionice -p "$resync_pid" $arg
+          ionice -p "$resync_pid" $arg || :
           break
         fi
         sleep 1
