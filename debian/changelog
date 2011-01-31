@@ -1,7 +1,8 @@
 mdadm (3.1.5-1~unreleased.0) UNRELEASED; urgency=low
 
   * Bump Standards-Version to 3.9.1; no changes required.
-  * Do not print io rescheduling info message when run by cron.
+  * Do not print io rescheduling info message when run by cron
+    (closes: #598957).
   * Fix checkarray script so that it does not die after scheduling the first
     device when there is no scheduling class specified; thanks to Mario
     'BitKoenig' Holbe (closes: #611627).
