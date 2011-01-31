@@ -10,8 +10,10 @@
 # Provides:          mdadm-raid
 # Required-Start:    mountkernfs hostname
 # Should-Start:      udev devfsd
+# X-Start-Before:    checkfs mountall
 # Required-Stop:     mountkernfs
 # Should-Stop:       udev devfsd
+# X-Stop-After:      umountfs
 # Default-Start:     S
 # Default-Stop:      0 6
 # Short-Description: MD array assembly
