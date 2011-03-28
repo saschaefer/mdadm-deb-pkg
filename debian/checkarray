@@ -44,9 +44,10 @@ usage()
 	-f|--fast & perform check in higher-than-standard I/O scheduling class.
 	--realtime & perform check in real-time I/O scheduling class (DANGEROUS!).
 	-c|--cron & honour AUTOCHECK and CHECK_SPLIT setting in /etc/default/mdadm.
-	-S|--split <int arg> & -1 to avoid split [default], 0 to read the default split config otherwise check arg/28 of the array starting from the last checked sector
+	-S|--split <int arg> & 0 to avoid split, otherwise check arg/28 of the array starting from the last checked sector
 	-q|--quiet & suppress informational messages.
 	-Q|--real-quiet & suppress all output messages, including warnings and errors.
+	-W|--wait & will not exit until the check is done
 	-h|--help & show this output.
 	-V|--version & show version information.
 	_eof
@@ -73,24 +74,25 @@ wlog() {
   local logstring="$PROGNAME: $ltype:"
   shift
   logstring="$logstring $@"
-  [ $quiet -lt 1 -o $ltype = W -o $ltype = E ] && echo $logstring >&2
+  case "$quiet/$ltype" in
+    0/*|*/[WE]) echo "$logstring" >&2;;
+  esac
   # TODO add a call to logger if --cron is used?
-  return 0
 }
 
 # a general function to set sync_{action,min,max}
-# $1 is the action to do, $2 what we should echo to sync_action, $3 sync_min $4 sync_max $5 $array
-# $1 can be "b" and sync_action will be set before min and max or "a" and action will be set after
-# if you don't want to set the action just use "n" as the first argument
+# $1 is when the action should be done, $2 what we should echo to sync_action, $3 sync_min $4 sync_max $5 $array
+# $1 can be "before" and sync_action will be set before min and max or "after" and action will be set after
+# if you don't want to set the action just use "never" as the first argument
 setup_array() {
-  if [ "$1" = b ] ; then 
+  if [ "$1" = before ] ; then 
     echo $2 > /sys/block/$5/md/sync_action || return 7
   fi
   # WARNING don't remove this check, see NOTE 1 at the beginning of the file
   [ $(cat /sys/block/$5/md/sync_action) != idle ] && return 6
   echo $3 > /sys/block/$5/md/sync_min || return 3
   echo $4 > /sys/block/$5/md/sync_max || return 4
-  if [ "$1" = a ] ; then
+  if [ "$1" = after ] ; then
     echo $2 > /sys/block/$5/md/sync_action || return 5 #it fails here without the previous cat
   fi
   # we might add a sleep or inotifywait here instead of using that cat???
@@ -98,10 +100,10 @@ setup_array() {
 }
 
 # set the array as idle and restore sync_{min,max} to default value. $1 is $array
-alias cleanup_array='setup_array b idle 0 max'
+alias cleanup_array='setup_array before idle 0 max'
 
 # start an array check, $1 is sync_min, $2 sync_max, $3 $array
-alias start_check='setup_array a check'
+alias start_check='setup_array after check'
 
 # this must be called if check is splitted because when syc_max is not equal to 'max' the check will just
 # pause, waiting for sync_max to be rised and sync_action is not restored to idle
@@ -135,8 +137,8 @@ wait_completed() {
   else
     echo $2 > $3
   fi
-  cleanup_array $1 || wlog E "cleanup of array $1 FAILED. Error code: $?"
-  wlog I " check for array $array terminated"
+  cleanup_array $1 || { EXIT=$? ; wlog E "cleanup of array $1 FAILED. Error code: $EXIT" ; return $EXIT ; }
+  wlog I "check for array $array terminated"
   return 0
 }
 
@@ -152,13 +154,11 @@ get_size() {
   return 0
 }
 
-SHORTOPTS=achVqQsxilfS:
-LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel,idle,slow,fast,realtime,split:
+SHORTOPTS=achVqQsxilfS:W
+LONGOPTS=all,cron,help,version,quiet,real-quiet,status,cancel,idle,slow,fast,realtime,split:,wait
 
-EXIT=0
-GETOPTTMP=$(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@") || EXIT=1
-[ $EXIT = 1 ] && usage >&2 && exit 1
-eval set -- "$GETOPTTMP" 
+GETOPTTMP=$(getopt -o $SHORTOPTS -l $LONGOPTS -n $PROGNAME -- "$@") || { usage >&2; exit 1; }
+eval set -- "$GETOPTTMP"
 
 arrays=''
 cron=0
@@ -168,6 +168,8 @@ status=0
 action=check
 ionice=idle
 split=-1
+shouldwait=0
+waitpid=
 
 while true ; do
   case "$1" in
@@ -182,6 +184,7 @@ while true ; do
     -S|--split) split=$2 ; shift 2;;
     -q|--quiet) quiet=1 ; shift;;
     -Q|--real-quiet) quiet=2 ; shift;;
+    -W|--wait) shouldwait=1 ; shift;;
     -h|--help) usage; exit 0;;
     -V|--version) about; exit 0;;
     --) shift ; break;;
@@ -303,24 +306,19 @@ for array in $arrays; do
       [ $chunk_size -lt 1 ] && chunk_size=1
       # get the array size
       #asize=$(mdadm -D /dev/$array | awk '/Array Size : / { print $4 }') # this is not the size we want
-      EXIT=0
-      asize=$(get_size $array $chunk_size) || EXIT=$?
-      if [ $EXIT -ne 0 ] ; then
-        wlog E "error getting array size for array $array. Error code: $EXIT"
-        continue
-      fi
+      asize=$(get_size $array $chunk_size) || { wlog E "error getting array size for array $array. Error code: $?"; continue; }
+      last_sector=0
+      next_last_sector=$asize
       # if split is:
-      # -1 no split at all
-      # 0 the default setting in $DEBIANCONFIG will be used
+      # 0 no split at all
+      # -1 the default setting in $DEBIANCONFIG will be used couse the user didn't specified the -S/--split option
       # [0-9]* will be used
       case "$split" in
-        -1) CHECK_SPLIT=-1
-            last_sector=0 
-            next_last_sector=$asize ;; 
-        0) if [ -z $CHECK_SPLIT ] ; then
-             wlog E "no default option for split in $DEBIANCONFIG"
-             exit 1
-           fi ;;
+        -1) if [ -z ${CHECK_SPLIT?$(wlog E "no default option for split in $DEBIANCONFIG")} ] 2>/dev/null ; then
+	      wlog E "no default option for split in $DEBIANCONFIG"
+              exit 1
+            fi ;;
+        0) CHECK_SPLIT=-1 ;; 
         [0-9]*) CHECK_SPLIT=$split ;;
         *) wlog E "wrong argument for split option: $split"
            exit 1 ;;
@@ -382,10 +380,11 @@ for array in $arrays; do
         sleep 1
       done
       wait_completed $array $next_last_sector $save_file &
+      waitpid="$waitpid $!"
       ;;
   esac
-
 done
 
+[ $shouldwait -ne 0 ] && { wait $waitpid || exit $? ; }
 exit 0
 
