@@ -1,6 +1,6 @@
-mdadm (3.1.5-1~unreleased.0) UNRELEASED; urgency=low
+mdadm (3.2.2-1) UNRELEASED; urgency=low
 
-  * Bump Standards-Version to 3.9.1; no changes required.
+  * New upstream version.
   * Do not print io rescheduling info message when run by cron
     (closes: #598957).
   * Fix checkarray script so that it does not die after scheduling the first
@@ -15,6 +15,7 @@ mdadm (3.1.5-1~unreleased.0) UNRELEASED; urgency=low
     (closes: #611632).
   * Work around a shell coding bug for cases when there are zero active
     devices (closes: #618561).
+  * Bump Standards-Version to 3.9.1; no changes required.
 
  -- martin f. krafft <madduck@debian.org>  Sun, 20 Mar 2011 07:37:46 +0100
 
