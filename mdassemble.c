@@ -26,28 +26,6 @@
 #include "mdadm.h"
 #include "md_p.h"
 
-/* from readme.c */
-mapping_t pers[] = {
-	{ "linear", LEVEL_LINEAR},
-	{ "raid0", 0},
-	{ "0", 0},
-	{ "stripe", 0},
-	{ "raid1", 1},
-	{ "1", 1},
-	{ "mirror", 1},
-	{ "raid4", 4},
-	{ "4", 4},
-	{ "raid5", 5},
-	{ "5", 5},
-	{ "multipath", LEVEL_MULTIPATH},
-	{ "mp", LEVEL_MULTIPATH},
-	{ "raid6", 6},
-	{ "6", 6},
-	{ "raid10", 10},
-	{ "10", 10},
-	{ NULL, 0}
-};
-
 #ifndef MDASSEMBLE_AUTO
 /* from mdopen.c */
 int open_mddev(char *dev, int report_errors/*unused*/)
@@ -88,7 +66,7 @@ int verbose = 0;
 int force = 0;
 
 int main(int argc, char *argv[]) {
-	mddev_ident_t array_list =  conf_get_ident(NULL);
+	struct mddev_ident *array_list =  conf_get_ident(NULL);
 	if (!array_list) {
 		fprintf(stderr, Name ": No arrays found in config file\n");
 		rv = 1;
@@ -105,7 +83,7 @@ int main(int argc, char *argv[]) {
 			if (mdfd >= 0)
 				close(mdfd);
 			rv |= Assemble(array_list->st, array_list->devname,
-				       array_list, NULL, NULL,
+				       array_list, NULL, NULL, 0,
 				       readonly, runstop, NULL, NULL, 0,
 				       verbose, force);
 		}

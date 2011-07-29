@@ -215,9 +215,11 @@ static int read_and_act(struct active_array *a)
 {
 	unsigned long long sync_completed;
 	int check_degraded = 0;
+	int check_reshape = 0;
 	int deactivate = 0;
 	struct mdinfo *mdi;
 	int dirty = 0;
+	int count = 0;
 
 	a->next_state = bad_word;
 	a->next_action = bad_action;
@@ -228,12 +230,20 @@ static int read_and_act(struct active_array *a)
 	sync_completed = read_sync_completed(a->sync_completed_fd);
 	for (mdi = a->info.devs; mdi ; mdi = mdi->next) {
 		mdi->next_state = 0;
+		mdi->curr_state = 0;
 		if (mdi->state_fd >= 0) {
 			mdi->recovery_start = read_resync_start(mdi->recovery_fd);
 			mdi->curr_state = read_dev_state(mdi->state_fd);
 		}
 	}
 
+	if (a->curr_state > inactive &&
+	    a->prev_state == inactive) {
+		/* array has been started
+		 * possible that container operation has to be completed
+		 */
+		a->container->ss->set_array_state(a, 0);
+	}
 	if (a->curr_state <= inactive &&
 	    a->prev_state > inactive) {
 		/* array has been stopped */
@@ -302,8 +312,20 @@ static int read_and_act(struct active_array *a)
 						   mdi->curr_state);
 			if (! (mdi->curr_state & DS_INSYNC))
 				check_degraded = 1;
+			count++;
 		}
+		if (count != a->info.array.raid_disks)
+			check_degraded = 1;
 	}
+
+	if (!deactivate &&
+	    a->curr_action == reshape &&
+	    a->prev_action != reshape)
+		/* reshape was requested by mdadm.  Need to see if
+		 * new devices have been added.  Manager does that
+		 * when it sees check_reshape
+		 */
+		check_reshape = 1;
 
 	/* Check for failures and if found:
 	 * 1/ Record the failure in the metadata and unblock the device.
@@ -329,8 +351,8 @@ static int read_and_act(struct active_array *a)
 
 	/* Check for recovery checkpoint notifications.  We need to be a
 	 * minimum distance away from the last checkpoint to prevent
-	 * over checkpointing.  Note reshape checkpointing is not
-	 * handled here.
+	 * over checkpointing.  Note reshape checkpointing is handled
+	 * in the second branch.
 	 */
 	if (sync_completed > a->last_checkpoint &&
 	    sync_completed - a->last_checkpoint > a->info.component_size >> 4 &&
@@ -340,7 +362,37 @@ static int read_and_act(struct active_array *a)
 		 */
 		a->last_checkpoint = sync_completed;
 		a->container->ss->set_array_state(a, a->curr_state <= clean);
-	} else if (sync_completed > a->last_checkpoint)
+	} else if ((a->curr_action == idle && a->prev_action == reshape) ||
+		   (a->curr_action == reshape
+		    && sync_completed > a->last_checkpoint) ) {
+		/* Reshape has progressed or completed so we need to
+		 * update the array state - and possibly the array size
+		 */
+		if (sync_completed != 0)
+			a->last_checkpoint = sync_completed;
+		/* We might need to update last_checkpoint depending on
+		 * the reason that reshape finished.
+		 * if array reshape is really finished:
+		 *        set check point to the end, this allows
+		 *        set_array_state() to finalize reshape in metadata
+		 * if reshape if broken: do not set checkpoint to the end
+		 *        this allows for reshape restart from checkpoint
+		 */
+		if ((a->curr_action != reshape) &&
+		    (a->prev_action == reshape)) {
+			char buf[40];
+			if ((sysfs_get_str(&a->info, NULL,
+					  "reshape_position",
+					  buf,
+					  sizeof(buf)) >= 0) &&
+			     strncmp(buf, "none", 4) == 0)
+				a->last_checkpoint = a->info.component_size;
+		}
+		a->container->ss->set_array_state(a, a->curr_state <= clean);
+		a->last_checkpoint = sync_completed;
+	}
+
+	if (sync_completed > a->last_checkpoint)
 		a->last_checkpoint = sync_completed;
 
 	a->container->ss->sync_metadata(a->container);
@@ -373,6 +425,7 @@ static int read_and_act(struct active_array *a)
 			if (remove_result > 0) {
 				dprintf(" %d:removed", mdi->disk.raid_disk);
 				close(mdi->state_fd);
+				close(mdi->recovery_fd);
 				mdi->state_fd = -1;
 			}
 		}
@@ -393,9 +446,12 @@ static int read_and_act(struct active_array *a)
 		mdi->next_state = 0;
 	}
 
-	if (check_degraded) {
+	if (check_degraded || check_reshape) {
 		/* manager will do the actual check */
-		a->check_degraded = 1;
+		if (check_degraded)
+			a->check_degraded = 1;
+		if (check_reshape)
+			a->check_reshape = 1;
 		signal_manager();
 	}
 
@@ -511,7 +567,11 @@ static int wait_and_act(struct supertype *container, int nowait)
 		 * problem as there are no active arrays, there is
 		 * nothing that we need to be ready to do.
 		 */
-		int fd = open_dev_excl(container->devnum);
+		int fd;
+		if (sigterm)
+			fd = open_dev_excl(container->devnum);
+		else
+			fd = open_dev_flags(container->devnum, O_RDONLY|O_EXCL);
 		if (fd >= 0 || errno != EBUSY) {
 			/* OK, we are safe to leave */
 			if (sigterm && !dirty_arrays)
@@ -525,16 +585,25 @@ static int wait_and_act(struct supertype *container, int nowait)
 				remove_pidfile(container->devname);
 			exit_now = 1;
 			signal_manager();
+			close(fd);
 			exit(0);
 		}
 	}
 
 	if (!nowait) {
 		sigset_t set;
+		struct timespec ts;
+		ts.tv_sec = 24*3600;
+		ts.tv_nsec = 0;
+		if (*aap == NULL) {
+			/* just waiting to get O_EXCL access */
+			ts.tv_sec = 0;
+			ts.tv_nsec = 20000000ULL;
+		}
 		sigprocmask(SIG_UNBLOCK, NULL, &set);
 		sigdelset(&set, SIGUSR1);
 		monitor_loop_cnt |= 1;
-		rv = pselect(maxfd+1, NULL, NULL, &rfds, NULL, &set);
+		rv = pselect(maxfd+1, NULL, NULL, &rfds, &ts, &set);
 		monitor_loop_cnt += 1;
 		if (rv == -1 && errno == EINTR)
 			rv = 0;

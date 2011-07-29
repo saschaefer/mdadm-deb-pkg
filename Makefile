@@ -71,8 +71,11 @@ CONFFILEFLAGS = -DCONFFILE=\"$(CONFFILE)\" -DCONFFILE2=\"$(CONFFILE2)\"
 MAP_DIR=/dev/.mdadm
 MAP_FILE = map
 MDMON_DIR = /dev/.mdadm
+# place for autoreplace cookies
+FAILED_SLOTS_DIR = /dev/.mdadm/failed-slots
 DIRFLAGS = -DMAP_DIR=\"$(MAP_DIR)\" -DMAP_FILE=\"$(MAP_FILE)\"
 DIRFLAGS += -DMDMON_DIR=\"$(MDMON_DIR)\"
+DIRFLAGS += -DFAILED_SLOTS_DIR=\"$(FAILED_SLOTS_DIR)\"
 CFLAGS = $(CWFLAGS) $(CXFLAGS) -DSendmail=\""$(MAILCMD)"\" $(CONFFILEFLAGS) $(DIRFLAGS)
 
 # The glibc TLS ABI requires applications that call clone(2) to set up
@@ -95,36 +98,37 @@ MAN4DIR = $(MANDIR)/man4
 MAN5DIR = $(MANDIR)/man5
 MAN8DIR = $(MANDIR)/man8
 
-OBJS =  mdadm.o config.o mdstat.o  ReadMe.o util.o Manage.o Assemble.o Build.o \
+OBJS =  mdadm.o config.o policy.o mdstat.o  ReadMe.o util.o maps.o lib.o \
+	Manage.o Assemble.o Build.o \
 	Create.o Detail.o Examine.o Grow.o Monitor.o dlink.o Kill.o Query.o \
 	Incremental.o \
 	mdopen.o super0.o super1.o super-ddf.o super-intel.o bitmap.o \
+	super-mbr.o super-gpt.o \
 	restripe.o sysfs.o sha1.o mapfile.o crc32.o sg_io.o msg.o \
 	platform-intel.o probe_roms.o
 
-SRCS =  mdadm.c config.c mdstat.c  ReadMe.c util.c Manage.c Assemble.c Build.c \
-	Create.c Detail.c Examine.c Grow.c Monitor.c dlink.c Kill.c Query.c \
-	Incremental.c \
-	mdopen.c super0.c super1.c super-ddf.c super-intel.c bitmap.c \
-	restripe.c sysfs.c sha1.c mapfile.c crc32.c sg_io.c msg.c \
-	platform-intel.c probe_roms.c
+CHECK_OBJS = restripe.o sysfs.o maps.o lib.o
 
-MON_OBJS = mdmon.o monitor.o managemon.o util.o mdstat.o sysfs.o config.o \
+SRCS =  $(patsubst %.o,%.c,$(OBJS))
+
+INCL = mdadm.h part.h bitmap.h
+
+MON_OBJS = mdmon.o monitor.o managemon.o util.o maps.o mdstat.o sysfs.o \
+	config.o policy.o lib.o \
 	Kill.o sg_io.o dlink.o ReadMe.o super0.o super1.o super-intel.o \
+	super-mbr.o super-gpt.o \
 	super-ddf.o sha1.o crc32.o msg.o bitmap.o \
 	platform-intel.o probe_roms.o
 
-MON_SRCS = mdmon.c monitor.c managemon.c util.c mdstat.c sysfs.c config.c \
-	Kill.c sg_io.c dlink.c ReadMe.c super0.c super1.c super-intel.c \
-	super-ddf.c sha1.c crc32.c msg.c bitmap.c \
-	platform-intel.c probe_roms.c
+MON_SRCS = $(patsubst %.o,%.c,$(MON_OBJS))
 
 STATICSRC = pwgr.c
 STATICOBJS = pwgr.o
 
-ASSEMBLE_SRCS := mdassemble.c Assemble.c Manage.c config.c dlink.c util.c \
+ASSEMBLE_SRCS := mdassemble.c Assemble.c Manage.c config.c policy.c dlink.c util.c \
+	maps.c lib.c \
 	super0.c super1.c super-ddf.c super-intel.c sha1.c crc32.c sg_io.c mdstat.c \
-	platform-intel.c probe_roms.c sysfs.c
+	platform-intel.c probe_roms.c sysfs.c super-mbr.c super-gpt.c
 ASSEMBLE_AUTO_SRCS := mdopen.c
 ASSEMBLE_FLAGS:= $(CFLAGS) -DMDASSEMBLE
 ifdef MDASSEMBLE_AUTO
@@ -132,66 +136,70 @@ ASSEMBLE_SRCS += $(ASSEMBLE_AUTO_SRCS)
 ASSEMBLE_FLAGS += -DMDASSEMBLE_AUTO
 endif
 
-all : mdadm mdmon mdadm.man md.man mdadm.conf.man mdmon.man
+all : mdadm mdmon
+man : mdadm.man md.man mdadm.conf.man mdmon.man
 
 everything: all mdadm.static swap_super test_stripe \
 	mdassemble mdassemble.auto mdassemble.static mdassemble.man \
-	mdadm.Os mdadm.O2
+	mdadm.Os mdadm.O2 man
 everything-test: all mdadm.static swap_super test_stripe \
 	mdassemble.auto mdassemble.static mdassemble.man \
-	mdadm.Os mdadm.O2
+	mdadm.Os mdadm.O2 man
 # mdadm.uclibc and mdassemble.uclibc don't work on x86-64
 # mdadm.tcc doesn't work..
 
 mdadm : $(OBJS)
-	$(CC) $(LDFLAGS) -o mdadm $(OBJS) $(LDLIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o mdadm $(OBJS) $(LDLIBS)
 
 mdadm.static : $(OBJS) $(STATICOBJS)
-	$(CC) $(LDFLAGS) -static -o mdadm.static $(OBJS) $(STATICOBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -static -o mdadm.static $(OBJS) $(STATICOBJS)
 
-mdadm.tcc : $(SRCS) mdadm.h
+mdadm.tcc : $(SRCS) $(INCL)
 	$(TCC) -o mdadm.tcc $(SRCS)
 
-mdadm.klibc : $(SRCS) mdadm.h
+mdadm.klibc : $(SRCS) $(INCL)
 	rm -f $(OBJS) 
 	$(CC) -nostdinc -iwithprefix include -I$(KLIBC)/klibc/include -I$(KLIBC)/linux/include -I$(KLIBC)/klibc/arch/i386/include -I$(KLIBC)/klibc/include/bits32 $(CFLAGS) $(SRCS)
 
-mdadm.Os : $(SRCS) mdadm.h
+mdadm.Os : $(SRCS) $(INCL)
 	$(CC) -o mdadm.Os $(CFLAGS) $(LDFLAGS) -DHAVE_STDINT_H -Os $(SRCS)
 
-mdadm.O2 : $(SRCS) mdadm.h mdmon.O2
+mdadm.O2 : $(SRCS) $(INCL) mdmon.O2
 	$(CC) -o mdadm.O2 $(CFLAGS) $(LDFLAGS) -DHAVE_STDINT_H -O2 -D_FORTIFY_SOURCE=2 $(SRCS)
 
-mdmon.O2 : $(MON_SRCS) mdadm.h mdmon.h
+mdmon.O2 : $(MON_SRCS) $(INCL) mdmon.h
 	$(CC) -o mdmon.O2 $(CFLAGS) $(LDFLAGS) $(MON_LDFLAGS) -DHAVE_STDINT_H -O2 -D_FORTIFY_SOURCE=2 $(MON_SRCS)
 
 # use '-z now' to guarantee no dynamic linker interactions with the monitor thread
 mdmon : $(MON_OBJS)
-	$(CC) $(LDFLAGS) $(MON_LDFLAGS) -z now -o mdmon $(MON_OBJS) $(LDLIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(MON_LDFLAGS) -Wl,-z,now -o mdmon $(MON_OBJS) $(LDLIBS)
 msg.o: msg.c msg.h
 
 test_stripe : restripe.c mdadm.h
 	$(CC) $(CXFLAGS) $(LDFLAGS) -o test_stripe -DMAIN restripe.c
 
-mdassemble : $(ASSEMBLE_SRCS) mdadm.h
+raid6check : raid6check.o mdadm.h $(CHECK_OBJS)
+	$(CC) $(CXFLAGS) $(LDFLAGS) -o raid6check raid6check.o $(CHECK_OBJS)
+
+mdassemble : $(ASSEMBLE_SRCS) $(INCL)
 	rm -f $(OBJS)
 	$(DIET_GCC) $(ASSEMBLE_FLAGS) -o mdassemble $(ASSEMBLE_SRCS)  $(STATICSRC)
 
-mdassemble.static : $(ASSEMBLE_SRCS) mdadm.h
+mdassemble.static : $(ASSEMBLE_SRCS) $(INCL)
 	rm -f $(OBJS)
 	$(CC) $(LDFLAGS) $(ASSEMBLE_FLAGS) -static -DHAVE_STDINT_H -o mdassemble.static $(ASSEMBLE_SRCS) $(STATICSRC)
 
-mdassemble.auto : $(ASSEMBLE_SRCS) mdadm.h $(ASSEMBLE_AUTO_SRCS)
+mdassemble.auto : $(ASSEMBLE_SRCS) $(INCL) $(ASSEMBLE_AUTO_SRCS)
 	rm -f mdassemble.static
 	$(MAKE) MDASSEMBLE_AUTO=1 mdassemble.static
 	mv mdassemble.static mdassemble.auto
 
-mdassemble.uclibc : $(ASSEMBLE_SRCS) mdadm.h
+mdassemble.uclibc : $(ASSEMBLE_SRCS) $(INCL)
 	rm -f $(OJS)
 	$(UCLIBC_GCC) $(ASSEMBLE_FLAGS) -DUCLIBC -DHAVE_STDINT_H -static -o mdassemble.uclibc $(ASSEMBLE_SRCS) $(STATICSRC)
 
 # This doesn't work
-mdassemble.klibc : $(ASSEMBLE_SRCS) mdadm.h
+mdassemble.klibc : $(ASSEMBLE_SRCS) $(INCL)
 	rm -f $(OBJS)
 	$(KLIBC_GCC) $(ASSEMBLE_FLAGS) -o mdassemble $(ASSEMBLE_SRCS)
 
@@ -213,8 +221,8 @@ mdadm.conf.man : mdadm.conf.5
 mdassemble.man : mdassemble.8
 	nroff -man mdassemble.8 > mdassemble.man
 
-$(OBJS) : mdadm.h mdmon.h bitmap.h
-$(MON_OBJS) : mdadm.h mdmon.h bitmap.h
+$(OBJS) : $(INCL) mdmon.h
+$(MON_OBJS) : $(INCL) mdmon.h
 
 sha1.o : sha1.c sha1.h md5.h
 	$(CC) $(CFLAGS) -DHAVE_STDINT_H -o sha1.o -c sha1.c
@@ -256,7 +264,7 @@ clean :
 	mdadm.Os mdadm.O2 mdmon.O2 \
 	mdassemble mdassemble.static mdassemble.auto mdassemble.uclibc \
 	mdassemble.klibc swap_super \
-	init.cpio.gz mdadm.uclibc.static test_stripe mdmon \
+	init.cpio.gz mdadm.uclibc.static test_stripe raid6check raid6check.o mdmon \
 	mdadm.8
 
 dist : clean

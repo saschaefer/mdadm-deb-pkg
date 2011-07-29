@@ -7,9 +7,13 @@
 #
 # add some data, tear down the array, reassemble
 # and make sure it is still there.
+set -e
 
 mdadm -CR /dev/md/ddf0 -e ddf -n 5 $dev8 $dev9 $dev10 $dev11 $dev12
 mdadm -CR r0 -l0 -n5 /dev/md/ddf0 -z 5000
+if mdadm -CR r0 -l1 -n2 /dev/md/ddf0 -z 5000
+then echo >&2 create with same name should fail ; exit 1
+fi
 mdadm -CR r1 -l1 -n2 /dev/md/ddf0
 mdadm -CR r5 -l5 -n3 /dev/md/ddf0
 testdev /dev/md/r0 5 5000 512
@@ -29,6 +33,7 @@ mdadm -Ss
 mdadm -A /dev/md/ddf0  $dev8 $dev9 $dev10 $dev11 $dev12
 mdadm -I /dev/md/ddf0
 
+udevadm settle
 s0a=`sha1sum /dev/md/r0`
 s1a=`sha1sum /dev/md/r1`
 s5a=`sha1sum /dev/md/r5`
@@ -54,7 +59,7 @@ mdadm -Ss
 # Now try to assemble using mdadm.conf
 mdadm -Asc /var/tmp/mdadm.conf
 check nosync  # This failed once. The raid5 was resyncing.
-
+udevadm settle
 mdadm -Dbs | sort > /tmp/mdadm.conf
 sort /var/tmp/mdadm.conf | diff /tmp/mdadm.conf -
 mdadm -Ss
@@ -69,7 +74,7 @@ do
   [ `cat /tmp/cnt` -eq 3 ]
 done
 check nosync
-
+udevadm settle
 mdadm -Dbs | sort > /tmp/mdadm.conf
 sort /var/tmp/mdadm.conf | diff /tmp/mdadm.conf -
 mdadm -Ss

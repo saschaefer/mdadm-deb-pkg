@@ -24,7 +24,7 @@
 
 #include "mdadm.h"
 
-char Version[] = Name " - v3.1.4 - 31st August 2010\n";
+char Version[] = Name " - v3.2.2 - 17th June 2011\n";
 
 /*
  * File: ReadMe.c
@@ -86,15 +86,15 @@ char Version[] = Name " - v3.1.4 - 31st August 2010\n";
  *     At the time if writing, there is only minimal support.
  */
 
-char short_options[]="-ABCDEFGIQhVXWZ:vqbc:i:l:p:m:n:x:u:c:d:z:U:N:sarfRSow1tye:";
+char short_options[]="-ABCDEFGIQhVXYWZ:vqbc:i:l:p:m:n:x:u:c:d:z:U:N:sarfRSow1tye:";
 char short_bitmap_options[]=
-                   "-ABCDEFGIQhVXWZ:vqb:c:i:l:p:m:n:x:u:c:d:z:U:N:sarfRSow1tye:";
+                   "-ABCDEFGIQhVXYWZ:vqb:c:i:l:p:m:n:x:u:c:d:z:U:N:sarfRSow1tye:";
 char short_bitmap_auto_options[]=
-                   "-ABCDEFGIQhVXWZ:vqb:c:i:l:p:m:n:x:u:c:d:z:U:N:sa:rfRSow1tye:";
+                   "-ABCDEFGIQhVXYWZ:vqb:c:i:l:p:m:n:x:u:c:d:z:U:N:sa:rfRSow1tye:";
 
 struct option long_options[] = {
-    {"manage",    0, 0, '@'},
-    {"misc",      0, 0, '#'},
+    {"manage",    0, 0, ManageOpt},
+    {"misc",      0, 0, MiscOpt},
     {"assemble",  0, 0, 'A'},
     {"build",     0, 0, 'B'},
     {"create",    0, 0, 'C'},
@@ -110,87 +110,91 @@ struct option long_options[] = {
     {"detail-platform", 0, 0, DetailPlatform},
     {"kill-subarray", 1, 0, KillSubarray},
     {"update-subarray", 1, 0, UpdateSubarray},
+    {"udev-rules", 2, 0, UdevRules},
 
     /* synonyms */
     {"monitor",   0, 0, 'F'},
 
     /* after those will normally come the name of the md device */
     {"help",      0, 0, 'h'},
-    {"help-options",0,0,'h'},
+    {"help-options",0,0, HelpOptions},
     {"version",	  0, 0, 'V'},
     {"verbose",   0, 0, 'v'},
     {"quiet",	  0, 0, 'q'},
 
     /* For create or build: */
-    {"chunk",	  1, 0, 'c'},
-    {"rounding",  1, 0, 'c'}, /* for linear, chunk is really a rounding number */
+    {"chunk",	  1, 0, ChunkSize},
+    {"rounding",  1, 0, ChunkSize}, /* for linear, chunk is really a
+				     * rounding number */
     {"level",     1, 0, 'l'}, /* 0,1,4,5,6,linear */
-    {"parity",    1, 0, 'p'}, /* {left,right}-{a,}symmetric */
-    {"layout",    1, 0, 'p'},
+    {"parity",    1, 0, Layout}, /* {left,right}-{a,}symmetric */
+    {"layout",    1, 0, Layout},
     {"raid-disks",1, 0, 'n'},
     {"raid-devices",1, 0, 'n'},
     {"spare-disks",1,0, 'x'},
     {"spare-devices",1,0, 'x'},
     {"size",	  1, 0, 'z'},
-    {"auto",	  1, 0, 'a'}, /* also for --assemble */
+    {"auto",	  1, 0, Auto}, /* also for --assemble */
     {"assume-clean",0,0, AssumeClean },
     {"metadata",  1, 0, 'e'}, /* superblock format */
-    {"bitmap",	  1, 0, 'b'},
+    {"bitmap",	  1, 0, Bitmap},
     {"bitmap-chunk", 1, 0, BitmapChunk},
     {"write-behind", 2, 0, WriteBehind},
-    {"write-mostly",0, 0, 'W'},
+    {"write-mostly",0, 0, WriteMostly},
     {"re-add",    0, 0,  ReAdd},
     {"homehost",  1, 0,  HomeHost},
-#if 0
-    {"auto-update-homehost", 0, 0, AutoHomeHost},
-#endif
     {"symlinks",  1, 0,  Symlinks},
 
     /* For assemble */
     {"uuid",      1, 0, 'u'},
-    {"super-minor",1,0, 'm'},
+    {"super-minor",1,0, SuperMinor},
     {"name",	  1, 0, 'N'},
-    {"config",    1, 0, 'c'},
+    {"config",    1, 0, ConfigFile},
     {"scan",      0, 0, 's'},
-    {"force",	  0, 0, 'f'},
+    {"force",	  0, 0, Force},
     {"update",	  1, 0, 'U'},
 
     /* Management */
-    {"add",       0, 0, 'a'},
-    {"remove",    0, 0, 'r'},
-    {"fail",      0, 0, 'f'},
-    {"set-faulty",0, 0, 'f'},
+    {"add",       0, 0, Add},
+    {"remove",    0, 0, Remove},
+    {"fail",      0, 0, Fail},
+    {"set-faulty",0, 0, Fail},
     {"run",       0, 0, 'R'},
     {"stop",      0, 0, 'S'},
     {"readonly",  0, 0, 'o'},
     {"readwrite", 0, 0, 'w'},
     {"no-degraded",0,0,  NoDegraded },
-    {"wait",	  0, 0, 'W'},
+    {"wait",	  0, 0,  WaitOpt},
     {"wait-clean", 0, 0, Waitclean },
 
     /* For Detail/Examine */
-    {"brief",	  0, 0, 'b'},
+    {"brief",	  0, 0, Brief},
     {"export",	  0, 0, 'Y'},
     {"sparc2.2",  0, 0, Sparc22},
     {"test",      0, 0, 't'},
 
     /* For Follow/monitor */
-    {"mail",      1, 0, 'm'},
-    {"program",   1, 0, 'p'},
-    {"alert",     1, 0, 'p'},
-    {"increment", 1, 0, 'r'},
+    {"mail",      1, 0, EMail},
+    {"program",   1, 0, ProgramOpt},
+    {"alert",     1, 0, ProgramOpt},
+    {"increment", 1, 0, Increment},
     {"delay",     1, 0, 'd'},
-    {"daemonise", 0, 0, 'f'},
-    {"daemonize", 0, 0, 'f'},
+    {"daemonise", 0, 0, Fork},
+    {"daemonize", 0, 0, Fork},
     {"oneshot",   0, 0, '1'},
     {"pid-file",  1, 0, 'i'},
     {"syslog",    0, 0, 'y'},
+    {"no-sharing", 0, 0, NoSharing},
+
     /* For Grow */
     {"backup-file", 1,0, BackupFile},
+    {"invalid-backup",0,0,InvalidBackup},
     {"array-size", 1, 0, 'Z'},
 
     /* For Incremental */
-    {"rebuild-map", 0, 0, 'r'},
+    {"rebuild-map", 0, 0, RebuildMapOpt},
+    {"path", 1, 0, IncrementalPath},
+
     {0, 0, 0, 0}
 };
 
@@ -499,6 +503,7 @@ char Help_monitor[] =
 "  --mail=       -m   : Address to mail alerts of failure to\n"
 "  --program=    -p   : Program to run when an event is detected\n"
 "  --alert=           : same as --program\n"
+"  --syslog      -y   : Report alerts via syslog\n"
 "  --increment=  -r   : Report RebuildNN events in the given increment. default=20\n"
 "  --delay=      -d   : seconds of delay between polling state. default=60\n"
 "  --config=     -c   : specify a different config file\n"
@@ -593,109 +598,3 @@ char Help_config[] =
 "\n"
 ;
 
-
-/* name/number mappings */
-
-mapping_t r5layout[] = {
-	{ "left-asymmetric", ALGORITHM_LEFT_ASYMMETRIC},
-	{ "right-asymmetric", ALGORITHM_RIGHT_ASYMMETRIC},
-	{ "left-symmetric", ALGORITHM_LEFT_SYMMETRIC},
-	{ "right-symmetric", ALGORITHM_RIGHT_SYMMETRIC},
-
-	{ "default", ALGORITHM_LEFT_SYMMETRIC},
-	{ "la", ALGORITHM_LEFT_ASYMMETRIC},
-	{ "ra", ALGORITHM_RIGHT_ASYMMETRIC},
-	{ "ls", ALGORITHM_LEFT_SYMMETRIC},
-	{ "rs", ALGORITHM_RIGHT_SYMMETRIC},
-
-	{ "parity-first", ALGORITHM_PARITY_0},
-	{ "parity-last", ALGORITHM_PARITY_N},
-	{ "ddf-zero-restart", ALGORITHM_RIGHT_ASYMMETRIC},
-	{ "ddf-N-restart", ALGORITHM_LEFT_ASYMMETRIC},
-	{ "ddf-N-continue", ALGORITHM_LEFT_SYMMETRIC},
-
-	{ NULL, 0}
-};
-mapping_t r6layout[] = {
-	{ "left-asymmetric", ALGORITHM_LEFT_ASYMMETRIC},
-	{ "right-asymmetric", ALGORITHM_RIGHT_ASYMMETRIC},
-	{ "left-symmetric", ALGORITHM_LEFT_SYMMETRIC},
-	{ "right-symmetric", ALGORITHM_RIGHT_SYMMETRIC},
-
-	{ "default", ALGORITHM_LEFT_SYMMETRIC},
-	{ "la", ALGORITHM_LEFT_ASYMMETRIC},
-	{ "ra", ALGORITHM_RIGHT_ASYMMETRIC},
-	{ "ls", ALGORITHM_LEFT_SYMMETRIC},
-	{ "rs", ALGORITHM_RIGHT_SYMMETRIC},
-
-	{ "parity-first", ALGORITHM_PARITY_0},
-	{ "parity-last", ALGORITHM_PARITY_N},
-	{ "ddf-zero-restart", ALGORITHM_ROTATING_ZERO_RESTART},
-	{ "ddf-N-restart", ALGORITHM_ROTATING_N_RESTART},
-	{ "ddf-N-continue", ALGORITHM_ROTATING_N_CONTINUE},
-
-	{ "left-asymmetric-6", ALGORITHM_LEFT_ASYMMETRIC_6},
-	{ "right-asymmetric-6", ALGORITHM_RIGHT_ASYMMETRIC_6},
-	{ "left-symmetric-6", ALGORITHM_LEFT_SYMMETRIC_6},
-	{ "right-symmetric-6", ALGORITHM_RIGHT_SYMMETRIC_6},
-	{ "parity-first-6", ALGORITHM_PARITY_0_6},
-
-	{ NULL, 0}
-};
-
-mapping_t pers[] = {
-	{ "linear", LEVEL_LINEAR},
-	{ "raid0", 0},
-	{ "0", 0},
-	{ "stripe", 0},
-	{ "raid1", 1},
-	{ "1", 1},
-	{ "mirror", 1},
-	{ "raid4", 4},
-	{ "4", 4},
-	{ "raid5", 5},
-	{ "5", 5},
-	{ "multipath", LEVEL_MULTIPATH},
-	{ "mp", LEVEL_MULTIPATH},
-	{ "raid6", 6},
-	{ "6", 6},
-	{ "raid10", 10},
-	{ "10", 10},
-	{ "faulty", LEVEL_FAULTY},
-	{ "container", LEVEL_CONTAINER},
-	{ NULL, 0}
-};
-
-
-mapping_t modes[] = {
-	{ "assemble", ASSEMBLE},
-	{ "build", BUILD},
-	{ "create", CREATE},
-	{ "manage", MANAGE},
-	{ "misc", MISC},
-	{ "monitor", MONITOR},
-	{ "grow", GROW},
-	{ "incremental", INCREMENTAL},
-	{ "auto-detect", AUTODETECT},
-};
-
-mapping_t faultylayout[] = {
-	{ "write-transient", WriteTransient },
-	{ "wt", WriteTransient },
-	{ "read-transient", ReadTransient },
-	{ "rt", ReadTransient },
-	{ "write-persistent", WritePersistent },
-	{ "wp", WritePersistent },
-	{ "read-persistent", ReadPersistent },
-	{ "rp", ReadPersistent },
-	{ "write-all", WriteAll },
-	{ "wa", WriteAll },
-	{ "read-fixable", ReadFixable },
-	{ "rf", ReadFixable },
-
-	{ "clear", ClearErrors},
-	{ "flush", ClearFaults},
-	{ "none", ClearErrors},
-	{ "default", ClearErrors},
-	{ NULL, 0}
-};

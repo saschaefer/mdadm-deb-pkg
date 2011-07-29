@@ -5,7 +5,7 @@
 .\"   the Free Software Foundation; either version 2 of the License, or
 .\"   (at your option) any later version.
 .\" See file COPYING in distribution for details.
-.TH MDADM 8 "" v3.1.4
+.TH MDADM 8 "" v3.2.2
 .SH NAME
 mdadm \- manage MD devices
 .I aka
@@ -122,9 +122,10 @@ missing, spare, or failed drives, so there is nothing to monitor.
 .B "Grow"
 Grow (or shrink) an array, or otherwise reshape it in some way.
 Currently supported growth options including changing the active size
-of component devices and changing the number of active devices in RAID
-levels 1/4/5/6, changing the RAID level between 1, 5, and 6, changing
-the chunk size and layout for RAID5 and RAID5, as well as adding or
+of component devices and changing the number of active devices in
+Linear and RAID levels 0/1/4/5/6,
+changing the RAID level between 0, 1, 5, and 6, and between 0 and 10,
+changing the chunk size and layout for RAID 0,4,5,6, as well as adding or
 removing a write-intent bitmap.
 
 .TP
@@ -322,16 +323,20 @@ Options are:
 ..
 Use the original 0.90 format superblock.  This format limits arrays to
 28 component devices and limits component devices of levels 1 and
-greater to 2 terabytes.
+greater to 2 terabytes.  It is also possible for there to be confusion
+about whether the superblock applies to a whole device or just the
+last partition, if that partition starts on a 64K boundary.
 .ie '{DEFAULT_METADATA}'0.90'
 .IP "1, 1.0, 1.1, 1.2"
 .el
 .IP "1, 1.0, 1.1, 1.2 default"
 ..
-Use the new version-1 format superblock.  This has few restrictions.
-The different sub-versions store the superblock at different locations
-on the device, either at the end (for 1.0), at the start (for 1.1) or
-4K from the start (for 1.2).  "1" is equivalent to "1.0".
+Use the new version-1 format superblock.  This has fewer restrictions.
+It can easily be moved between hosts with different endian-ness, and a
+recovery operation can be checkpointed and restarted.  The different
+sub-versions store the superblock at different locations on the
+device, either at the end (for 1.0), at the start (for 1.1) or 4K from
+the start (for 1.2).  "1" is equivalent to "1.0".
 'if '{DEFAULT_METADATA}'1.2'  "default" is equivalent to "1.2".
 .IP ddf
 Use the "Industry Standard" DDF (Disk Data Format) format defined by
@@ -410,6 +415,9 @@ If this is not specified
 size, though if there is a variance among the drives of greater than 1%, a warning is
 issued.
 
+A suffix of 'M' or 'G' can be given to indicate Megabytes or
+Gigabytes respectively.
+
 This value can be set with
 .B \-\-grow
 for RAID level 1/4/5/6.  If the array was created with a size smaller
@@ -420,15 +428,27 @@ The size can be given as
 .B max
 which means to choose the largest size that fits on all current drives.
 
+Before reducing the size of the array (with
+.BR "\-\-grow \-\-size=" )
+you should make sure that space isn't needed.  If the device holds a
+filesystem, you would need to resize the filesystem to use less space.
+
+After reducing the array size you should check that the data stored in
+the device is still available.  If the device holds a filesystem, then
+an 'fsck' of the filesystem is a minimum requirement.  If there are
+problems the array can be made bigger again with no loss with another
+.B "\-\-grow \-\-size="
+command.
+
 This value can not be used with
 .B CONTAINER
 metadata such as DDF and IMSM.
 
 .TP
-.BR \-Z ", " \-\-array-size=
+.BR \-Z ", " \-\-array\-size=
 This is only meaningful with
 .B \-\-grow
-and its effect is not persistent: when the array is stopped an
+and its effect is not persistent: when the array is stopped and
 restarted the default array size will be restored.
 
 Setting the array-size causes the array to appear smaller to programs
@@ -439,12 +459,36 @@ but setting the size with
 is, it is required that the array size is reduced as appropriate
 before the number of devices in the array is reduced.
 
+Before reducing the size of the array you should make sure that space
+isn't needed.  If the device holds a filesystem, you would need to
+resize the filesystem to use less space.
+
+After reducing the array size you should check that the data stored in
+the device is still available.  If the device holds a filesystem, then
+an 'fsck' of the filesystem is a minimum requirement.  If there are
+problems the array can be made bigger again with no loss with another
+.B "\-\-grow \-\-array\-size="
+command.
+
+A suffix of 'M' or 'G' can be given to indicate Megabytes or
+Gigabytes respectively.
+A value of
+.B max
+restores the apparent size of the array to be whatever the real
+amount of available space is.
+
 .TP
 .BR \-c ", " \-\-chunk=
 Specify chunk size of kibibytes.  The default when creating an
 array is 512KB.  To ensure compatibility with earlier versions, the
 default when Building and array with no persistent metadata is 64KB.
 This is only meaningful for RAID0, RAID4, RAID5, RAID6, and RAID10.
+
+RAID4, RAID5, RAID6, and RAID10 require the chunk size to be a power
+of 2.  In any case it must be a multiple of 4KB.
+
+A suffix of 'M' or 'G' can be given to indicate Megabytes or
+Gigabytes respectively.
 
 .TP
 .BR \-\-rounding=
@@ -493,7 +537,7 @@ The layout of the RAID5 parity block can be one of
 The default is
 .BR left\-symmetric .
 
-It is also possibly to cause RAID5 to use a RAID4-like layout by
+It is also possible to cause RAID5 to use a RAID4-like layout by
 choosing
 .BR parity\-first ,
 or
@@ -618,6 +662,9 @@ When using an
 bitmap, the chunksize defaults to 64Meg, or larger if necessary to
 fit the bitmap into the available space.
 
+A suffix of 'M' or 'G' can be given to indicate Megabytes or
+Gigabytes respectively.
+
 .TP
 .BR \-W ", " \-\-write\-mostly
 subsequent devices listed in a
@@ -655,31 +702,23 @@ with zeros before creation the operator knows the array is
 actually clean. If that is the case, such as after running
 badblocks, this argument can be used to tell mdadm the
 facts the operator knows.
+.IP
+When an array is resized to a larger size with
+.B "\-\-grow \-\-size="
+the new space is normally resynced in that same way that the whole
+array is resynced at creation.  From Linux version 2.6.40,
+.B \-\-assume\-clean
+can be used with that command to avoid the automatic resync.
 
 .TP
 .BR \-\-backup\-file=
 This is needed when
 .B \-\-grow
-is used to increase the number of
-raid-devices in a RAID5 if there are no spare devices available.
-See the GROW MODE section below on RAID\-DEVICES CHANGES.  The file
-should be stored on a separate device, not on the RAID array being
-reshaped.
-
-.TP
-.BR \-\-array-size= ", " \-Z
-Set the size of the array which is seen by users of the device such as
-filesystems.  This can be less that the real size, but never greater.
-The size set this way does not persist across restarts of the array.
-
-This is most useful when reducing the number of devices in a RAID5 or
-RAID6.  Such arrays require the array-size to be reduced before a
-reshape can be performed that reduces the real size.
-
-A value of
-.B max
-restores the apparent size of the array to be whatever the real
-amount of available space is.
+is used to increase the number of raid-devices in a RAID5 or RAID6 if
+there are no spare devices available, or to shrink, change RAID level
+or layout.  See the GROW MODE section below on RAID\-DEVICES CHANGES.
+The file must be stored on a separate device, not on the RAID array
+being reshaped.
 
 .TP
 .BR \-N ", " \-\-name=
@@ -873,6 +912,28 @@ not as reliable as you would like.
 See this option under Create and Build options.
 
 .TP
+.BR \-a ", " "\-\-add"
+This option can be used in Grow mode in two cases.
+
+If the target array is a Linear array, then
+.B \-\-add
+can be used to add one or more devices to the array.  They
+are simply catenated on to the end of the array.  Once added, the
+devices cannot be removed.
+
+If the
+.B \-\-raid\-disks
+option is being used to increase the number of devices in an array,
+then
+.B \-\-add
+can be used to add some extra devices to be included in the array.
+In most cases this is not needed as the extra devices can be added as
+spares first, and then the number of raid-disks can be changed.
+However for RAID0, it is not possible to add spares.  So to increase
+the number of devices in a RAID0, it is necessary to set the new
+number of devices, and to add the new devices, in the same command.
+
+.TP
 .BR \-b ", " \-\-bitmap=
 Specify the bitmap file that was given when the array was created.  If
 an array has an
@@ -883,12 +944,24 @@ bitmap, there is no need to specify this when assembling the array.
 .BR \-\-backup\-file=
 If
 .B \-\-backup\-file
-was used to grow the number of raid-devices in a RAID5, and the system
-crashed during the critical section, then the same
+was used while reshaping an array (e.g. changing number of devices or
+chunk size) and the system crashed during the critical section, then the same
 .B \-\-backup\-file
 must be presented to
 .B \-\-assemble
-to allow possibly corrupted data to be restored.
+to allow possibly corrupted data to be restored, and the reshape
+to be completed.
+
+.TP
+.BR \-\-invalid\-backup
+If the file needed for the above option is not available for any
+reason an empty file can be given together with this option to
+indicate that the backup file is invalid.  In this case the data that
+was being rearranged at the time of the crash could be irrecoverably
+lost, but the rest of the array may still be recoverable.  This option
+should only be used as a last resort if there is no way to recover the
+backup file.
+
 
 .TP
 .BR \-U ", " \-\-update=
@@ -902,6 +975,7 @@ argument given to this flag can be one of
 .BR resync ,
 .BR byteorder ,
 .BR devicesize ,
+.BR no\-bitmap ,
 or
 .BR super\-minor .
 
@@ -984,7 +1058,7 @@ counts of total, working, active, failed, and spare devices.
 
 The
 .B devicesize
-will rarely be of use.  It applies to version 1.1 and 1.2 metadata
+option will rarely be of use.  It applies to version 1.1 and 1.2 metadata
 only (where the metadata is at the start of the device) and is only
 useful when the component device has changed size (typically become
 larger).  The version 1 metadata records the amount of the device that
@@ -998,15 +1072,11 @@ This will cause
 to determine the maximum usable amount of space on each device and
 update the relevant field in the metadata.
 
-.ig
-.TP
-.B \-\-auto\-update\-homehost
-This flag is only meaningful with auto-assembly (see discussion below).
-In that situation, if no suitable arrays are found for this homehost,
-.I mdadm
-will rescan for any arrays at all and will assemble them and update the
-homehost to match the current host.
-..
+The
+.B no\-bitmap
+option can be used when an array has an internal bitmap which is
+corrupt in some way so that assembling the array normally fails.  It
+will cause any internal bitmap to be ignored.
 
 .SH For Manage mode:
 
@@ -1029,7 +1099,7 @@ will report failure if these specifiers didn't find any match.
 .BR \-a ", " \-\-add
 hot-add listed devices.
 If a device appears to have recently been part of the array
-(possibly it failed or was removed) the device is re-added as describe
+(possibly it failed or was removed) the device is re\-added as describe
 in the next point.
 If that fails or the device was never part of the array, the device is
 added as a hot-spare.
@@ -1054,6 +1124,13 @@ When used on an array that has no metadata (i.e. it was built with
 .BR \-\-build)
 it will be assumed that bitmap-based recovery is enough to make the
 device fully consistent with the array.
+
+When
+.B \-\-re\-add
+can be accompanied by
+.BR \-\-update=devicesize .
+See the description of this option when used in Assemble mode for an
+explanation of its use.
 
 If the device name given is
 .B missing
@@ -1299,6 +1376,16 @@ The device name given should be a kernel device name such as "sda",
 not a name in
 .IR /dev .
 
+.TP
+.BR \-\-path=
+Only used with \-\-fail.  The 'path' given will be recorded so that if
+a new device appears at the same location it can be automatically
+added to the same array.  This allows the failed device to be
+automatically replaced by a new device without metadata if it appears
+at specified path.   This option is normally only set by a
+.I udev
+script.
+
 .SH For Monitor mode:
 .TP
 .BR \-m ", " \-\-mail
@@ -1369,6 +1456,14 @@ Generate a
 alert for every array found at startup.  This alert gets mailed and
 passed to the alert program.  This can be used for testing that alert
 message do get through successfully.
+
+.TP
+.BR \-\-no\-sharing
+This inhibits the functionality for moving spares between arrays.
+Only one monitoring process started with
+.B \-\-scan
+but without this flag is allowed, otherwise the two could interfere
+with each other.
 
 .SH ASSEMBLE MODE
 
@@ -1551,25 +1646,13 @@ See
 .IR mdadm.conf (5)
 for further details.
 
-.ig
-If
-.I mdadm
-cannot find any array for the given host at all, and if
-.B \-\-auto\-update\-homehost
-is given, then
-.I mdadm
-will search again for any array (not just an array created for this
-host) and will assemble each assuming
-.BR \-\-update=homehost .
-This will change the host tag in the superblock so that on the next run,
-these arrays will be found without the second pass.  The intention of
-this feature is to support transitioning a set of md arrays to using
-homehost tagging.
-
-The reason for requiring arrays to be tagged with the homehost for
-auto assembly is to guard against problems that can arise when moving
-devices from one host to another.
-..
+Note: Auto assembly cannot be used for assembling and activating some
+arrays which are undergoing reshape.  In particular as the
+.B backup\-file
+cannot be given, any reshape which requires a backup-file to continue
+cannot be started by auto assembly.  An array which is growing to more
+devices and has passed the critical section can be assembled using
+auto-assembly.
 
 .SH BUILD MODE
 
@@ -1771,7 +1854,7 @@ or
 .B \-\-scan
 will cause the output to be less detailed and the format to be
 suitable for inclusion in
-.BR /etc/mdadm.conf .
+.BR mdadm.conf .
 The exit status of
 .I mdadm
 will normally be 0 unless
@@ -1848,7 +1931,7 @@ or
 is given, then multiple devices that are components of the one array
 are grouped together and reported in a single entry suitable
 for inclusion in
-.BR /etc/mdadm.conf .
+.BR mdadm.conf .
 
 Having
 .B \-\-scan
@@ -1920,6 +2003,8 @@ As well as reporting events,
 may move a spare drive from one array to another if they are in the
 same
 .B spare-group
+or
+.B domain
 and if the destination array has a failed drive but no spares.
 
 If any devices are listed on the command line,
@@ -2026,6 +2111,8 @@ notices that an array is degraded when it first sees the array.
 .B MoveSpare
 A spare drive has been moved from one array in a
 .B spare-group
+or
+.B domain
 to another to allow a failed drive to be replaced.
 (syslog priority: Info)
 
@@ -2078,6 +2165,7 @@ For
 to move spares from one array to another, the different arrays need to
 be labeled with the same
 .B spare-group
+or the spares must be allowed to migrate through matching POLICY domains
 in the configuration file.  The
 .B spare-group
 name can be any string; it is only necessary that different spare
@@ -2094,35 +2182,65 @@ first.
 If the removal succeeds but the adding fails, then it is added back to
 the original array.
 
+If the spare group for a degraded array is not defined,
+.I mdadm
+will look at the rules of spare migration specified by POLICY lines in
+.B mdadm.conf
+and then follow similar steps as above if a matching spare is found.
+
 .SH GROW MODE
 The GROW mode is used for changing the size or shape of an active
 array.
 For this to work, the kernel must support the necessary change.
-Various types of growth are being added during 2.6 development,
-including restructuring a RAID5 array to have more active devices.
+Various types of growth are being added during 2.6 development.
 
-Currently the only support available is to
+Currently the supported changes include
 .IP \(bu 4
-change the "size" attribute
-for RAID1, RAID5 and RAID6.
+change the "size" attribute for RAID1, RAID4, RAID5 and RAID6.
 .IP \(bu 4
-increase or decrease the "raid\-devices" attribute of RAID1, RAID5,
-and RAID6.
+increase or decrease the "raid\-devices" attribute of RAID0, RAID1, RAID4,
+RAID5, and RAID6.
 .IP \bu 4
-change the chunk-size and layout of RAID5 and RAID6.
+change the chunk-size and layout of RAID0, RAID4, RAID5 and RAID6.
 .IP \bu 4
-convert between RAID1 and RAID5, and between RAID5 and RAID6.
+convert between RAID1 and RAID5, between RAID5 and RAID6, between
+RAID0, RAID5, and RAID5, and between RAID0 and RAID10 (in the near-2 mode).
 .IP \(bu 4
 add a write-intent bitmap to any array which supports these bitmaps, or
 remove a write-intent bitmap from such an array.
 .PP
 
-GROW mode is not currently supported for
-.B CONTAINERS
-or arrays inside containers.
+Using GROW on containers is currently only support for Intel's IMSM
+container format.  The number of devices in a container can be
+increased - which affects all arrays in the container - or an array
+in a container can be converted between levels where those levels are
+supported by the container, and the conversion is on of those listed
+above.
+
+Grow functionality (e.g. expand a number of raid devices) for Intel's
+IMSM container format has an experimental status. It is guarded by the
+.B MDADM_EXPERIMENTAL
+environment variable which must be set to '1' for a GROW command to
+succeed.
+This is for the following reasons:
+
+.IP 1.
+Intel's native IMSM check-pointing is not fully tested yet.
+This can causes IMSM incompatibility during the grow process: an array
+which is growing cannot roam between Microsoft Windows(R) and Linux
+systems.
+
+.IP 2.
+Interrupting a grow operation is not recommended, because it
+has not been fully tested for Intel's IMSM container format yet.
+
+.PP
+Note: Intel's native checkpointing doesn't use
+.B --backup-file
+option and it is transparent for assembly feature.
 
 .SS SIZE CHANGES
-Normally when an array is built the "size" it taken from the smallest
+Normally when an array is built the "size" is taken from the smallest
 of the drives.  If all the small drives in an arrays are, one at a
 time, removed and replaced with larger drives, then you could have an
 array of large drives with only a small amount used.  In this
@@ -2132,8 +2250,12 @@ space to start being used.  If the size is increased in this way, a
 are synchronised.
 
 Note that when an array changes size, any filesystem that may be
-stored in the array will not automatically grow to use the space.  The
-filesystem will need to be explicitly told to use the extra space.
+stored in the array will not automatically grow for shrink to use or
+vacate the space.  The
+filesystem will need to be explicitly told to use the extra space
+after growing, or to reduce its size
+.B prior
+to shrinking the array.
 
 Also the size of an array cannot be changed while it has an active
 bitmap.  If an array has a bitmap, it must be removed before the size
@@ -2161,9 +2283,20 @@ increase the number of devices in a RAID5 safely, including restarting
 an interrupted "reshape".  From 2.6.31, the Linux Kernel is able to
 increase or decrease the number of devices in a RAID5 or RAID6.
 
+From 2.6.35, the Linux Kernel is able to convert a RAID0 in to a RAID4
+or RAID5.
+.I mdadm
+uses this functionality and the ability to add
+devices to a RAID4 to allow devices to be added to a RAID0.  When
+requested to do this,
+.I mdadm
+will convert the RAID0 to a RAID4, add the necessary disks and make
+the reshape happen, and then convert the RAID4 back to RAID0.
+
 When decreasing the number of devices, the size of the array will also
 decrease.  If there was data in the array, it could get destroyed and
-this is not reversible.  To help prevent accidents,
+this is not reversible, so you should firstly shrink the filesystem on
+the array to fit within the new size.  To help prevent accidents,
 .I mdadm
 requires that the size of the array be decreased first with
 .BR "mdadm --grow --array-size" .
@@ -2171,27 +2304,36 @@ This is a reversible change which simply makes the end of the array
 inaccessible.  The integrity of any data can then be checked before
 the non-reversible reduction in the number of devices is request.
 
-When relocating the first few stripes on a RAID5, it is not possible
-to keep the data on disk completely consistent and crash-proof.  To
-provide the required safety, mdadm disables writes to the array while
-this "critical section" is reshaped, and takes a backup of the data
-that is in that section.  This backup is normally stored in any spare
-devices that the array has, however it can also be stored in a
-separate file specified with the
+When relocating the first few stripes on a RAID5 or RAID6, it is not
+possible to keep the data on disk completely consistent and
+crash-proof.  To provide the required safety, mdadm disables writes to
+the array while this "critical section" is reshaped, and takes a
+backup of the data that is in that section.  For grows, this backup may be
+stored in any spare devices that the array has, however it can also be
+stored in a separate file specified with the
 .B \-\-backup\-file
-option.  If this option is used, and the system does crash during the
-critical period, the same file must be passed to
+option, and is required to be specified for shrinks, RAID level
+changes and layout changes.  If this option is used, and the system
+does crash during the critical period, the same file must be passed to
 .B \-\-assemble
-to restore the backup and reassemble the array.
+to restore the backup and reassemble the array.  When shrinking rather
+than growing the array, the reshape is done from the end towards the
+beginning, so the "critical section" is at the end of the reshape.
 
 .SS LEVEL CHANGES
 
 Changing the RAID level of any array happens instantaneously.  However
-in the RAID to RAID6 case this requires a non-standard layout of the
+in the RAID5 to RAID6 case this requires a non-standard layout of the
 RAID6 data, and in the RAID6 to RAID5 case that non-standard layout is
-required before the change can be accomplish.  So while the level
+required before the change can be accomplished.  So while the level
 change is instant, the accompanying layout change can take quite a
-long time.
+long time.  A
+.B \-\-backup\-file
+is required.  If the array is not simultaneously being grown or
+shrunk, so that the array size will remain the same - for example,
+reshaping a 3-drive RAID5 into a 4-drive RAID6 - the backup file will
+be used not just for a "cricital section" but throughout the reshape
+operation, as described below under LAYOUT CHANGES.
 
 .SS CHUNK-SIZE AND LAYOUT CHANGES
 
@@ -2200,10 +2342,13 @@ devices as the same time will involve re-writing all blocks in-place.
 To ensure against data loss in the case of a crash, a
 .B --backup-file
 must be provided for these changes.  Small sections of the array will
-be copied to the backup file while they are being rearranged.
+be copied to the backup file while they are being rearranged.  This
+means that all the data is copied twice, once to the backup and once
+to the new layout on the array, so this type of reshape will go very
+slowly.
 
 If the reshape is interrupted for any reason, this backup file must be
-make available to
+made available to
 .B "mdadm --assemble"
 so the array can be reassembled.  Consequently the file cannot be
 stored on the device being reshaped.
@@ -2264,9 +2409,10 @@ adds the device to the array and conditionally starts the array.
 
 Note that
 .I mdadm
-will only add devices to an array which were previously working
-(active or spare) parts of that array.  It does not currently support
-automatic inclusion of a new drive as a spare in some array.
+will normally only add devices to an array which were previously working
+(active or spare) parts of that array.  The support for automatic
+inclusion of a new drive as a spare in some array requires
+a configuration through POLICY in config file.
 
 The tests that
 .I mdadm
@@ -2298,7 +2444,8 @@ then only that style of metadata is accepted, otherwise
 .I mdadm
 finds any known version of metadata.  If no
 .I md
-metadata is found, the device is rejected.
+metadata is found, the device may be still added to an array
+as a spare if POLICY allows.
 
 .ig
 .IP +
@@ -2598,7 +2745,9 @@ avoid conflicted between multiple arrays that have the same name.  If
 .I mdadm
 can reasonably determine that the array really is meant for this host,
 either by a hostname in the metadata, or by the presence of the array
-in /etc/mdadm.conf, then it will leave off the suffix if possible.
+in
+.BR mdadm.conf ,
+then it will leave off the suffix if possible.
 Also if the homehost is specified as
 .B <ignore>
 .I mdadm

@@ -120,6 +120,8 @@ static void close_aa(struct active_array *aa)
 	close(aa->action_fd);
 	close(aa->info.state_fd);
 	close(aa->resync_start_fd);
+	close(aa->metadata_fd);
+	close(aa->sync_completed_fd);
 }
 
 static void free_aa(struct active_array *aa)
@@ -215,10 +217,16 @@ static void free_updates(struct metadata_update **update)
 {
 	while (*update) {
 		struct metadata_update *this = *update;
+		void **space_list = this->space_list;
 
 		*update = this->next;
 		free(this->buf);
 		free(this->space);
+		while (space_list) {
+			void *space = space_list;
+			space_list = *space_list;
+			free(space);
+		}
 		free(this);
 	}
 }
@@ -276,7 +284,7 @@ static void add_disk_to_container(struct supertype *st, struct mdinfo *sd)
 	 */
 	st2 = dup_super(st);
 	if (st2->ss->load_super(st2, dfd, NULL) == 0) {
-		st2->ss->getinfo_super(st, &info);
+		st2->ss->getinfo_super(st, &info, NULL);
 		if (st->ss->compare_super(st, st2) == 0 &&
 		    info.disk.raid_disk >= 0) {
 			/* Looks like a good member of array.
@@ -297,12 +305,43 @@ static void add_disk_to_container(struct supertype *st, struct mdinfo *sd)
 	st->update_tail = NULL;
 }
 
+/*
+ * Create and queue update structure about the removed disks.
+ * The update is prepared by super type handler and passed to the monitor
+ * thread.
+ */
+static void remove_disk_from_container(struct supertype *st, struct mdinfo *sd)
+{
+	struct metadata_update *update = NULL;
+	mdu_disk_info_t dk = {
+		.number = -1,
+		.major = sd->disk.major,
+		.minor = sd->disk.minor,
+		.raid_disk = -1,
+		.state = 0,
+	};
+	dprintf("%s: remove %d:%d from container\n",
+		__func__, sd->disk.major, sd->disk.minor);
+
+	st->update_tail = &update;
+	st->ss->remove_from_super(st, &dk);
+	/* FIXME this write_init_super shouldn't be here.
+	 * We have it after add_to_super to write to new device,
+	 * but with 'remove' we don't ant to write to that device!
+	 */
+	st->ss->write_init_super(st);
+	queue_metadata_update(update);
+	st->update_tail = NULL;
+}
+
 static void manage_container(struct mdstat_ent *mdstat,
 			     struct supertype *container)
 {
-	/* The only thing of interest here is if a new device
-	 * has been added to the container.  We add it to the
-	 * array ignoring any metadata on it.
+	/* Of interest here are:
+	 * - if a new device has been added to the container, we 
+	 *   add it to the array ignoring any metadata on it.
+	 * - if a device has been removed from the container, we
+	 *   remove it from the device list and update the metadata.
 	 * FIXME should we look for compatible metadata and take hints
 	 * about spare assignment.... probably not.
 	 */
@@ -334,6 +373,7 @@ static void manage_container(struct mdstat_ent *mdstat,
 			if (!found) {
 				cd = *cdp;
 				*cdp = (*cdp)->next;
+				remove_disk_from_container(container, cd);
 				free(cd);
 			} else
 				cdp = &(*cdp)->next;
@@ -385,21 +425,62 @@ static void manage_member(struct mdstat_ent *mdstat,
 	 * We do not need to look for device state changes here, that
 	 * is dealt with by the monitor.
 	 *
-	 * We just look for changes which suggest that a reshape is
-	 * being requested.
-	 * Unfortunately decreases in raid_disks don't show up in
-	 * mdstat until the reshape completes FIXME.
+	 * If a reshape is being requested, monitor will have noticed
+	 * that sync_action changed and will have set check_reshape.
+	 * We just need to see if new devices have appeared.  All metadata
+	 * updates will already have been processed.
 	 *
-	 * Actually, we also want to handle degraded arrays here by
+	 * We also want to handle degraded arrays here by
 	 * trying to find and assign a spare.
 	 * We do that whenever the monitor tells us too.
 	 */
+	char buf[64];
+	int frozen;
+	struct supertype *container = a->container;
+
+	if (container == NULL)
+		/* Raced with something */
+		return;
+
 	// FIXME
 	a->info.array.raid_disks = mdstat->raid_disks;
-	a->info.array.chunk_size = mdstat->chunk_size;
 	// MORE
 
-	if (a->check_degraded) {
+	/* honor 'frozen' */
+	if (sysfs_get_str(&a->info, NULL, "metadata_version", buf, sizeof(buf)) > 0)
+		frozen = buf[9] == '-';
+	else
+		frozen = 1; /* can't read metadata_version assume the worst */
+
+	/* If sync_action is not 'idle' then don't try recovery now */
+	if (!frozen
+	    && sysfs_get_str(&a->info, NULL, "sync_action", buf, sizeof(buf)) > 0
+	    && strncmp(buf, "idle", 4) != 0)
+		frozen = 1;
+
+	if (mdstat->level) {
+		int level = map_name(pers, mdstat->level);
+		if (level == 0 || level == LEVEL_LINEAR) {
+			a->container = NULL;
+			wakeup_monitor();
+			return;
+		}
+		else if (a->info.array.level != level && level > 0) {
+			struct active_array *newa = duplicate_aa(a);
+			if (newa) {
+				newa->info.array.level = level;
+				replace_array(container, a, newa);
+				a = newa;
+			}
+		}
+	}
+
+	/* We don't check the array while any update is pending, as it
+	 * might container a change (such as a spare assignment) which
+	 * could affect our decisions.
+	 */
+	if (a->check_degraded && !frozen &&
+	    update_queue == NULL && update_queue_pending == NULL) {
 		struct metadata_update *updates = NULL;
 		struct mdinfo *newdev = NULL;
 		struct active_array *newa;
@@ -410,7 +491,7 @@ static void manage_member(struct mdstat_ent *mdstat,
 		/* The array may not be degraded, this is just a good time
 		 * to check.
 		 */
-		newdev = a->container->ss->activate_spare(a, &updates);
+		newdev = container->ss->activate_spare(a, &updates);
 		if (!newdev)
 			return;
 
@@ -435,7 +516,7 @@ static void manage_member(struct mdstat_ent *mdstat,
 		}
 		queue_metadata_update(updates);
 		updates = NULL;
-		replace_array(a->container, a, newa);
+		replace_array(container, a, newa);
 		sysfs_set_str(&a->info, NULL, "sync_action", "recover");
  out:
 		while (newdev) {
@@ -444,6 +525,52 @@ static void manage_member(struct mdstat_ent *mdstat,
 			newdev = d;
 		}
 		free_updates(&updates);
+	}
+
+	if (a->check_reshape) {
+		/* mdadm might have added some devices to the array.
+		 * We want to disk_init_and_add any such device to a
+		 * duplicate_aa and replace a with that.
+		 * mdstat doesn't have enough info so we sysfs_read
+		 * and look for new stuff.
+		 */
+		struct mdinfo *info, *d, *d2, *newd;
+		unsigned long long array_size;
+		struct active_array *newa = NULL;
+		a->check_reshape = 0;
+		info = sysfs_read(-1, mdstat->devnum,
+				  GET_DEVS|GET_OFFSET|GET_SIZE|GET_STATE);
+		if (!info)
+			goto out2;
+		for (d = info->devs; d; d = d->next) {
+			if (d->disk.raid_disk < 0)
+				continue;
+			for (d2 = a->info.devs; d2; d2 = d2->next)
+				if (d2->disk.raid_disk ==
+				    d->disk.raid_disk)
+					break;
+			if (d2)
+				/* already have this one */
+				continue;
+			if (!newa) {
+				newa = duplicate_aa(a);
+				if (!newa)
+					break;
+			}
+			newd = malloc(sizeof(*newd));
+			if (!newd)
+				continue;
+			disk_init_and_add(newd, d, newa);
+		}
+		if (sysfs_get_ll(info, NULL, "array_size", &array_size) == 0
+		    && a->info.custom_array_size > array_size*2) {
+			sysfs_set_num(info, NULL, "array_size",
+				      a->info.custom_array_size/2);
+		}
+	out2:
+		sysfs_free(info);
+		if (newa)
+			replace_array(container, a, newa);
 	}
 }
 
@@ -483,9 +610,13 @@ static void manage_new(struct mdstat_ent *mdstat,
 	char *inst;
 	int i;
 	int failed = 0;
+	char buf[40];
 
 	/* check if array is ready to be monitored */
-	if (!mdstat->active)
+	if (!mdstat->active || !mdstat->level)
+		return;
+	if (strcmp(mdstat->level, "raid0") == 0 ||
+	    strcmp(mdstat->level, "linear") == 0)
 		return;
 
 	mdi = sysfs_read(-1, mdstat->devnum,
@@ -511,7 +642,7 @@ static void manage_new(struct mdstat_ent *mdstat,
 
 	new->container = container;
 
-	inst = &mdstat->metadata_version[10+strlen(container->devname)+1];
+	inst = to_subarray(mdstat, container->devname);
 
 	new->info.array = mdi->array;
 	new->info.component_size = mdi->component_size;
@@ -543,6 +674,29 @@ static void manage_new(struct mdstat_ent *mdstat,
 	new->sync_completed_fd = sysfs_open(new->devnum, NULL, "sync_completed");
 	dprintf("%s: inst: %d action: %d state: %d\n", __func__, atoi(inst),
 		new->action_fd, new->info.state_fd);
+
+	/* reshape_position is set by mdadm in sysfs
+	 * read this information for new arrays only (empty victim)
+	 */
+	if ((victim == NULL) &&
+	    (sysfs_get_str(mdi, NULL, "sync_action", buf, 40) > 0) &&
+	    (strncmp(buf, "reshape", 7) == 0)) {
+		if (sysfs_get_ll(mdi, NULL, "reshape_position",
+			&new->last_checkpoint) != 0)
+			new->last_checkpoint = 0;
+		else {
+			int data_disks = mdi->array.raid_disks;
+			if (mdi->array.level == 4 || mdi->array.level == 5)
+				data_disks--;
+			if (mdi->array.level == 6)
+				data_disks -= 2;
+
+			new->last_checkpoint /= data_disks;
+		}
+		dprintf("mdmon: New monitored array is under reshape.\n"
+			"       Last checkpoint is: %llu\n",
+			new->last_checkpoint);
+	}
 
 	sysfs_free(mdi);
 
@@ -627,6 +781,7 @@ static void handle_message(struct supertype *container, struct metadata_update *
 		mu->buf = msg->buf;
 		msg->buf = NULL;
 		mu->space = NULL;
+		mu->space_list = NULL;
 		mu->next = NULL;
 		if (container->ss->prepare_update)
 			container->ss->prepare_update(container, mu);
@@ -656,7 +811,13 @@ void read_sock(struct supertype *container)
 		/* read and validate the message */
 		if (receive_message(fd, &msg, tmo) == 0) {
 			handle_message(container, &msg);
-			if (ack(fd, tmo) < 0)
+			if (msg.len == 0) {
+				/* ping reply with version */
+				msg.buf = Version;
+				msg.len = strlen(Version) + 1;
+				if (send_message(fd, &msg, tmo) < 0)
+					terminate = 1;
+			} else if (ack(fd, tmo) < 0)
 				terminate = 1;
 		} else
 			terminate = 1;

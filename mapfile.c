@@ -334,31 +334,20 @@ struct map_ent *map_by_name(struct map_ent **map, char *name)
  * version super_by_fd does this automatically, this routine is meant as
  * a supplement for guess_super()
  */
-static void set_member_info(struct supertype *st, struct mdstat_ent *ent)
+static char *get_member_info(struct mdstat_ent *ent)
 {
-
-	st->subarray[0] = '\0';
 
 	if (ent->metadata_version == NULL ||
 	    strncmp(ent->metadata_version, "external:", 9) != 0)
-		return;
+		return NULL;
 
 	if (is_subarray(&ent->metadata_version[9])) {
-		char version[strlen(ent->metadata_version)+1];
 		char *subarray;
-		char *name = &version[10];
 
-		strcpy(version, ent->metadata_version);
-		subarray = strrchr(version, '/');
-		name = &version[10];
-
-		if (!subarray)
-			return;
-		*subarray++ = '\0';
-
-		st->container_dev = devname2devnum(name);
-		strncpy(st->subarray, subarray, sizeof(st->subarray));
+		subarray = strrchr(ent->metadata_version, '/');
+		return subarray + 1;
 	}
+	return NULL;
 }
 
 void RebuildMap(void)
@@ -391,8 +380,9 @@ void RebuildMap(void)
 			int dfd;
 			int ok;
 			struct supertype *st;
+			char *subarray = NULL;
 			char *path;
-			struct mdinfo info;
+			struct mdinfo *info;
 
 			sprintf(dn, "%d:%d", sd->disk.major, sd->disk.minor);
 			dfd = dev_open(dn, O_RDONLY);
@@ -402,13 +392,14 @@ void RebuildMap(void)
 			if ( st == NULL)
 				ok = -1;
 			else {
-				set_member_info(st, md);
+				subarray = get_member_info(md);
 				ok = st->ss->load_super(st, dfd, NULL);
 			}
 			close(dfd);
 			if (ok != 0)
 				continue;
-			st->ss->getinfo_super(st, &info);
+			info = st->ss->container_content(st, subarray);
+
 			if (md->devnum >= 0)
 				path = map_dev(MD_MAJOR, md->devnum, 0);
 			else
@@ -428,7 +419,7 @@ void RebuildMap(void)
 				 *   find a unique name based on metadata name.
 				 *   
 				 */
-				struct mddev_ident_s *match = conf_match(&info, st);
+				struct mddev_ident *match = conf_match(info, st);
 				struct stat stb;
 				if (match && match->devname && match->devname[0] == '/') {
 					path = match->devname;
@@ -446,13 +437,13 @@ void RebuildMap(void)
 					     st->ss->match_home(st, homehost) != 1) &&
 					    st->ss->match_home(st, "any") != 1 &&
 					    (require_homehost
-					     || ! conf_name_is_free(info.name)))
+					     || ! conf_name_is_free(info->name)))
 						/* require a numeric suffix */
 						unum = 0;
 					else
 						/* allow name to be used as-is if no conflict */
 						unum = -1;
-					name = info.name;
+					name = info->name;
 					if (!*name) {
 						name = st->ss->name;
 						if (!isdigit(name[strlen(name)-1]) &&
@@ -485,9 +476,10 @@ void RebuildMap(void)
 				}
 			}
 			map_add(&map, md->devnum,
-				info.text_version,
-				info.uuid, path);
+				info->text_version,
+				info->uuid, path);
 			st->ss->free_super(st);
+			free(info);
 			break;
 		}
 		sysfs_free(sra);

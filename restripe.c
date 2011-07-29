@@ -33,7 +33,7 @@
  *
  */
 
-static int geo_map(int block, unsigned long long stripe, int raid_disks,
+int geo_map(int block, unsigned long long stripe, int raid_disks,
 		   int level, int layout)
 {
 	/* On the given stripe, find which disk in the array will have
@@ -42,6 +42,11 @@ static int geo_map(int block, unsigned long long stripe, int raid_disks,
 	 * '-2' means the Q syndrome.
 	 */
 	int pd;
+
+	/* layout is not relevant for raid0 and raid4 */
+	if ((level == 0) ||
+	    (level == 4))
+		layout = 0;
 
 	switch(level*100 + layout) {
 	case 000:
@@ -218,7 +223,7 @@ static void xor_blocks(char *target, char **sources, int disks, int size)
 	}
 }
 
-static void qsyndrome(uint8_t *p, uint8_t *q, uint8_t **sources, int disks, int size)
+void qsyndrome(uint8_t *p, uint8_t *q, uint8_t **sources, int disks, int size)
 {
 	int d, z;
 	uint8_t wq0, wp0, wd0, w10, w20;
@@ -280,10 +285,13 @@ uint8_t raid6_gfmul[256][256];
 uint8_t raid6_gfexp[256];
 uint8_t raid6_gfinv[256];
 uint8_t raid6_gfexi[256];
+uint8_t raid6_gflog[256];
+uint8_t raid6_gfilog[256];
 void make_tables(void)
 {
 	int i, j;
 	uint8_t v;
+	uint32_t b, log;
 
 	/* Compute multiplication table */
 	for (i = 0; i < 256; i++)
@@ -307,10 +315,26 @@ void make_tables(void)
 	for (i = 0; i < 256; i ++)
 		raid6_gfexi[i] = raid6_gfinv[raid6_gfexp[i] ^ 1];
 
+	/* Compute log and inverse log */
+	/* Modified code from:
+	 *    http://web.eecs.utk.edu/~plank/plank/papers/CS-96-332.html
+	 */
+	b = 1;
+	raid6_gflog[0] = 0;
+	raid6_gfilog[255] = 0;
+
+	for (log = 0; log < 255; log++) {
+		raid6_gflog[b] = (uint8_t) log;
+		raid6_gfilog[log] = (uint8_t) b;
+		b = b << 1;
+		if (b & 256) b = b ^ 0435;
+	}
+
 	tables_ready = 1;
 }
 
 uint8_t *zero;
+int zero_size;
 /* Following was taken from linux/drivers/md/raid6recov.c */
 
 /* Recover two failed data blocks. */
@@ -382,16 +406,96 @@ void raid6_datap_recov(int disks, size_t bytes, int faila, uint8_t **ptrs)
 	}
 }
 
-/* Save data:
- * We are given:
- *  A list of 'fds' of the active disks.  Some may be absent.
- *  A geometry: raid_disks, chunk_size, level, layout
- *  A list of 'fds' for mirrored targets.  They are already seeked to
- *    right (Write) location
- *  A start and length which must be stripe-aligned
- *  'buf' is large enough to hold one stripe, and is aligned
- */
+/* Try to find out if a specific disk has a problem */
+int raid6_check_disks(int data_disks, int start, int chunk_size,
+		      int level, int layout, int diskP, int diskQ,
+		      char *p, char *q, char **stripes)
+{
+	int i;
+	int data_id, diskD;
+	uint8_t Px, Qx;
+	int curr_broken_disk = -1;
+	int prev_broken_disk = -1;
+	int broken_status = 0;
 
+	for(i = 0; i < chunk_size; i++) {
+		Px = (uint8_t)stripes[diskP][i] ^ (uint8_t)p[i];
+		Qx = (uint8_t)stripes[diskQ][i] ^ (uint8_t)q[i];
+
+		if((Px != 0) && (Qx == 0))
+			curr_broken_disk = diskP;
+
+
+		if((Px == 0) && (Qx != 0))
+			curr_broken_disk = diskQ;
+
+
+		if((Px != 0) && (Qx != 0)) {
+			data_id = (raid6_gflog[Qx] - raid6_gflog[Px]);
+			if(data_id < 0) data_id += 255;
+			diskD = geo_map(data_id, start/chunk_size,
+					data_disks + 2, level, layout);
+			curr_broken_disk = diskD;
+		}
+
+		if((Px == 0) && (Qx == 0))
+			curr_broken_disk = curr_broken_disk;
+
+		if(curr_broken_disk >= data_disks + 2)
+			broken_status = 2;
+
+		switch(broken_status) {
+		case 0:
+			if(curr_broken_disk != -1) {
+				prev_broken_disk = curr_broken_disk;
+				broken_status = 1;
+			}
+			break;
+
+		case 1:
+			if(curr_broken_disk != prev_broken_disk)
+				broken_status = 2;
+			break;
+
+		case 2:
+		default:
+			curr_broken_disk = prev_broken_disk = -2;
+			break;
+		}
+	}
+
+	return curr_broken_disk;
+}
+
+/*******************************************************************************
+ * Function:	save_stripes
+ * Description:
+ *	Function reads data (only data without P and Q) from array and writes
+ * it to buf and opcjonaly to backup files
+ * Parameters:
+ *	source		: A list of 'fds' of the active disks.
+ *			  Some may be absent
+ *	offsets		: A list of offsets on disk belonging
+ *			 to the array [bytes]
+ *	raid_disks	: geometry: number of disks in the array
+ *	chunk_size	: geometry: chunk size [bytes]
+ *	level		: geometry: RAID level
+ *	layout		: geometry: layout
+ *	nwrites		: number of backup files
+ *	dest		: A list of 'fds' for mirrored targets
+ *			  (e.g. backup files). They are already seeked to right
+ *			  (write) location. If NULL, data will be wrote
+ *			  to the buf only
+ *	start		: start address of data to read (must be stripe-aligned)
+ *			  [bytes]
+ *	length	-	: length of data to read (must be stripe-aligned)
+ *			  [bytes]
+ *	buf		: buffer for data. It is large enough to hold
+ *			  one stripe. It is stripe aligned
+ * Returns:
+ *	 0 : success
+ *	-1 : fail
+ ******************************************************************************/
 int save_stripes(int *source, unsigned long long *offsets,
 		 int raid_disks, int chunk_size, int level, int layout,
 		 int nwrites, int *dest,
@@ -402,16 +506,33 @@ int save_stripes(int *source, unsigned long long *offsets,
 	int data_disks = raid_disks - (level == 0 ? 0 : level <=5 ? 1 : 2);
 	int disk;
 	int i;
+	unsigned long long length_test;
 
 	if (!tables_ready)
 		make_tables();
 
-	if (zero == NULL) {
+	if (zero == NULL || chunk_size > zero_size) {
+		if (zero)
+			free(zero);
 		zero = malloc(chunk_size);
-		memset(zero, 0, chunk_size);
+		if (zero)
+			memset(zero, 0, chunk_size);
+		zero_size = chunk_size;
 	}
 
 	len = data_disks * chunk_size;
+	length_test = length / len;
+	length_test *= len;
+
+	if (length != length_test) {
+		dprintf("Error: save_stripes(): Data are not alligned. EXIT\n");
+		dprintf("\tArea for saving stripes (length) = %llu\n", length);
+		dprintf("\tWork step (len)                  = %i\n", len);
+		dprintf("\tExpected save area (length_test) = %llu\n",
+			length_test);
+		abort();
+	}
+
 	while (length > 0) {
 		int failed = 0;
 		int fdisk[3], fblock[3];
@@ -531,11 +652,14 @@ int save_stripes(int *source, unsigned long long *offsets,
 						  fdisk[0], fdisk[1], bufs);
 			}
 		}
-
-		for (i=0; i<nwrites; i++)
-			if (write(dest[i], buf, len) != len)
-				return -1;
-
+		if (dest) {
+			for (i = 0; i < nwrites; i++)
+				if (write(dest[i], buf, len) != len)
+					return -1;
+		} else {
+			/* build next stripe in buffer */
+			buf += len;
+		}
 		length -= len;
 		start += len;
 	}
@@ -556,7 +680,8 @@ int save_stripes(int *source, unsigned long long *offsets,
 int restore_stripes(int *dest, unsigned long long *offsets,
 		    int raid_disks, int chunk_size, int level, int layout,
 		    int source, unsigned long long read_offset,
-		    unsigned long long start, unsigned long long length)
+		    unsigned long long start, unsigned long long length,
+		    char *src_buf)
 {
 	char *stripe_buf;
 	char **stripes = malloc(raid_disks * sizeof(char*));
@@ -567,11 +692,16 @@ int restore_stripes(int *dest, unsigned long long *offsets,
 
 	if (posix_memalign((void**)&stripe_buf, 4096, raid_disks * chunk_size))
 		stripe_buf = NULL;
-	if (zero == NULL) {
+
+	if (zero == NULL || chunk_size > zero_size) {
+		if (zero)
+			free(zero);
 		zero = malloc(chunk_size);
 		if (zero)
 			memset(zero, 0, chunk_size);
+		zero_size = chunk_size;
 	}
+
 	if (stripe_buf == NULL || stripes == NULL || blocks == NULL
 	    || zero == NULL) {
 		free(stripe_buf);
@@ -580,7 +710,7 @@ int restore_stripes(int *dest, unsigned long long *offsets,
 		free(zero);
 		return -2;
 	}
-	for (i=0; i<raid_disks; i++)
+	for (i = 0; i < raid_disks; i++)
 		stripes[i] = stripe_buf + i * chunk_size;
 	while (length > 0) {
 		unsigned int len = data_disks * chunk_size;
@@ -589,15 +719,24 @@ int restore_stripes(int *dest, unsigned long long *offsets,
 		int syndrome_disks;
 		if (length < len)
 			return -3;
-		for (i=0; i < data_disks; i++) {
+		for (i = 0; i < data_disks; i++) {
 			int disk = geo_map(i, start/chunk_size/data_disks,
 					   raid_disks, level, layout);
-			if ((unsigned long long)lseek64(source, read_offset, 0)
-			    != read_offset)
-				return -1;
-			if (read(source, stripes[disk],
-						     chunk_size) != chunk_size)
-				return -1;
+			if (src_buf == NULL) {
+				/* read from file */
+				if (lseek64(source,
+					read_offset, 0) != (off64_t)read_offset)
+					return -1;
+				if (read(source,
+					 stripes[disk],
+					 chunk_size) != chunk_size)
+					return -1;
+			} else {
+				/* read from input buffer */
+				memcpy(stripes[disk],
+				       src_buf + read_offset,
+				       chunk_size);
+			}
 			read_offset += chunk_size;
 		}
 		/* We have the data, now do the parity */
@@ -668,7 +807,12 @@ int test_stripes(int *source, unsigned long long *offsets,
 	char *q = malloc(chunk_size);
 
 	int i;
+	int diskP, diskQ;
 	int data_disks = raid_disks - (level == 5 ? 1: 2);
+
+	if (!tables_ready)
+		make_tables();
+
 	for ( i = 0 ; i < raid_disks ; i++)
 		stripes[i] = stripe_buf + i * chunk_size;
 
@@ -688,17 +832,26 @@ int test_stripes(int *source, unsigned long long *offsets,
 		switch(level) {
 		case 6:
 			qsyndrome(p, q, (uint8_t**)blocks, data_disks, chunk_size);
-			disk = geo_map(-1, start/chunk_size, raid_disks,
+			diskP = geo_map(-1, start/chunk_size, raid_disks,
 				       level, layout);
-			if (memcmp(p, stripes[disk], chunk_size) != 0) {
-				printf("P(%d) wrong at %llu\n", disk,
+			if (memcmp(p, stripes[diskP], chunk_size) != 0) {
+				printf("P(%d) wrong at %llu\n", diskP,
 				       start / chunk_size);
 			}
-			disk = geo_map(-2, start/chunk_size, raid_disks,
+			diskQ = geo_map(-2, start/chunk_size, raid_disks,
 				       level, layout);
-			if (memcmp(q, stripes[disk], chunk_size) != 0) {
-				printf("Q(%d) wrong at %llu\n", disk,
+			if (memcmp(q, stripes[diskQ], chunk_size) != 0) {
+				printf("Q(%d) wrong at %llu\n", diskQ,
 				       start / chunk_size);
+			}
+			disk = raid6_check_disks(data_disks, start, chunk_size,
+						 level, layout, diskP, diskQ,
+						 p, q, stripes);
+			if(disk >= 0) {
+			  printf("Possible failed disk: %d\n", disk);
+			}
+			if(disk == -2) {
+			  printf("Failure detected, but disk unknown\n");
 			}
 			break;
 		}
@@ -777,6 +930,14 @@ main(int argc, char *argv[])
 		exit(3);
 	}
 	for (i=0; i<raid_disks; i++) {
+		char *p;
+		p = strchr(argv[9+i], ':');
+
+		if(p != NULL) {
+			*p++ = '\0';
+			offsets[i] = atoll(p) * 512;
+		}
+			
 		fds[i] = open(argv[9+i], O_RDWR);
 		if (fds[i] < 0) {
 			perror(argv[9+i]);
@@ -810,7 +971,7 @@ main(int argc, char *argv[])
 		int rv = restore_stripes(fds, offsets,
 					 raid_disks, chunk_size, level, layout,
 					 storefd, 0ULL,
-					 start, length);
+					 start, length, NULL);
 		if (rv != 0) {
 			fprintf(stderr,
 				"test_stripe: restore_stripes returned %d\n",

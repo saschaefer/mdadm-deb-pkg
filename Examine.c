@@ -30,7 +30,7 @@
 #endif
 #include	"md_u.h"
 #include	"md_p.h"
-int Examine(mddev_dev_t devlist, int brief, int export, int scan,
+int Examine(struct mddev_dev *devlist, int brief, int export, int scan,
 	    int SparcAdjust, struct supertype *forcest,
 	    char *homehost)
 {
@@ -64,6 +64,7 @@ int Examine(mddev_dev_t devlist, int brief, int export, int scan,
 
 	for (; devlist ; devlist=devlist->next) {
 		struct supertype *st;
+		int have_container = 0;
 
 		fd = dev_open(devlist->devname, O_RDONLY);
 		if (fd < 0) {
@@ -75,15 +76,31 @@ int Examine(mddev_dev_t devlist, int brief, int export, int scan,
 			err = 1;
 		}
 		else {
+			int container = 0;
 			if (forcest)
 				st = dup_super(forcest);
-			else
+			else if (must_be_container(fd)) {
+				/* might be a container */
+				st = super_by_fd(fd, NULL);
+				container = 1;
+			} else
 				st = guess_super(fd);
-			if (st)
-				err = st->ss->load_super(st, fd,
-							 (brief||scan) ? NULL
-							   :devlist->devname);
-			else {
+			if (st) {
+				err = 1;
+				st->ignore_hw_compat = 1;
+				if (!container)
+					err = st->ss->load_super(st, fd,
+								 (brief||scan) ? NULL
+								 :devlist->devname);
+				if (err && st->ss->load_container) {
+					err = st->ss->load_container(st, fd,
+								 (brief||scan) ? NULL
+								 :devlist->devname);
+					if (!err)
+						have_container = 1;
+				}
+				st->ignore_hw_compat = 0;
+			} else {
 				if (!brief) {
 					fprintf(stderr, Name ": No md superblock detected on %s.\n", devlist->devname);
 					rv = 1;
@@ -100,7 +117,11 @@ int Examine(mddev_dev_t devlist, int brief, int export, int scan,
 					     devlist->devname, 0, 0, NULL);
 		/* Ok, its good enough to try, though the checksum could be wrong */
 
-		if (brief) {
+		if (brief && st->ss->brief_examine_super == NULL) {
+			if (!scan)
+				fprintf(stderr, Name ": No brief listing for %s on %s\n",
+					st->ss->name, devlist->devname);
+		} else if (brief) {
 			struct array *ap;
 			char *d;
 			for (ap=arrays; ap; ap=ap->next) {
@@ -115,10 +136,10 @@ int Examine(mddev_dev_t devlist, int brief, int export, int scan,
 				ap->spares = 0;
 				ap->st = st;
 				arrays = ap;
-				st->ss->getinfo_super(st, &ap->info);
+				st->ss->getinfo_super(st, &ap->info, NULL);
 			} else
-				st->ss->getinfo_super(st, &ap->info);
-			if (!st->loaded_container &&
+				st->ss->getinfo_super(st, &ap->info, NULL);
+			if (!have_container &&
 			    !(ap->info.disk.state & (1<<MD_DISK_SYNC)))
 				ap->spares++;
 			d = dl_strdup(devlist->devname);
@@ -126,6 +147,7 @@ int Examine(mddev_dev_t devlist, int brief, int export, int scan,
 		} else if (export) {
 			if (st->ss->export_examine_super)
 				st->ss->export_examine_super(st);
+			st->ss->free_super(st);
 		} else {
 			printf("%s:\n",devlist->devname);
 			st->ss->examine_super(st, homehost);

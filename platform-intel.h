@@ -19,7 +19,7 @@
 #include <asm/types.h>
 #include <strings.h>
 
-/* The IMSM OROM Version Table definition */
+/* The IMSM Capability (IMSM AHCI and ISCU OROM/EFI variable) Version Table definition */
 struct imsm_orom {
 	__u8 signature[4];
 	__u8 table_ver_major; /* Currently 2 (can change with future revs) */
@@ -58,9 +58,13 @@ struct imsm_orom {
 	#define IMSM_OROM_SSS_32MB (1 << 14)
 	#define IMSM_OROM_SSS_64MB (1 << 15)
 	__u16 dpa; /* Disks Per Array supported */
+	#define IMSM_OROM_DISKS_PER_ARRAY 6
 	__u16 tds; /* Total Disks Supported */
+	#define IMSM_OROM_TOTAL_DISKS 6
 	__u8 vpa; /* # Volumes Per Array supported */
+	#define IMSM_OROM_VOLUMES_PER_ARRAY 2
 	__u8 vphba; /* # Volumes Per Host Bus Adapter supported */
+	#define IMSM_OROM_VOLUMES_PER_HBA 4
 	/* Attributes supported. This should map to the
 	 * attributes in the MPB. Also, lower 16 bits
 	 * should match/duplicate RLC bits above.
@@ -75,8 +79,20 @@ struct imsm_orom {
 	#define IMSM_OROM_ATTR_2TB (1 << 29)
 	#define IMSM_OROM_ATTR_PM (1 << 30)
 	#define IMSM_OROM_ATTR_ChecksumVerify (1 << 31)
-	__u32 reserved1;
-	__u32 reserved2;
+	__u32 capabilities;
+	#define IMSM_OROM_CAPABILITIES_Ext_SATA (1 << 0)
+	#define IMSM_OROM_CAPABILITIES_TurboMemory (1 << 1)
+	#define IMSM_OROM_CAPABILITIES_HddPassword (1 << 2)
+	#define IMSM_OROM_CAPABILITIES_DiskCoercion (1 << 3)
+	__u32 driver_features;
+	#define IMSM_OROM_CAPABILITIES_HDDUnlock (1 << 0)
+	#define IMSM_OROM_CAPABILITIES_LEDLoc (1 << 1)
+	#define IMSM_OROM_CAPABILITIES_EnterpriseSystem (1 << 2)
+	#define IMSM_OROM_CAPABILITIES_Zpodd (1 << 3)
+	#define IMSM_OROM_CAPABILITIES_LargeDramCache (1 << 4)
+	#define IMSM_OROM_CAPABILITIES_Rohi (1 << 5)
+	#define IMSM_OROM_CAPABILITIES_ReadPatrol (1 << 6)
+	#define IMSM_OROM_CAPABILITIES_XorHw (1 << 7)
 } __attribute__((packed));
 
 static inline int imsm_orom_has_raid0(const struct imsm_orom *orom)
@@ -114,6 +130,7 @@ static inline int imsm_orom_has_chunk(const struct imsm_orom *orom, int chunk)
 	fs--; /* bit num to bit index */
 	return !!(orom->sss & (1 << (fs - 1)));
 }
+
 
 /**
  * fls - find last (most-significant) bit set
@@ -164,15 +181,46 @@ static inline int imsm_orom_default_chunk(const struct imsm_orom *orom)
 	return min(512, (1 << fs));
 }
 
+
+enum sys_dev_type {
+	SYS_DEV_UNKNOWN = 0,
+	SYS_DEV_SAS,
+	SYS_DEV_SATA,
+	SYS_DEV_MAX
+};
+
+
 struct sys_dev {
+	enum sys_dev_type type;
 	char *path;
+	char *pci_id;
+	__u16  dev_id;
 	struct sys_dev *next;
 };
 
+struct efi_guid {
+	__u8 b[16];
+};
+
+static inline char *guid_str(char *buf, struct efi_guid guid)
+{
+	sprintf(buf, "%02x%02x%02x%02x-%02x%02x-%02x%02x-"
+		     "%02x%02x-%02x%02x%02x%02x%02x%02x",
+		 guid.b[3], guid.b[2], guid.b[1], guid.b[0],
+		 guid.b[5], guid.b[4], guid.b[7], guid.b[6],
+		 guid.b[8], guid.b[9], guid.b[10], guid.b[11],
+		 guid.b[12], guid.b[13], guid.b[14], guid.b[15]);
+	return buf;
+}
+
+char *diskfd_to_devpath(int fd);
 struct sys_dev *find_driver_devices(const char *bus, const char *driver);
-__u16 devpath_to_vendor(const char *dev_path);
+struct sys_dev *find_intel_devices(void);
 void free_sys_dev(struct sys_dev **list);
+const struct imsm_orom *find_imsm_capability(enum sys_dev_type hba_id);
 const struct imsm_orom *find_imsm_orom(void);
 int disk_attached_to_hba(int fd, const char *hba_path);
 char *devt_to_devpath(dev_t dev);
 int path_attached_to_hba(const char *disk_path, const char *hba_path);
+const char *get_sys_dev_type(enum sys_dev_type);
+

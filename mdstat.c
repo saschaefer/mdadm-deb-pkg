@@ -185,7 +185,6 @@ struct mdstat_ent *mdstat_read(int hold, int start)
 		ent->resync = 0;
 		ent->metadata_version = NULL;
 		ent->raid_disks = 0;
-		ent->chunk_size = 0;
 		ent->devcnt = 0;
 		ent->members = NULL;
 
@@ -241,11 +240,27 @@ struct mdstat_ent *mdstat_read(int hold, int start)
 				   w[l-1] == '%' &&
 				   (eq=strchr(w, '=')) != NULL ) {
 				ent->percent = atoi(eq+1);
-				if (strncmp(w,"resync", 4)==0)
+				if (strncmp(w,"resync", 6)==0)
 					ent->resync = 1;
+				else if (strncmp(w, "reshape", 7)==0)
+					ent->resync = 2;
+				else
+					ent->resync = 0;
 			} else if (ent->percent == -1 &&
-				   strncmp(w, "resync", 4)==0) {
-				ent->resync = 1;
+				   (w[0] == 'r' || w[0] == 'c')) {
+				if (strncmp(w, "resync", 4)==0)
+					ent->resync = 1;
+				if (strncmp(w, "reshape", 7)==0)
+					ent->resync = 2;
+				if (strncmp(w, "recovery", 8)==0)
+					ent->resync = 0;
+				if (strncmp(w, "check", 5)==0)
+					ent->resync = 3;
+
+				if (l > 8 && strcmp(w+l-8, "=DELAYED"))
+					ent->percent = 0;
+				if (l > 8 && strcmp(w+l-8, "=PENDING"))
+					ent->percent = 0;
 			} else if (ent->percent == -1 &&
 				   w[0] >= '0' &&
 				   w[0] <= '9' &&
@@ -361,6 +376,39 @@ struct mdstat_ent *mdstat_by_component(char *name)
 					return mdstat;
 				}
 			}
+		ent = mdstat;
+		mdstat = mdstat->next;
+		ent->next = NULL;
+		free_mdstat(ent);
+	}
+	return NULL;
+}
+
+struct mdstat_ent *mdstat_by_subdev(char *subdev, int container)
+{
+	struct mdstat_ent *mdstat = mdstat_read(0, 0);
+
+	while (mdstat) {
+		struct mdstat_ent *ent;
+		char *pos;
+		/* metadata version must match:
+		 *   external:[/-]md%d/%s
+		 * where %d is 'container' and %s is 'subdev'
+		 */
+		if (mdstat->metadata_version &&
+		    strncmp(mdstat->metadata_version, "external:", 9) == 0 &&
+		    strchr("/-", mdstat->metadata_version[9]) != NULL &&
+		    strncmp(mdstat->metadata_version+10, "md", 2) == 0 &&
+		    strtoul(mdstat->metadata_version+12, &pos, 10)
+		    == (unsigned)container &&
+		    pos > mdstat->metadata_version+12 &&
+		    *pos == '/' &&
+		    strcmp(pos+1, subdev) == 0
+			) {
+			free_mdstat(mdstat->next);
+			mdstat->next = NULL;
+			return mdstat;
+		}
 		ent = mdstat;
 		mdstat = mdstat->next;
 		ent->next = NULL;

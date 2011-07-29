@@ -300,7 +300,8 @@ int main(int argc, char *argv[])
 		/* launch an mdmon instance for each container found */
 		mdstat = mdstat_read(0, 0);
 		for (e = mdstat; e; e = e->next) {
-			if (strncmp(e->metadata_version, "external:", 9) == 0 &&
+			if (e->metadata_version &&
+			    strncmp(e->metadata_version, "external:", 9) == 0 &&
 			    !is_subarray(&e->metadata_version[9])) {
 				devname = devnum2devname(e->devnum);
 				/* update cmdline so this mdmon instance can be
@@ -398,7 +399,6 @@ static int mdmon(char *devname, int devnum, int must_fork, int takeover)
 	container->devnum = devnum;
 	container->devname = devname;
 	container->arrays = NULL;
-	container->subarray[0] = 0;
 	container->sock = -1;
 
 	if (!container->devname) {
@@ -469,7 +469,7 @@ static int mdmon(char *devname, int devnum, int must_fork, int takeover)
 		}
 		close(victim_sock);
 	}
-	if (container->ss->load_super(container, mdfd, devname)) {
+	if (container->ss->load_container(container, mdfd, devname)) {
 		fprintf(stderr, "mdmon: Cannot load metadata for %s\n",
 			devname);
 		exit(3);
@@ -514,7 +514,45 @@ static int mdmon(char *devname, int devnum, int must_fork, int takeover)
 	ignore = dup(0);
 #endif
 
+	/* This silliness is to stop the compiler complaining
+	 * that we ignore 'ignore'
+	 */
+	if (ignore)
+		ignore++;
+
 	do_manager(container);
 
 	exit(0);
+}
+
+/* Some stub functions so super-* can link with us */
+int child_monitor(int afd, struct mdinfo *sra, struct reshape *reshape,
+		  struct supertype *st, unsigned long blocks,
+		  int *fds, unsigned long long *offsets,
+		  int dests, int *destfd, unsigned long long *destoffsets)
+{
+	return 0;
+}
+
+int restore_stripes(int *dest, unsigned long long *offsets,
+		    int raid_disks, int chunk_size, int level, int layout,
+		    int source, unsigned long long read_offset,
+		    unsigned long long start, unsigned long long length,
+		    char *src_buf)
+{
+	return 1;
+}
+
+void abort_reshape(struct mdinfo *sra)
+{
+	return;
+}
+
+int save_stripes(int *source, unsigned long long *offsets,
+		 int raid_disks, int chunk_size, int level, int layout,
+		 int nwrites, int *dest,
+		 unsigned long long start, unsigned long long length,
+		 char *buf)
+{
+	return 0;
 }

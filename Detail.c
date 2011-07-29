@@ -49,8 +49,9 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 	int is_rebuilding = 0;
 	int failed = 0;
 	struct supertype *st;
+	char *subarray = NULL;
 	int max_disks = MD_SB_DISKS; /* just a default */
-	struct mdinfo info;
+	struct mdinfo *info = NULL;
 	struct mdinfo *sra;
 	char *member = NULL;
 	char *container = NULL;
@@ -88,7 +89,7 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 		return rv;
 	}
 	sra = sysfs_read(fd, 0, GET_VERSION);
-	st = super_by_fd(fd);
+	st = super_by_fd(fd, &subarray);
 
 	if (fstat(fd, &stb) != 0 && !S_ISBLK(stb.st_mode))
 		stb.st_rdev = 0;
@@ -97,16 +98,13 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 	if (st)
 		max_disks = st->max_devs;
 
-	if (sra && is_subarray(sra->text_version) &&
-		strchr(sra->text_version+1, '/')) {
+	if (subarray) {
 		/* This is a subarray of some container.
 		 * We want the name of the container, and the member
 		 */
-		char *s = strchr(sra->text_version+1, '/');
-		int dn;
-		*s++ = '\0';
-		member = s;
-		dn = devname2devnum(sra->text_version+1);
+		int dn = st->container_dev;
+
+		member = subarray;
 		container = map_dev(dev2major(dn), dev2minor(dn), 1);
 	}
 
@@ -143,25 +141,34 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 		close(fd2);
 		if (err)
 			continue;
-		st->ss->getinfo_super(st, &info);
+		if (info)
+			free(info);
+		if (subarray)
+			info = st->ss->container_content(st, subarray);
+		else {
+			info = malloc(sizeof(*info));
+			st->ss->getinfo_super(st, info, NULL);
+		}
+		if (!info)
+			continue;
 
 		if (array.raid_disks != 0 && /* container */
-		    (info.array.ctime != array.ctime ||
-		     info.array.level != array.level)) {
+		    (info->array.ctime != array.ctime ||
+		     info->array.level != array.level)) {
 			st->ss->free_super(st);
 			continue;
 		}
 		/* some formats (imsm) have free-floating-spares
-		 * with a uuid of uuid_match_any, they don't
+		 * with a uuid of uuid_zero, they don't
 		 * have very good info about the rest of the
 		 * container, so keep searching when
 		 * encountering such a device.  Otherwise, stop
 		 * after the first successful call to
 		 * ->load_super.
 		 */
-		if (memcmp(uuid_match_any,
-			   info.uuid,
-			   sizeof(uuid_match_any)) == 0) {
+		if (memcmp(uuid_zero,
+			   info->uuid,
+			   sizeof(uuid_zero)) == 0) {
 			st->ss->free_super(st);
 			continue;
 		}
@@ -191,13 +198,13 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 				       array.major_version, array.minor_version);
 		}
 		
-		if (st && st->sb) {
+		if (st && st->sb && info) {
 			char nbuf[64];
 			struct map_ent *mp, *map = NULL;
 
-			fname_from_uuid(st, &info, nbuf, ':');
+			fname_from_uuid(st, info, nbuf, ':');
 			printf("MD_UUID=%s\n", nbuf+5);
-			mp = map_by_uuid(&map, info.uuid);
+			mp = map_by_uuid(&map, info->uuid);
 			if (mp && mp->path &&
 			    strncmp(mp->path, "/dev/md/", 8) == 0)
 				printf("MD_DEVNAME=%s\n", mp->path+8);
@@ -355,6 +362,7 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 		if (atime)
 			printf("    Update Time : %.24s\n", ctime(&atime));
 		if (array.raid_disks) {
+			static char *sync_action[] = {", recovering",", resyncing",", reshaping",", checking"};
 			char *st;
 			if (avail_disks == array.raid_disks)
 				st = "";
@@ -367,8 +375,7 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 			printf("          State : %s%s%s%s\n",
 			       (array.state&(1<<MD_SB_CLEAN))?"clean":"active",
 			       st,
-			       (!e || e->percent < 0) ? "" :
-			       (e->resync) ? ", resyncing": ", recovering",
+			       (!e || e->percent < 0) ? "" : sync_action[e->resync],
 			       larray_size ? "": ", Not Started");
 		}
 		if (array.raid_disks)
@@ -410,50 +417,50 @@ int Detail(char *dev, int brief, int export, int test, char *homehost)
 
 		if (e && e->percent >= 0) {
 			printf(" Re%s Status : %d%% complete\n",
-			       (st && st->sb && info.reshape_active)?
+			       (st && st->sb && info->reshape_active)?
 			          "shape":"build",
 			       e->percent);
 			is_rebuilding = 1;
 		}
 		free_mdstat(ms);
 
-		if (st->sb && info.reshape_active) {
+		if (st->sb && info->reshape_active) {
 #if 0
 This is pretty boring
-			printf("  Reshape pos'n : %llu%s\n", (unsigned long long) info.reshape_progress<<9,
-			       human_size((unsigned long long)info.reshape_progress<<9));
+			printf("  Reshape pos'n : %llu%s\n", (unsigned long long) info->reshape_progress<<9,
+			       human_size((unsigned long long)info->reshape_progress<<9));
 #endif
-			if (info.delta_disks > 0)
+			if (info->delta_disks > 0)
 				printf("  Delta Devices : %d, (%d->%d)\n",
-				       info.delta_disks, array.raid_disks - info.delta_disks, array.raid_disks);
-			if (info.delta_disks < 0)
+				       info->delta_disks, array.raid_disks - info->delta_disks, array.raid_disks);
+			if (info->delta_disks < 0)
 				printf("  Delta Devices : %d, (%d->%d)\n",
-				       info.delta_disks, array.raid_disks, array.raid_disks + info.delta_disks);
-			if (info.new_level != array.level) {
-				char *c = map_num(pers, info.new_level);
+				       info->delta_disks, array.raid_disks, array.raid_disks + info->delta_disks);
+			if (info->new_level != array.level) {
+				char *c = map_num(pers, info->new_level);
 				printf("      New Level : %s\n", c?c:"-unknown-");
 			}
-			if (info.new_level != array.level ||
-			    info.new_layout != array.layout) {
-				if (info.new_level == 5) {
-					char *c = map_num(r5layout, info.new_layout);
+			if (info->new_level != array.level ||
+			    info->new_layout != array.layout) {
+				if (info->new_level == 5) {
+					char *c = map_num(r5layout, info->new_layout);
 					printf("     New Layout : %s\n",
 					       c?c:"-unknown-");
 				}
-				if (info.new_level == 6) {
-					char *c = map_num(r6layout, info.new_layout);
+				if (info->new_level == 6) {
+					char *c = map_num(r6layout, info->new_layout);
 					printf("     New Layout : %s\n",
 					       c?c:"-unknown-");
 				}
-				if (info.new_level == 10) {
+				if (info->new_level == 10) {
 					printf("     New Layout : near=%d, %s=%d\n",
-					       info.new_layout&255,
-					       (info.new_layout&0x10000)?"offset":"far",
-					       (info.new_layout>>8)&255);
+					       info->new_layout&255,
+					       (info->new_layout&0x10000)?"offset":"far",
+					       (info->new_layout>>8)&255);
 				}
 			}
-			if (info.new_chunk != array.chunk_size)
-				printf("  New Chunksize : %dK\n", info.new_chunk/1024);
+			if (info->new_chunk != array.chunk_size)
+				printf("  New Chunksize : %dK\n", info->new_chunk/1024);
 			printf("\n");
 		} else if (e && e->percent >= 0)
 			printf("\n");
@@ -482,7 +489,7 @@ This is pretty boring
 				if (load_sys(path, vbuf) < 0)
 					continue;
 				if (strncmp(vbuf, "external:", 9) != 0 ||
-				    !is_subarray(sra->sys_name+9) ||
+				    !is_subarray(vbuf+9) ||
 				    strncmp(vbuf+10, sra->sys_name, nlen) != 0 ||
 				    vbuf[10+nlen] != '/')
 					continue;
@@ -500,6 +507,7 @@ This is pretty boring
 		else
 			printf("    Number   Major   Minor   RaidDevice\n");
 	}
+	free(info);
 
 	for (d= 0; d < max_disks; d++) {
 		char *dv;
@@ -581,6 +589,7 @@ This is pretty boring
 	free(disks);
 out:
 	close(fd);
+	free(subarray);
 	return rv;
 }
 

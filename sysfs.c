@@ -90,11 +90,7 @@ void sysfs_init(struct mdinfo *mdi, int fd, int devnum)
 	}
 	if (devnum == NoMdDev)
 		return;
-	if (devnum >= 0)
-		sprintf(mdi->sys_name, "md%d", devnum);
-	else
-		sprintf(mdi->sys_name, "md_d%d",
-			-1-devnum);
+	fmt_devname(mdi->sys_name, devnum);
 }
 
 
@@ -432,8 +428,24 @@ int sysfs_uevent(struct mdinfo *sra, char *event)
 		return -1;
 	n = write(fd, event, strlen(event));
 	close(fd);
+	if (n != (int)strlen(event)) {
+		dprintf(Name ": failed to write '%s' to '%s' (%s)\n",
+			event, fname, strerror(errno));
+		return -1;
+	}
 	return 0;
 }	
+
+int sysfs_attribute_available(struct mdinfo *sra, struct mdinfo *dev, char *name)
+{
+	char fname[50];
+	struct stat st;
+
+	sprintf(fname, "/sys/block/%s/md/%s/%s",
+		sra->sys_name, dev?dev->sys_name:"", name);
+
+	return stat(fname, &st) == 0;
+}
 
 int sysfs_get_fd(struct mdinfo *sra, struct mdinfo *dev,
 		       char *name)
@@ -524,6 +536,7 @@ int sysfs_set_array(struct mdinfo *info, int vers)
 {
 	int rv = 0;
 	char ver[100];
+	int raid_disks = info->array.raid_disks;
 
 	ver[0] = 0;
 	if (info->array.major_version == -1 &&
@@ -542,7 +555,9 @@ int sysfs_set_array(struct mdinfo *info, int vers)
 		return 0; /* FIXME */
 	rv |= sysfs_set_str(info, NULL, "level",
 			    map_num(pers, info->array.level));
-	rv |= sysfs_set_num(info, NULL, "raid_disks", info->array.raid_disks);
+	if (info->reshape_active && info->delta_disks != UnSet)
+		raid_disks -= info->delta_disks;
+	rv |= sysfs_set_num(info, NULL, "raid_disks", raid_disks);
 	rv |= sysfs_set_num(info, NULL, "chunk_size", info->array.chunk_size);
 	rv |= sysfs_set_num(info, NULL, "layout", info->array.layout);
 	rv |= sysfs_set_num(info, NULL, "component_size", info->component_size/2);
@@ -562,6 +577,18 @@ int sysfs_set_array(struct mdinfo *info, int vers)
 
 	if (info->array.level > 0)
 		rv |= sysfs_set_num(info, NULL, "resync_start", info->resync_start);
+
+	if (info->reshape_active) {
+		rv |= sysfs_set_num(info, NULL, "reshape_position",
+				    info->reshape_progress);
+		rv |= sysfs_set_num(info, NULL, "chunk_size", info->new_chunk);
+		rv |= sysfs_set_num(info, NULL, "layout", info->new_layout);
+		rv |= sysfs_set_num(info, NULL, "raid_disks",
+				    info->array.raid_disks);
+		/* We don't set 'new_level' here.  That can only happen
+		 * once the reshape completes.
+		 */
+	}
 	return rv;
 }
 
@@ -603,7 +630,8 @@ int sysfs_add_disk(struct mdinfo *sra, struct mdinfo *sd, int resume)
 			 * yet, so just ignore status for now.
 			 */
 			sysfs_set_str(sra, sd, "state", "insync");
-		rv |= sysfs_set_num(sra, sd, "slot", sd->disk.raid_disk);
+		if (sd->disk.raid_disk >= 0)
+			rv |= sysfs_set_num(sra, sd, "slot", sd->disk.raid_disk);
 		if (resume)
 			sysfs_set_num(sra, sd, "recovery_start", sd->recovery_start);
 	}
@@ -688,7 +716,7 @@ int sysfs_disk_to_scsi_id(int fd, __u32 *id)
 	if (fstat(fd, &st))
 		return 1;
 
-	snprintf(path, sizeof(path), "/sys/dev/block/%d:%d/device",
+	snprintf(path, sizeof(path), "/sys/dev/block/%d:%d/device/scsi_device",
 		 major(st.st_rdev), minor(st.st_rdev));
 
 	dir = opendir(path);
@@ -697,8 +725,7 @@ int sysfs_disk_to_scsi_id(int fd, __u32 *id)
 
 	de = readdir(dir);
 	while (de) {
-		if (strncmp("scsi_disk:", de->d_name,
-			    strlen("scsi_disk:")) == 0)
+		if (strchr(de->d_name, ':'))
 			break;
 		de = readdir(dir);
 	}
@@ -707,21 +734,20 @@ int sysfs_disk_to_scsi_id(int fd, __u32 *id)
 	if (!de)
 		return 1;
 
-	c1 = strchr(de->d_name, ':');
-	c1++;
+	c1 = de->d_name;
 	c2 = strchr(c1, ':');
 	*c2 = '\0';
 	*id = strtol(c1, NULL, 10) << 24; /* host */
 	c1 = c2 + 1;
 	c2 = strchr(c1, ':');
 	*c2 = '\0';
-	*id |= strtol(c1, NULL, 10) << 16; /* channel */
+	*id |= strtol(c1, NULL, 10) << 16; /* bus */
 	c1 = c2 + 1;
 	c2 = strchr(c1, ':');
 	*c2 = '\0';
-	*id |= strtol(c1, NULL, 10) << 8; /* lun */
+	*id |= strtol(c1, NULL, 10) << 8; /* target */
 	c1 = c2 + 1;
-	*id |= strtol(c1, NULL, 10); /* id */
+	*id |= strtol(c1, NULL, 10); /* lun */
 
 	return 0;
 }
@@ -789,105 +815,24 @@ int sysfs_unique_holder(int devnum, long rdev)
 		return found;
 }
 
-#ifndef MDASSEMBLE
-
-static char *clean_states[] = {
-	"clear", "inactive", "readonly", "read-auto", "clean", NULL };
-
-int WaitClean(char *dev, int sock, int verbose)
+int sysfs_freeze_array(struct mdinfo *sra)
 {
-	int fd;
-	struct mdinfo *mdi;
-	int rv = 1;
-	int devnum;
-
-	fd = open(dev, O_RDONLY); 
-	if (fd < 0) {
-		if (verbose)
-			fprintf(stderr, Name ": Couldn't open %s: %s\n", dev, strerror(errno));
-		return 1;
-	}
-
-	devnum = fd2devnum(fd);
-	mdi = sysfs_read(fd, devnum, GET_VERSION|GET_LEVEL|GET_SAFEMODE);
-	if (!mdi) {
-		if (verbose)
-			fprintf(stderr, Name ": Failed to read sysfs attributes for "
-				"%s\n", dev);
-		close(fd);
-		return 0;
-	}
-
-	switch(mdi->array.level) {
-	case LEVEL_LINEAR:
-	case LEVEL_MULTIPATH:
-	case 0:
-		/* safemode delay is irrelevant for these levels */
-		rv = 0;
-		
-	}
-
-	/* for internal metadata the kernel handles the final clean
-	 * transition, containers can never be dirty
+	/* Try to freeze resync/rebuild on this array/container.
+	 * Return -1 if the array is busy,
+	 * return -2 container cannot be frozen,
+	 * return 0 if this kernel doesn't support 'frozen'
+	 * return 1 if it worked.
 	 */
-	if (!is_subarray(mdi->text_version))
-		rv = 0;
+	char buf[20];
 
-	/* safemode disabled ? */
-	if (mdi->safe_mode_delay == 0)
-		rv = 0;
-
-	if (rv) {
-		int state_fd = sysfs_open(fd2devnum(fd), NULL, "array_state");
-		char buf[20];
-		fd_set fds;
-		struct timeval tm;
-
-		/* minimize the safe_mode_delay and prepare to wait up to 5s
-		 * for writes to quiesce
-		 */
-		sysfs_set_safemode(mdi, 1);
-		tm.tv_sec = 5;
-		tm.tv_usec = 0;
-
-		FD_ZERO(&fds);
-
-		/* wait for array_state to be clean */
-		while (1) {
-			rv = read(state_fd, buf, sizeof(buf));
-			if (rv < 0)
-				break;
-			if (sysfs_match_word(buf, clean_states) <= 4)
-				break;
-			FD_SET(state_fd, &fds);
-			rv = select(state_fd + 1, NULL, NULL, &fds, &tm);
-			if (rv < 0 && errno != EINTR)
-				break;
-			lseek(state_fd, 0, SEEK_SET);
-		}
-		if (rv < 0)
-			rv = 1;
-		else if (fping_monitor(sock) == 0 ||
-			 ping_monitor(mdi->text_version) == 0) {
-			/* we need to ping to close the window between array
-			 * state transitioning to clean and the metadata being
-			 * marked clean
-			 */
-			rv = 0;
-		} else
-			rv = 1;
-		if (rv && verbose)
-			fprintf(stderr, Name ": Error waiting for %s to be clean\n",
-				dev);
-
-		/* restore the original safe_mode_delay */
-		sysfs_set_safemode(mdi, mdi->safe_mode_delay);
-		close(state_fd);
-	}
-
-	sysfs_free(mdi);
-	close(fd);
-
-	return rv;
+	if (!sysfs_attribute_available(sra, NULL, "sync_action"))
+		return 1; /* no sync_action == frozen */
+	if (sysfs_get_str(sra, NULL, "sync_action", buf, 20) <= 0)
+		return 0;
+	if (strcmp(buf, "idle\n") != 0 &&
+	    strcmp(buf, "frozen\n") != 0)
+		return -1;
+	if (sysfs_set_str(sra, NULL, "sync_action", "frozen") < 0)
+		return 0;
+	return 1;
 }
-#endif /* MDASSEMBLE */

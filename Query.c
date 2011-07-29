@@ -35,7 +35,7 @@ int Query(char *dev)
 	int fd = open(dev, O_RDONLY);
 	int vers;
 	int ioctlerr;
-	int superror, superrno;
+	int superror;
 	struct mdinfo info;
 	mdu_array_info_t array;
 	struct supertype *st = NULL;
@@ -82,15 +82,14 @@ int Query(char *dev)
 		       array.spare_disks, array.spare_disks==1?"":"s");
 	}
 	st = guess_super(fd);
-	if (st) {
+	if (st)
 		superror = st->ss->load_super(st, fd, dev);
-		superrno = errno;
-	} else
+	else
 		superror = -1;
 	close(fd);
 	if (superror == 0) {
 		/* array might be active... */
-		st->ss->getinfo_super(st, &info);
+		st->ss->getinfo_super(st, &info, NULL);
 		if (st->ss == &super0) {
 			mddev = get_md_name(info.array.md_minor);
 			disc.number = info.disk.number;

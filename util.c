@@ -65,55 +65,7 @@ struct blkpg_partition {
 	char volname[BLKPG_VOLNAMELTH];	/* volume label */
 };
 
-/* partition table structures so we can check metadata position
- * against the end of the last partition.
- * Only handle MBR ant GPT partition tables.
- */
-struct MBR_part_record {
-  __u8 bootable;
-  __u8 first_head;
-  __u8 first_sector;
-  __u8 first_cyl;
-  __u8 part_type;
-  __u8 last_head;
-  __u8 last_sector;
-  __u8 last_cyl;
-  __u32 first_sect_lba;
-  __u32 blocks_num;
-};
-
-struct MBR {
-	__u8 pad[446];
-	struct MBR_part_record parts[4];
-	__u16 magic;
-} __attribute__((packed));
-
-struct GPT_part_entry {
-  unsigned char type_guid[16];
-  unsigned char partition_guid[16];
-  __u64 starting_lba;
-  __u64 ending_lba;
-  unsigned char attr_bits[8];
-  unsigned char name[72];
-} __attribute__((packed));
-
-struct GPT {
-	__u64 magic;
-	__u32 revision;
-	__u32 header_size;
-	__u32 crc;
-	__u32 pad1;
-	__u64 current_lba;
-	__u64 backup_lba;
-	__u64 first_lba;
-	__u64 last_lba;
-	__u8 guid[16];
-	__u64 part_start;
-	__u32 part_cnt;
-	__u32 part_size;
-	__u32 part_crc;
-	__u8 pad2[420];
-} __attribute__((packed));
+#include "part.h"
 
 /* Force a compilation error if condition is true */
 #define BUILD_BUG_ON(condition) ((void)BUILD_BUG_ON_ZERO(condition))
@@ -123,14 +75,6 @@ struct GPT {
    e.g. in a structure initializer (or where-ever else comma expressions
    aren't permitted). */
 #define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:-!!(e); }))
-
-
-/* MBR/GPT magic numbers */
-#define	MBR_SIGNATURE_MAGIC	__cpu_to_le16(0xAA55)
-#define	GPT_SIGNATURE_MAGIC	__cpu_to_le64(0x5452415020494645ULL)
-
-#define MBR_PARTITIONS               4
-#define MBR_GPT_PARTITION_TYPE       0xEE
 
 /*
  * Parse a 128 bit uuid in 4 integers
@@ -217,6 +161,31 @@ int get_linux_version()
 }
 
 #ifndef MDASSEMBLE
+int mdadm_version(char *version)
+{
+	int a, b, c;
+	char *cp;
+
+	if (!version)
+		version = Version;
+
+	cp = strchr(version, '-');
+	if (!cp || *(cp+1) != ' ' || *(cp+2) != 'v')
+		return -1;
+	cp += 3;
+	a = strtoul(cp, &cp, 10);
+	if (*cp != '.')
+		return -1;
+	b = strtoul(cp+1, &cp, 10);
+	if (*cp == '.')
+		c = strtoul(cp+1, &cp, 10);
+	else
+		c = 0;
+	if (*cp != ' ' && *cp != '-')
+		return -1;
+	return (a*1000000)+(b*1000)+c;
+}
+
 long long parse_size(char *size)
 {
 	/* parse 'size' which should be a number optionally
@@ -326,6 +295,19 @@ int test_partition(int fd)
 	return 1;
 }
 
+int test_partition_from_id(dev_t id)
+{
+	char buf[20];
+	int fd, rv;
+
+	sprintf(buf, "%d:%d", major(id), minor(id));
+	fd = dev_open(buf, O_RDONLY);
+	if (fd < 0)
+		return -1;
+	rv = test_partition(fd);
+	close(fd);
+	return rv;
+}
 
 int enough(int level, int raid_disks, int layout, int clean,
 	   char *avail, int avail_disks)
@@ -376,13 +358,44 @@ int enough(int level, int raid_disks, int layout, int clean,
 	}
 }
 
-const int uuid_match_any[4] = { ~0, ~0, ~0, ~0 };
+int enough_fd(int fd)
+{
+	struct mdu_array_info_s array;
+	struct mdu_disk_info_s disk;
+	int avail_disks = 0;
+	int i;
+	char *avail;
+
+	if (ioctl(fd, GET_ARRAY_INFO, &array) != 0 ||
+	    array.raid_disks <= 0)
+		return 0;
+	avail = calloc(array.raid_disks, 1);
+	for (i=0; i < 1024 && array.nr_disks > 0; i++) {
+		disk.number = i;
+		if (ioctl(fd, GET_DISK_INFO, &disk) != 0)
+			continue;
+		if (disk.major == 0 && disk.minor == 0)
+			continue;
+		array.nr_disks--;
+
+		if (! (disk.state & (1<<MD_DISK_SYNC)))
+			continue;
+		if (disk.raid_disk < 0 || disk.raid_disk >= array.raid_disks)
+			continue;
+		avail_disks++;
+		avail[disk.raid_disk] = 1;
+	}
+	/* This is used on an active array, so assume it is clean */
+	return enough(array.level, array.raid_disks, array.layout,
+		      1,
+		      avail, avail_disks);
+}
+
+
+const int uuid_zero[4] = { 0, 0, 0, 0 };
+
 int same_uuid(int a[4], int b[4], int swapuuid)
 {
-	if (memcmp(a, uuid_match_any, sizeof(int[4])) == 0 ||
-	    memcmp(b, uuid_match_any, sizeof(int[4])) == 0)
-		return 1;
-
 	if (swapuuid) {
 		/* parse uuids are hostendian.
 		 * uuid's from some superblocks are big-ending
@@ -526,7 +539,7 @@ int check_raid(int fd, char *name)
 	/* Looks like a raid array .. */
 	fprintf(stderr, Name ": %s appears to be part of a raid array:\n",
 		name);
-	st->ss->getinfo_super(st, &info);
+	st->ss->getinfo_super(st, &info, NULL);
 	st->ss->free_super(st);
 	crtime = info.array.ctime;
 	level = map_num(pers, info.array.level);
@@ -556,27 +569,6 @@ int ask(char *mesg)
 	return 0;
 }
 #endif /* MDASSEMBLE */
-
-char *map_num(mapping_t *map, int num)
-{
-	while (map->name) {
-		if (map->num == num)
-			return map->name;
-		map++;
-	}
-	return NULL;
-}
-
-int map_name(mapping_t *map, char *name)
-{
-	while (map->name) {
-		if (strcmp(map->name, name)==0)
-			return map->num;
-		map++;
-	}
-	return UnSet;
-}
-
 
 int is_standard(char *dev, int *nump)
 {
@@ -612,122 +604,6 @@ int is_standard(char *dev, int *nump)
 	if (nump) *nump = num;
 
 	return type;
-}
-
-
-/*
- * convert a major/minor pair for a block device into a name in /dev, if possible.
- * On the first call, walk /dev collecting name.
- * Put them in a simple linked listfor now.
- */
-struct devmap {
-    int major, minor;
-    char *name;
-    struct devmap *next;
-} *devlist = NULL;
-int devlist_ready = 0;
-
-int add_dev(const char *name, const struct stat *stb, int flag, struct FTW *s)
-{
-	struct stat st;
-
-	if (S_ISLNK(stb->st_mode)) {
-		if (stat(name, &st) != 0)
-			return 0;
-		stb = &st;
-	}
-
-	if ((stb->st_mode&S_IFMT)== S_IFBLK) {
-		char *n = strdup(name);
-		struct devmap *dm = malloc(sizeof(*dm));
-		if (strncmp(n, "/dev/./", 7)==0)
-			strcpy(n+4, name+6);
-		if (dm) {
-			dm->major = major(stb->st_rdev);
-			dm->minor = minor(stb->st_rdev);
-			dm->name = n;
-			dm->next = devlist;
-			devlist = dm;
-		}
-	}
-	return 0;
-}
-
-#ifndef HAVE_NFTW
-#ifdef HAVE_FTW
-int add_dev_1(const char *name, const struct stat *stb, int flag)
-{
-	return add_dev(name, stb, flag, NULL);
-}
-int nftw(const char *path, int (*han)(const char *name, const struct stat *stb, int flag, struct FTW *s), int nopenfd, int flags)
-{
-	return ftw(path, add_dev_1, nopenfd);
-}
-#else
-int nftw(const char *path, int (*han)(const char *name, const struct stat *stb, int flag, struct FTW *s), int nopenfd, int flags)
-{
-	return 0;
-}
-#endif /* HAVE_FTW */
-#endif /* HAVE_NFTW */
-
-/*
- * Find a block device with the right major/minor number.
- * If we find multiple names, choose the shortest.
- * If we find a name in /dev/md/, we prefer that.
- * This applies only to names for MD devices.
- */
-char *map_dev(int major, int minor, int create)
-{
-	struct devmap *p;
-	char *regular = NULL, *preferred=NULL;
-	int did_check = 0;
-
-	if (major == 0 && minor == 0)
-			return NULL;
-
- retry:
-	if (!devlist_ready) {
-		char *dev = "/dev";
-		struct stat stb;
-		while(devlist) {
-			struct devmap *d = devlist;
-			devlist = d->next;
-			free(d->name);
-			free(d);
-		}
-		if (lstat(dev, &stb)==0 &&
-		    S_ISLNK(stb.st_mode))
-			dev = "/dev/.";
-		nftw(dev, add_dev, 10, FTW_PHYS);
-		devlist_ready=1;
-		did_check = 1;
-	}
-
-	for (p=devlist; p; p=p->next)
-		if (p->major == major &&
-		    p->minor == minor) {
-			if (strncmp(p->name, "/dev/md/",8) == 0) {
-				if (preferred == NULL ||
-				    strlen(p->name) < strlen(preferred))
-					preferred = p->name;
-			} else {
-				if (regular == NULL ||
-				    strlen(p->name) < strlen(regular))
-					regular = p->name;
-			}
-		}
-	if (!regular && !preferred && !did_check) {
-		devlist_ready = 0;
-		goto retry;
-	}
-	if (create && !regular && !preferred) {
-		static char buf[30];
-		snprintf(buf, sizeof(buf), "%d:%d", major, minor);
-		regular = buf;
-	}
-
-	return preferred ? preferred : regular;
 }
 
 unsigned long calc_csum(void *super, int bytes)
@@ -838,34 +714,6 @@ unsigned long long calc_array_size(int level, int raid_disks, int layout,
 	}
 	devsize &= ~(unsigned long long)((chunksize>>9)-1);
 	return data_disks * devsize;
-}
-
-int get_mdp_major(void)
-{
-static int mdp_major = -1;
-	FILE *fl;
-	char *w;
-	int have_block = 0;
-	int have_devices = 0;
-	int last_num = -1;
-
-	if (mdp_major != -1)
-		return mdp_major;
-	fl = fopen("/proc/devices", "r");
-	if (!fl)
-		return -1;
-	while ((w = conf_word(fl, 1))) {
-		if (have_block && strcmp(w, "devices:")==0)
-			have_devices = 1;
-		have_block =  (strcmp(w, "Block")==0);
-		if (isdigit(w[0]))
-			last_num = atoi(w);
-		if (have_devices && strcmp(w, "mdp")==0)
-			mdp_major = last_num;
-		free(w);
-	}
-	fclose(fl);
-	return mdp_major;
 }
 
 #if !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO)
@@ -989,24 +837,34 @@ int dev_open(char *dev, int flags)
 	return fd;
 }
 
-int open_dev(int devnum)
+int open_dev_flags(int devnum, int flags)
 {
 	char buf[20];
 
 	sprintf(buf, "%d:%d", dev2major(devnum), dev2minor(devnum));
-	return dev_open(buf, O_RDWR);
+	return dev_open(buf, flags);
+}
+
+int open_dev(int devnum)
+{
+	return open_dev_flags(devnum, O_RDONLY);
 }
 
 int open_dev_excl(int devnum)
 {
 	char buf[20];
 	int i;
+	int flags = O_RDWR;
 
 	sprintf(buf, "%d:%d", dev2major(devnum), dev2minor(devnum));
 	for (i=0 ; i<25 ; i++) {
-		int fd = dev_open(buf, O_RDWR|O_EXCL);
+		int fd = dev_open(buf, flags|O_EXCL);
 		if (fd >= 0)
 			return fd;
+		if (errno == EACCES && flags == O_RDWR) {
+			flags = O_RDONLY;
+			continue;
+		}
 		if (errno != EBUSY)
 			return fd;
 		usleep(200000);
@@ -1049,11 +907,16 @@ void wait_for(char *dev, int fd)
 		dprintf("%s: timeout waiting for %s\n", __func__, dev);
 }
 
-struct superswitch *superlist[] = { &super0, &super1, &super_ddf, &super_imsm, NULL };
+struct superswitch *superlist[] =
+{
+	&super0, &super1,
+	&super_ddf, &super_imsm,
+	&mbr, &gpt,
+	NULL };
 
 #if !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO)
 
-struct supertype *super_by_fd(int fd)
+struct supertype *super_by_fd(int fd, char **subarrayp)
 {
 	mdu_array_info_t array;
 	int vers;
@@ -1064,6 +927,7 @@ struct supertype *super_by_fd(int fd)
 	char version[20];
 	int i;
 	char *subarray = NULL;
+	int container = NoMdDev;
 
 	sra = sysfs_read(fd, 0, GET_VERSION);
 
@@ -1085,15 +949,15 @@ struct supertype *super_by_fd(int fd)
 	}
 	if (minor == -2 && is_subarray(verstr)) {
 		char *dev = verstr+1;
+
 		subarray = strchr(dev, '/');
-		int devnum;
 		if (subarray)
 			*subarray++ = '\0';
-		devnum = devname2devnum(dev);
 		subarray = strdup(subarray);
+		container = devname2devnum(dev);
 		if (sra)
 			sysfs_free(sra);
-		sra = sysfs_read(-1, devnum, GET_VERSION);
+		sra = sysfs_read(-1, container, GET_VERSION);
 		if (sra && sra->text_version[0])
 			verstr = sra->text_version;
 		else
@@ -1107,17 +971,33 @@ struct supertype *super_by_fd(int fd)
 		sysfs_free(sra);
 	if (st) {
 		st->sb = NULL;
-		if (subarray) {
-			strncpy(st->subarray, subarray, 32);
-			st->subarray[31] = 0;
-			free(subarray);
-		} else
-			st->subarray[0] = 0;
-	}
+		if (subarrayp)
+			*subarrayp = subarray;
+		st->container_dev = container;
+		st->devnum = fd2devnum(fd);
+	} else
+		free(subarray);
+
 	return st;
 }
 #endif /* !defined(MDASSEMBLE) || defined(MDASSEMBLE) && defined(MDASSEMBLE_AUTO) */
 
+int dev_size_from_id(dev_t id, unsigned long long *size)
+{
+	char buf[20];
+	int fd;
+
+	sprintf(buf, "%d:%d", major(id), minor(id));
+	fd = dev_open(buf, O_RDONLY);
+	if (fd < 0)
+		return 0;
+	if (get_dev_size(fd, NULL, size)) {
+		close(fd);
+		return 1;
+	}
+	close(fd);
+	return 0;
+}
 
 struct supertype *dup_super(struct supertype *orig)
 {
@@ -1132,13 +1012,12 @@ struct supertype *dup_super(struct supertype *orig)
 	st->ss = orig->ss;
 	st->max_devs = orig->max_devs;
 	st->minor_version = orig->minor_version;
-	strcpy(st->subarray, orig->subarray);
 	st->sb = NULL;
 	st->info = NULL;
 	return st;
 }
 
-struct supertype *guess_super(int fd)
+struct supertype *guess_super_type(int fd, enum guess_types guess_type)
 {
 	/* try each load_super to find the best match,
 	 * and return the best superswitch
@@ -1150,14 +1029,22 @@ struct supertype *guess_super(int fd)
 	int i;
 
 	st = malloc(sizeof(*st));
+	memset(st, 0, sizeof(*st));
+	st->container_dev = NoMdDev;
+
 	for (i=0 ; superlist[i]; i++) {
 		int rv;
 		ss = superlist[i];
+		if (guess_type == guess_array && ss->add_to_super == NULL)
+			continue;
+		if (guess_type == guess_partitions && ss->add_to_super != NULL)
+			continue;
 		memset(st, 0, sizeof(*st));
+		st->ignore_hw_compat = 1;
 		rv = ss->load_super(st, fd, NULL);
 		if (rv == 0) {
 			struct mdinfo info;
-			st->ss->getinfo_super(st, &info);
+			st->ss->getinfo_super(st, &info, NULL);
 			if (bestsuper == -1 ||
 			    besttime < info.array.ctime) {
 				bestsuper = i;
@@ -1169,9 +1056,11 @@ struct supertype *guess_super(int fd)
 	if (bestsuper != -1) {
 		int rv;
 		memset(st, 0, sizeof(*st));
+		st->ignore_hw_compat = 1;
 		rv = superlist[bestsuper]->load_super(st, fd, NULL);
 		if (rv == 0) {
 			superlist[bestsuper]->free_super(st);
+			st->ignore_hw_compat = 0;
 			return st;
 		}
 	}
@@ -1207,6 +1096,20 @@ int get_dev_size(int fd, char *dname, unsigned long long *sizep)
 	return 1;
 }
 
+/* Return true if this can only be a container, not a member device.
+ * i.e. is and md device and size is zero
+ */
+int must_be_container(int fd)
+{
+	unsigned long long size;
+	if (md_get_version(fd) < 0)
+		return 0;
+	if (get_dev_size(fd, NULL, &size) == 0)
+		return 1;
+	if (size == 0)
+		return 1;
+	return 0;
+}
 
 /* Sets endofpart parameter to the last block used by the last GPT partition on the device.
  * Returns: 1 if successful
@@ -1216,9 +1119,8 @@ int get_dev_size(int fd, char *dname, unsigned long long *sizep)
 static int get_gpt_last_partition_end(int fd, unsigned long long *endofpart)
 {
 	struct GPT gpt;
-	unsigned char buf[512];
 	unsigned char empty_gpt_entry[16]= {0};
-	struct GPT_part_entry *part;
+	struct GPT_part_entry part;
 	unsigned long long curr_part_end;
 	unsigned all_partitions, entry_size;
 	unsigned part_nr;
@@ -1226,8 +1128,9 @@ static int get_gpt_last_partition_end(int fd, unsigned long long *endofpart)
 	*endofpart = 0;
 
 	BUILD_BUG_ON(sizeof(gpt) != 512);
-	/* read GPT header */
+	/* skip protective MBR */
 	lseek(fd, 512, SEEK_SET);
+	/* read GPT header */
 	if (read(fd, &gpt, 512) != 512)
 		return 0;
 
@@ -1244,28 +1147,19 @@ static int get_gpt_last_partition_end(int fd, unsigned long long *endofpart)
 	    entry_size > 512)
 		return -1;
 
-	/* read first GPT partition entries */
-	if (read(fd, buf, 512) != 512)
-		return 0;
-
-	part = (struct GPT_part_entry*)buf;
-
 	for (part_nr=0; part_nr < all_partitions; part_nr++) {
+		/* read partition entry */
+		if (read(fd, &part, entry_size) != (ssize_t)entry_size)
+			return 0;
+
 		/* is this valid partition? */
-		if (memcmp(part->type_guid, empty_gpt_entry, 16) != 0) {
+		if (memcmp(part.type_guid, empty_gpt_entry, 16) != 0) {
 			/* check the last lba for the current partition */
-			curr_part_end = __le64_to_cpu(part->ending_lba);
+			curr_part_end = __le64_to_cpu(part.ending_lba);
 			if (curr_part_end > *endofpart)
 				*endofpart = curr_part_end;
 		}
 
-		part = (struct GPT_part_entry*)((unsigned char*)part + entry_size);
-
-		if ((unsigned char *)part >= buf + 512) {
-			if (read(fd, buf, 512) != 512)
-				return 0;
-			part = (struct GPT_part_entry*)buf;
-		}
 	}
 	return 1;
 }
@@ -1319,7 +1213,8 @@ static int get_last_partition_end(int fd, unsigned long long *endofpart)
 	return retval;
 }
 
-int check_partitions(int fd, char *dname, unsigned long long freesize)
+int check_partitions(int fd, char *dname, unsigned long long freesize,
+			unsigned long long size)
 {
 	/*
 	 * Check where the last partition ends
@@ -1342,6 +1237,12 @@ int check_partitions(int fd, char *dname, unsigned long long freesize)
 				Name ": metadata will over-write last partition on %s.\n",
 				dname);
 			return 1;
+		} else if (size && endofpart > size) {
+			/* partitions will be truncated in new device */
+			fprintf(stderr,
+				Name ": array size is too small to cover all partitions on %s.\n",
+				dname);
+			return 1;
 		}
 	}
 	return 0;
@@ -1350,10 +1251,13 @@ int check_partitions(int fd, char *dname, unsigned long long freesize)
 void get_one_disk(int mdfd, mdu_array_info_t *ainf, mdu_disk_info_t *disk)
 {
 	int d;
+
 	ioctl(mdfd, GET_ARRAY_INFO, ainf);
-	for (d = 0 ; d < ainf->raid_disks + ainf->nr_disks ; d++)
-		if (ioctl(mdfd, GET_DISK_INFO, disk) == 0)
+	for (d = 0 ; d < 1024 ; d++) {
+		if (ioctl(mdfd, GET_DISK_INFO, disk) == 0 &&
+		    (disk->major || disk->minor))
 			return;
+	}
 }
 
 int open_container(int fd)
@@ -1437,35 +1341,27 @@ int is_subarray_active(char *subarray, char *container)
 	struct mdstat_ent *mdstat = mdstat_read(0, 0);
 	struct mdstat_ent *ent;
 
-	for (ent = mdstat; ent; ent = ent->next) {
-		if (is_container_member(ent, container)) {
-			char *inst = &ent->metadata_version[10+strlen(container)+1];
-
-			if (!subarray || strcmp(inst, subarray) == 0)
+	for (ent = mdstat; ent; ent = ent->next)
+		if (is_container_member(ent, container))
+			if (strcmp(to_subarray(ent, container), subarray) == 0)
 				break;
-		}
-	}
 
 	free_mdstat(mdstat);
 
 	return ent != NULL;
 }
 
-int is_container_active(char *container)
-{
-	return is_subarray_active(NULL, container);
-}
-
 /* open_subarray - opens a subarray in a container
  * @dev: container device name
- * @st: supertype with only ->subarray set
+ * @st: empty supertype
  * @quiet: block reporting errors flag
  *
  * On success returns an fd to a container and fills in *st
  */
-int open_subarray(char *dev, struct supertype *st, int quiet)
+int open_subarray(char *dev, char *subarray, struct supertype *st, int quiet)
 {
 	struct mdinfo *mdi;
+	struct mdinfo *info;
 	int fd, err = 1;
 
 	fd = open(dev, O_RDWR|O_EXCL);
@@ -1515,18 +1411,27 @@ int open_subarray(char *dev, struct supertype *st, int quiet)
 		goto free_sysfs;
 	}
 
-	if (st->ss->load_super(st, fd, NULL)) {
+	if (!st->ss->load_container) {
 		if (!quiet)
-			fprintf(stderr, Name ": Failed to find subarray-%s in %s\n",
-				st->subarray, dev);
+			fprintf(stderr, Name ": %s is not a container\n", dev);
 		goto free_name;
 	}
 
-	if (!st->loaded_container) {
+	if (st->ss->load_container(st, fd, NULL)) {
 		if (!quiet)
-			fprintf(stderr, Name ": %s is not a container\n", dev);
+			fprintf(stderr, Name ": Failed to load metadata for %s\n",
+				dev);
+		goto free_name;
+	}
+
+	info = st->ss->container_content(st, subarray);
+	if (!info) {
+		if (!quiet)
+			fprintf(stderr, Name ": Failed to find subarray-%s in %s\n",
+				subarray, dev);
 		goto free_super;
 	}
+	free(info);
 
 	err = 0;
 
@@ -1578,6 +1483,21 @@ int add_disk(int mdfd, struct supertype *st,
 	return rv;
 }
 
+int remove_disk(int mdfd, struct supertype *st,
+		struct mdinfo *sra, struct mdinfo *info)
+{
+	int rv;
+	/* Remove the disk given by 'info' from the array */
+#ifndef MDASSEMBLE
+	if (st->ss->external)
+		rv = sysfs_set_str(sra, info, "slot", "none");
+	else
+#endif
+		rv = ioctl(mdfd, HOT_REMOVE_DISK, makedev(info->disk.major,
+							  info->disk.minor));
+	return rv;
+}
+
 int set_array_info(int mdfd, struct supertype *st, struct mdinfo *info)
 {
 	/* Initialise kernel's knowledge of array.
@@ -1616,68 +1536,6 @@ unsigned long long min_recovery_start(struct mdinfo *array)
 		recovery_start = min(recovery_start, d->recovery_start);
 
 	return recovery_start;
-}
-
-char *devnum2devname(int num)
-{
-	char name[100];
-	if (num >= 0)
-		sprintf(name, "md%d", num);
-	else
-		sprintf(name, "md_d%d", -1-num);
-	return strdup(name);
-}
-
-int devname2devnum(char *name)
-{
-	char *ep;
-	int num;
-	if (strncmp(name, "md_d", 4)==0)
-		num = -1-strtoul(name+4, &ep, 10);
-	else
-		num = strtoul(name+2, &ep, 10);
-	return num;
-}
-
-int stat2devnum(struct stat *st)
-{
-	char path[30];
-	char link[200];
-	char *cp;
-	int n;
-
-	if ((S_IFMT & st->st_mode) == S_IFBLK) {
-		if (major(st->st_rdev) == MD_MAJOR)
-			return minor(st->st_rdev);
-		else if (major(st->st_rdev) == (unsigned)get_mdp_major())
-			return -1- (minor(st->st_rdev)>>MdpMinorShift);
-
-		/* must be an extended-minor partition. Look at the
-		 * /sys/dev/block/%d:%d link which must look like
-		 * ../../block/mdXXX/mdXXXpYY
-		 */
-		sprintf(path, "/sys/dev/block/%d:%d", major(st->st_rdev),
-			minor(st->st_rdev));
-		n = readlink(path, link, sizeof(link)-1);
-		if (n <= 0)
-			return NoMdDev;
-		link[n] = 0;
-		cp = strrchr(link, '/');
-		if (cp) *cp = 0;
-		cp = strchr(link, '/');
-		if (cp && strncmp(cp, "/md", 3) == 0)
-			return devname2devnum(cp+1);
-	}
-	return NoMdDev;
-
-}
-
-int fd2devnum(int fd)
-{
-	struct stat stb;
-	if (fstat(fd, &stb) == 0)
-		return stat2devnum(&stb);
-	return NoMdDev;
 }
 
 int mdmon_pid(int devnum)
@@ -1822,6 +1680,7 @@ void append_metadata_update(struct supertype *st, void *buf, int len)
 	mu->buf = buf;
 	mu->len = len;
 	mu->space = NULL;
+	mu->space_list = NULL;
 	mu->next = NULL;
 	*st->update_tail = mu;
 	st->update_tail = &mu->next;
@@ -1833,3 +1692,73 @@ void append_metadata_update(struct supertype *st, void *buf, int len)
 unsigned int __invalid_size_argument_for_IOC = 0;
 #endif
 
+int experimental(void)
+{
+	if (check_env("MDADM_EXPERIMENTAL"))
+		return 1;
+	else {
+		fprintf(stderr, Name ": To use this feature MDADM_EXPERIMENTAL enviroment variable has to defined.\n");
+		return 0;
+	}
+}
+
+/* Pick all spares matching given criteria from a container
+ * if min_size == 0 do not check size
+ * if domlist == NULL do not check domains
+ * if spare_group given add it to domains of each spare
+ * metadata allows to test domains using metadata of destination array */
+struct mdinfo *container_choose_spares(struct supertype *st,
+				       unsigned long long min_size,
+				       struct domainlist *domlist,
+				       char *spare_group,
+				       const char *metadata, int get_one)
+{
+	struct mdinfo *d, **dp, *disks = NULL;
+
+	/* get list of all disks in container */
+	if (st->ss->getinfo_super_disks)
+		disks = st->ss->getinfo_super_disks(st);
+
+	if (!disks)
+		return disks;
+	/* find spare devices on the list */
+	dp = &disks->devs;
+	disks->array.spare_disks = 0;
+	while (*dp) {
+		int found = 0;
+		d = *dp;
+		if (d->disk.state == 0) {
+			/* check if size is acceptable */
+			unsigned long long dev_size;
+			dev_t dev = makedev(d->disk.major,d->disk.minor);
+
+			if (!min_size ||
+			   (dev_size_from_id(dev,  &dev_size) &&
+			    dev_size >= min_size))
+				found = 1;
+			/* check if domain matches */
+			if (found && domlist) {
+				struct dev_policy *pol = devnum_policy(dev);
+				if (spare_group)
+					pol_add(&pol, pol_domain,
+						spare_group, NULL);
+				if (domain_test(domlist, pol, metadata) != 1)
+					found = 0;
+				dev_policy_free(pol);
+			}
+		}
+		if (found) {
+			dp = &d->next;
+			disks->array.spare_disks++;
+			if (get_one) {
+				sysfs_free(*dp);
+				d->next = NULL;
+			}
+		} else {
+			*dp = d->next;
+			d->next = NULL;
+			sysfs_free(d);
+		}
+	}
+	return disks;
+}
