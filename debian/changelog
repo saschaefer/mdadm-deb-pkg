@@ -15,9 +15,12 @@ mdadm (3.2.2-1) UNRELEASED; urgency=low
     (closes: #611632).
   * Work around a shell coding bug for cases when there are zero active
     devices (closes: #618561).
+  * Update mdadd.sh script from Arno's webpage.
+  * Update md.txt from latest kernel source.
+  * Small typo fix in RAID5_versus_RAID10.txt
   * Bump Standards-Version to 3.9.1; no changes required.
 
- -- martin f. krafft <madduck@debian.org>  Sun, 20 Mar 2011 07:37:46 +0100
+ -- martin f. krafft <madduck@debian.org>  Fri, 29 Jul 2011 15:47:31 +0200
 
 mdadm (3.1.4-1+8efb9d1) unstable; urgency=low
 
